@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
+import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 import { Account } from "./Account.sol";
 
 contract AccountFactory {
@@ -23,4 +24,33 @@ contract AccountFactory {
         accountImplementation = address(new Account(entryPoint, webAuthnVerifier, _nameServiceOwner));
     }
 
+    /// @notice This utility function returns the address of the account that would be deployed
+    /// @dev    This is the under the hood formula used by the CREATE2 opcode
+    /// @param  loginHash The keccak256 hash of the login of the account
+    /// @return The address of the account that would be deployed
+    function getAddress(bytes32 loginHash) public view returns (address) {
+        return address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff), // init code hash prefix
+                            address(this), // deployer address
+                            loginHash, // the salt used to deploy the contract
+                            keccak256( // the init code hash
+                                abi.encodePacked(
+                                    // creation code of the contract deployed
+                                    type(ERC1967Proxy).creationCode,
+                                    // arguments passed to the constructor of the contract deployed
+                                    abi.encode(
+                                        address(accountImplementation), abi.encodeCall(Account.initialize, (loginHash))
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
 }

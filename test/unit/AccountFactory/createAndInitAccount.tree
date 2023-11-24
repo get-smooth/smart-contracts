@@ -1,0 +1,11 @@
+AccountFactory__CreateAndInitAccount
+├── it should use a deterministic deployment process
+├── given a hash already used
+│   └── it should return existing account address
+├── given a new hash
+│   └── it should deploy a new account if none exists
+├── given an incorrect valid signature
+│   └── it should revert
+├── it should call initialize
+├── it should call the proxy addFirstSigner function
+└── it should trigger an event on deployment

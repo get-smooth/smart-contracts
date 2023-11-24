@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
+
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
+import { ECDSA } from "@openzeppelin/utils/cryptography/ECDSA.sol";
+import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
 import { Account } from "./Account.sol";
 
 contract AccountFactory {
@@ -31,6 +34,17 @@ contract AccountFactory {
         // calculate the address of the account based on the loginHash and return it if it exists
         address calulatedAddress = getAddress(loginHash);
         return calulatedAddress.code.length > 0 ? calulatedAddress : address(0);
+    }
+
+    /// @notice This function check if the signature of the name service is signed by the correct entity
+    /// @param  message The message that has been signed
+    /// @param  signature The signature of the message
+    /// @return True if the signature is legit, false otherwise
+    /// @dev    Incorrect signatures are expected to lead to a revert by the library used
+    function _isNameServiceSignatureLegit(bytes32 message, bytes calldata signature) internal view returns (bool) {
+        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
+        address recoveredAddress = ECDSA.recover(hash, signature);
+        return recoveredAddress == nameServiceOwner;
     }
 
     /// @notice This utility function returns the address of the account that would be deployed

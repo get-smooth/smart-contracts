@@ -24,6 +24,15 @@ contract AccountFactory {
         accountImplementation = address(new Account(entryPoint, webAuthnVerifier, _nameServiceOwner));
     }
 
+    /// @notice This function check if an account already exists based on the loginHash given
+    /// @param  loginHash The keccak256 hash of the login of the account
+    /// @return The address of the account if it exists, address(0) otherwise
+    function _checkAccountExistence(bytes32 loginHash) internal view returns (address) {
+        // calculate the address of the account based on the loginHash and return it if it exists
+        address calulatedAddress = getAddress(loginHash);
+        return calulatedAddress.code.length > 0 ? calulatedAddress : address(0);
+    }
+
     /// @notice This utility function returns the address of the account that would be deployed
     /// @dev    This is the under the hood formula used by the CREATE2 opcode
     /// @param  loginHash The keccak256 hash of the login of the account

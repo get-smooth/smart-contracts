@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.19 <0.9.0;
 
-import { PRBTest } from "prb-test/PRBTest.sol";
 import { console2 } from "forge-std/console2.sol";
-import { StdCheats } from "forge-std/StdCheats.sol";
+import { Test } from "forge-std/Test.sol";
 
 import { Foo } from "../src/Foo.sol";
 
@@ -13,7 +12,7 @@ interface IERC20 {
 
 /// @dev If this is your first time with Forge, read this tutorial in the Foundry Book:
 /// https://book.getfoundry.sh/forge/writing-tests
-contract FooTest is PRBTest, StdCheats {
+contract FooTest is Test {
     Foo internal foo;
 
     /// @dev A function invoked before each test case is run.

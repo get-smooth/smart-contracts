@@ -12,6 +12,9 @@ import { BaseTest } from "test/BaseTest.sol";
 contract AccountFactoryDeterministicDeployment is BaseTest {
     bytes32 private constant LOGIN_HASH = keccak256("qdqd");
     address private constant SIGNER = 0x7a8c35e1CcE64FD85baeD9a3e4f399cAADb52f20;
+    // this signature has been forged using the private key of the signer and the login hash above (message)
+    bytes private constant PRE_FORGED_SIGNATURE = hex"247bbb60d4e8fd56e177234fb566331249f367465120c95ce65f"
+        hex"a784b0b917cd6e19a4b6ebfb5d93a217ea76c37ff6d98d5f3aa18015e7220543a95d215a50381c";
 
     AccountFactory private factory;
 
@@ -25,4 +28,30 @@ contract AccountFactoryDeterministicDeployment is BaseTest {
         assertEq(factory.getAddress(LOGIN_HASH), factory.createAccount(LOGIN_HASH));
     }
 
+    function test_WhenUsingTheCreateAccountAndIntFlow() external {
+        // it should deploy the account to the same address calculated by getAddress
+
+        assertEq(
+            factory.getAddress(LOGIN_HASH),
+            factory.createAndInitAccount(uint256(0), uint256(0), LOGIN_HASH, hex"", PRE_FORGED_SIGNATURE)
+        );
     }
+
+    function test_WhenUsingBothFlowsWithTheSameParameters() external {
+        // snapshot the state of the EVM before deploying the account
+        uint256 snapshot = vm.snapshot();
+
+        // deploy the account using `createAndInitAccount`
+        address createAccountAndInitAddress =
+            factory.createAndInitAccount(uint256(0), uint256(0), LOGIN_HASH, hex"", PRE_FORGED_SIGNATURE);
+
+        // revert to the state of the EVM before deploying the first account
+        vm.revertTo(snapshot);
+
+        // deploy the account using `createAccount`
+        address createAccountAddress = factory.createAccount(LOGIN_HASH);
+
+        // ensure both flows deployed the account to the same address
+        assertEq(createAccountAddress, createAccountAndInitAddress);
+    }
+}

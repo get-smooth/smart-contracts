@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Run the linter and the formatter in check mode
-        run: make quality
+        run: forge fmt --check && npx solhint "{script,src,test}/**/*.sol"
 
       - name: Add lint summary
         run: |
@@ -51,7 +51,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Compile the contracts and print their size
-        run: make compile-s
+        run: forge compile --sizes
 
       - name: Add compile summary
         run: |

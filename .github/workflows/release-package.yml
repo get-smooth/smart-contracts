@@ -39,7 +39,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Build the documentation
-        run: make doc
+        run: forge doc && forge doc --build
 
       - name: Deploy the documentation
         uses: JamesIves/github-pages-deploy-action@v4

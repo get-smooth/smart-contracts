@@ -3,11 +3,11 @@ pre-push:
   commands:
     lint:
       tags: quality
-      run: make lint
+      run: forge fmt --check && npx solhint "{script,src,test}/**/*.sol"
     format:
       tags: quality
-      run: make format
+      run: npx prettier --check "**/*.{json,md,yml}"
     test:
-      run: make test
+      run: forge test
     build:
-      run: make compile
+      run: forge compile

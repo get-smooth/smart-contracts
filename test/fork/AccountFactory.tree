@@ -1,0 +1,6 @@
+Fork__AccountFactory
+├── it must create an account with new given address
+├── it must create an account and init with new given address
+├── it must return the address of already deployed account
+├── it must return correct address of the account
+└── it must set the correct address of the entrypoint in the account

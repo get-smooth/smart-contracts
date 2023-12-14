@@ -17,4 +17,12 @@ library StorageSlotRegistry {
     bytes32 internal constant WEBAUTHN_P256R1_SIGNER =
         keccak256(abi.encode(uint256(keccak256(abi.encode("smooth.webauthn.p256r1"))) - 1)) & ~bytes32(uint256(0xff));
 
+    /// @notice This constant represents the root slot used to calculate the storage locations for vanilla signers on
+    ///         the p256k1 curve.
+    /// @dev    It is extremely important this value never changes. It must stay the same for this type of signer.
+    ///         A vanilla signer is represented by one storage slot holding the signer's address
+    ///         Final value: 0x4af245f3834b267909e0839a9d1bd5a4d800d78cbc580638b0487080d20b0900
+    bytes32 internal constant VANILLA_P256K1_SIGNER =
+        keccak256(abi.encode(uint256(keccak256(abi.encode("smooth.vanilla.p256k1"))) - 1)) & ~bytes32(uint256(0xff));
+
 }

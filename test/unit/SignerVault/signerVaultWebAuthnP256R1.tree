@@ -11,4 +11,6 @@ SignerVault__WebAuthnP256R1
 ├── it should return false if no signer exists given a client id
 ├── it should remove a stored signer based on a client id hash
 ├── it should return the stored pubkey associated to a client id hash
+├── it should return true if verify correct webauthn payload
+├── it should return false if verify incorrect webauthn payload
 └── it should always use the same root

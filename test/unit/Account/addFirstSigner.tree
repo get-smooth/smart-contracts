@@ -1,0 +1,6 @@
+Account__AddFirstSigner
+├── it reverts if the fuse is not set
+├── it burns the fuse
+├── it can not be called twice
+├── it stores the signer
+└── it emits the signer add event

@@ -6,7 +6,7 @@ import { BaseTest } from "test/BaseTest.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
     bytes32 private constant LOGIN_HASH = keccak256("qdqd");
-    address private constant EXPECTED_LOGIN_HASH_ADDRESS = 0x25b1F280fb96c868aC3f78EfaC7Da23a4d8DAab3;
+    address private constant EXPECTED_LOGIN_HASH_ADDRESS = 0x1D7C6D55303d641F01d34cF74a3Df2cD35FCC6de;
     AccountFactory private factory;
 
     function setUp() external {

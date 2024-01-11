@@ -46,7 +46,7 @@ contract AccountFactoryMultiSteps is AccountFactory {
         Account account = Account(
             payable(
                 new ERC1967Proxy{ salt: loginHash }(
-                    address(accountImplementation), abi.encodeCall(Account.initialize, (loginHash))
+                    address(accountImplementation), abi.encodeWithSelector(Account.initialize.selector)
                 )
             )
         );

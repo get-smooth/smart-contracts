@@ -91,13 +91,12 @@ contract AccountFactory {
             revert InvalidNameServiceSignature(loginHash, nameServiceSignature);
         }
 
-        // deploy the proxy for the user. During the deployment, the
-        // initialize function in the implementation contract is called
-        // using the `delegatecall` opcode
+        // deploy the proxy for the user. During the deployment, the initialize function in the implementation contract
+        // is called using the `delegatecall` opcode
         Account account = Account(
             payable(
                 new ERC1967Proxy{ salt: loginHash }(
-                    address(accountImplementation), abi.encodeCall(Account.initialize, (loginHash))
+                    address(accountImplementation), abi.encodeWithSelector(Account.initialize.selector)
                 )
             )
         );
@@ -129,7 +128,8 @@ contract AccountFactory {
                                     type(ERC1967Proxy).creationCode,
                                     // arguments passed to the constructor of the contract deployed
                                     abi.encode(
-                                        address(accountImplementation), abi.encodeCall(Account.initialize, (loginHash))
+                                        address(accountImplementation),
+                                        abi.encodeWithSelector(Account.initialize.selector)
                                     )
                                 )
                             )

@@ -2,6 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { AccountFactory } from "src/AccountFactory.sol";
+import { AccountFactoryMultiSteps } from "src/AccountFactoryMultiSteps.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 /// @notice The role of this test is to ensure our both deterministic deployment
@@ -17,18 +18,20 @@ contract AccountFactoryDeterministicDeployment is BaseTest {
         hex"a784b0b917cd6e19a4b6ebfb5d93a217ea76c37ff6d98d5f3aa18015e7220543a95d215a50381c";
 
     AccountFactory private factory;
+    AccountFactoryMultiSteps private factoryMultiSteps;
 
     function setUp() external {
         factory = new AccountFactory(address(0), address(0), SIGNER);
+        factoryMultiSteps = new AccountFactoryMultiSteps(address(0), address(0), SIGNER);
     }
 
     function test_WhenUsingTheCreateAccountFlow() external {
         // it should deploy the account to the same address calculated by getAddress
 
-        assertEq(factory.getAddress(LOGIN_HASH), factory.createAccount(LOGIN_HASH));
+        assertEq(factoryMultiSteps.getAddress(LOGIN_HASH), factoryMultiSteps.createAccount(LOGIN_HASH));
     }
 
-    function test_WhenUsingTheCreateAccountAndIntFlow() external {
+    function test_WhenUsingTheCreateAccountAndInitFlow() external {
         // it should deploy the account to the same address calculated by getAddress
 
         assertEq(
@@ -43,13 +46,13 @@ contract AccountFactoryDeterministicDeployment is BaseTest {
 
         // deploy the account using `createAndInitAccount`
         address createAccountAndInitAddress =
-            factory.createAndInitAccount(uint256(0), uint256(0), LOGIN_HASH, hex"", PRE_FORGED_SIGNATURE);
+            factoryMultiSteps.createAndInitAccount(uint256(0), uint256(0), LOGIN_HASH, hex"", PRE_FORGED_SIGNATURE);
 
-        // revert to the state of the EVM before deploying the first account
+        // revert to the state of the EVM before deploying the first account -- resetting the deployed account
         vm.revertTo(snapshot);
 
         // deploy the account using `createAccount`
-        address createAccountAddress = factory.createAccount(LOGIN_HASH);
+        address createAccountAddress = factoryMultiSteps.createAccount(LOGIN_HASH);
 
         // ensure both flows deployed the account to the same address
         assertEq(createAccountAddress, createAccountAndInitAddress);

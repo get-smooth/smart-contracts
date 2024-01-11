@@ -12,8 +12,8 @@ import { Account } from "./Account.sol";
 /// @notice This contract is a 4337-compliant factory for smart-accounts. It is in charge of deploying an account
 ///         implementation during its construction, then deploying proxies for the users. The proxies are deployed
 ///         using the CREATE2 opcode and they use the implementation contract deployed on construction as a
-///         reference. For the 1-step onboarding purpose, the factory can also be in charge of setting the first
-///         signer of the account, leading to a fully-setup account for the user.
+///         reference. Once the account has been deployed by the factory, the factory is also in charge of setting
+///         the first signer of the account, leading to a fully-setup account for the user.
 /// @dev    The name service signature is only used to set the first-signer to the account. It is a EIP-191 message
 ///         signed by the nameServiceOwner. The message is the keccak256 hash of the login of the account.
 contract AccountFactory {
@@ -21,7 +21,6 @@ contract AccountFactory {
     address public immutable nameServiceOwner;
 
     event AccountCreatedAndInit(bytes32 loginHash, address account, bytes credId, uint256 pubKeyX, uint256 pubKeyY);
-    event AccountCreated(bytes32 loginHash, address account);
 
     error InvalidNameServiceSignature(bytes32 loginHash, bytes nameServiceSignature);
 
@@ -111,33 +110,6 @@ contract AccountFactory {
         return address(account);
     }
 
-    /// @notice This is the multi-steps scenario. This function either deploys an account or returns the address of
-    ///         an existing account based on the parameter given. In any case this function set the first signer.
-    /// @param  loginHash The keccak256 hash of the login of the account
-    /// @return The address of the account (either deployed or not)
-    function createAccount(bytes32 loginHash) external returns (address) {
-        // check if the account is already deployed and return prematurely if it is
-        address alreadyDeployedAddress = _checkAccountExistence(loginHash);
-        if (alreadyDeployedAddress != address(0)) {
-            return alreadyDeployedAddress;
-        }
-
-        // deploy the proxy for the user. During the deployment call, the
-        // initialize function in the implementation contract is called
-        // using the `delegatecall` opcode
-        Account account = Account(
-            payable(
-                new ERC1967Proxy{ salt: loginHash }(
-                    address(accountImplementation), abi.encodeCall(Account.initialize, (loginHash))
-                )
-            )
-        );
-
-        emit AccountCreated(loginHash, address(account));
-
-        return address(account);
-    }
-
     /// @notice This utility function returns the address of the account that would be deployed
     /// @dev    This is the under the hood formula used by the CREATE2 opcode
     /// @param  loginHash The keccak256 hash of the login of the account
@@ -170,7 +142,7 @@ contract AccountFactory {
 }
 
 // NOTE:
-// - Both creation methods defined in this contract follow the EIP-4337 recommandations.
+// - The creation method defined in this contract follow the EIP-4337 recommandations.
 //   That's why the methods return the address of the already deployed account if it exists.
 //   https://eips.ethereum.org/EIPS/eip-4337#first-time-account-creation
 //

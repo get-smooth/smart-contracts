@@ -1,0 +1,5 @@
+Account__Constructor
+├── it never reverts
+├── it stores and exposes the entrypoint address
+├── it stores and exposes the webauthn verifier address
+└── it do not store any storage variables

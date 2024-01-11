@@ -38,7 +38,7 @@ contract AccountFactory {
     ///         there is no need to make the account inoperable. No one will be able to use it.
     constructor(address entryPoint, address webAuthnVerifier, address _nameServiceOwner) {
         nameServiceOwner = _nameServiceOwner;
-        accountImplementation = address(new Account(entryPoint, webAuthnVerifier, _nameServiceOwner));
+        accountImplementation = address(new Account(entryPoint, webAuthnVerifier));
     }
 
     /// @notice This function check if an account already exists based on the loginHash given

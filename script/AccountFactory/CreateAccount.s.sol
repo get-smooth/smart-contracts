@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.19 <0.9.0;
 
-import { AccountFactory } from "src/AccountFactory.sol";
+import { AccountFactoryMultiSteps } from "src/AccountFactoryMultiSteps.sol";
 import { BaseScript } from "../Base.s.sol";
 
-/// @title Create an Account using an already deployed AccountFactory
-/// @dev If you need to deploy an AccountFactory, use the Deploy script in this directory
+/// @title Create an Account using an already deployed AccountFactoryMultiSteps
+/// @dev If you need to deploy an AccountFactoryMultiSteps, use the Deploy script in this directory
 contract CreateAccount is BaseScript {
     function run(address factoryAddress, bytes32 loginHash) public broadcast returns (address) {
-        AccountFactory factory = AccountFactory(factoryAddress);
+        AccountFactoryMultiSteps factory = AccountFactoryMultiSteps(factoryAddress);
         return factory.createAccount(loginHash);
     }
 }

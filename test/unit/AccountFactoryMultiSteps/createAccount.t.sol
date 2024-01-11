@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.20 <0.9.0;
 
-import { AccountFactory } from "src/AccountFactory.sol";
+import { AccountFactoryMultiSteps } from "src/AccountFactoryMultiSteps.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
-contract AccountFactory__CreateAccount is BaseTest {
-    AccountFactory internal factory;
+contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
+    AccountFactoryMultiSteps internal factory;
     address internal implementation;
 
     // copy here the event definition from the contract
@@ -13,7 +13,7 @@ contract AccountFactory__CreateAccount is BaseTest {
     event AccountCreated(bytes32 loginHash, address account);
 
     function setUp() external {
-        factory = new AccountFactory(address(0), address(0), address(0));
+        factory = new AccountFactoryMultiSteps(address(0), address(0), address(0));
         implementation = factory.accountImplementation();
     }
 

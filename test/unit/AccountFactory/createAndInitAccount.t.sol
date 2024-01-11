@@ -83,7 +83,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     function test_ShouldCallInitialize() external {
         // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
-        vm.expectCall(factory.accountImplementation(), abi.encodeCall(this.initialize, (LOGIN_HASH)), 1);
+        vm.expectCall(factory.accountImplementation(), abi.encodeWithSelector(this.initialize.selector), 1);
 
         // we call the function that is supposed to trigger the call
         factory.createAndInitAccount(uint256(0), uint256(0), LOGIN_HASH, hex"", SIGNATURE);
@@ -122,6 +122,6 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
     //       when using the utils Test contract from Forge, so I had to copy the function here
     //       it works as expected if I switch to the utils Test contract from PRB 🤷‍♂️
     //       Anyway, remove this useless function once the bug is fixed
-    function initialize(bytes32) public { }
+    function initialize() public { }
     function addFirstSigner(uint256, uint256, bytes calldata) public { }
 }

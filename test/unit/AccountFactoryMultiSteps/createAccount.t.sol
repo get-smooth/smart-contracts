@@ -64,7 +64,7 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         bytes32 loginHash = keccak256("plplplplplplplpl");
 
         // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
-        vm.expectCall(implementation, abi.encodeCall(this.initialize, (loginHash)), 1);
+        vm.expectCall(implementation, abi.encodeWithSelector(this.initialize.selector), 1);
 
         // we call the function that is supposed to trigger the call
         factory.createAccount(loginHash);
@@ -87,5 +87,5 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
     //       when using the utils Test contract from Forge, so I had to copy the function here
     //       it works as expected if I switch to the utils Test contract from PRB 🤷‍♂️
     //       Anyway, remove this useless function once the bug is fixed
-    function initialize(bytes32) public { }
+    function initialize() public { }
 }

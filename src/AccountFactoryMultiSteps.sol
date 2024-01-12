@@ -7,8 +7,6 @@ import { AccountFactory, Account, ERC1967Proxy } from "./AccountFactory.sol";
 /// @notice This contract inherits from the AccountFactory contract and adds a multi-steps scenario.
 /// @custom:experimental This is an experimental contract.
 contract AccountFactoryMultiSteps is AccountFactory {
-    event AccountCreated(bytes32 loginHash, address account);
-
     /// @notice Deploy the implementation of the account and store its address in the storage of the factory. This
     ///         implementation will be used as the implementation reference
     ///         for all the proxies deployed by this factory.
@@ -51,7 +49,7 @@ contract AccountFactoryMultiSteps is AccountFactory {
             )
         );
 
-        emit AccountCreated(loginHash, address(account));
+        emit AccountFactory.AccountCreated(loginHash, address(account), bytes32(0), uint256(0), uint256(0));
 
         return address(account);
     }

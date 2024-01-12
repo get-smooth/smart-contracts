@@ -13,7 +13,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     // copy here the event definition from the contract
     // @dev: once we bump to 0.8.21, import the event from the contract
-    event AccountCreatedAndInit(bytes32 loginHash, address account, bytes credId, uint256 pubKeyX, uint256 pubKeyY);
+    event AccountCreated(
+        bytes32 loginHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
+    );
 
     function setUp() external {
         factory = new AccountFactory(address(0), address(0), SIGNER);
@@ -96,7 +98,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // we tell the VM to expect *one* call to the addFirstSigner function with the loginHash as parameter
         vm.expectCall(
-            factory.getAddress(LOGIN_HASH), abi.encodeCall(this.addFirstSigner, (pubKeyX, pubKeyY, credId)), 1
+            factory.getAddress(LOGIN_HASH),
+            abi.encodeCall(this.addFirstSigner, (pubKeyX, pubKeyY, keccak256(credId))),
+            1
         );
 
         // we call the function that is supposed to trigger the call
@@ -111,7 +115,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // we tell the VM to expect an event
         vm.expectEmit(true, true, true, true, address(factory));
         // we trigger the exact event we expect to be emitted in the next call
-        emit AccountCreatedAndInit(LOGIN_HASH, factory.getAddress(LOGIN_HASH), credId, pubKeyX, pubKeyY);
+        emit AccountCreated(LOGIN_HASH, factory.getAddress(LOGIN_HASH), keccak256(credId), pubKeyX, pubKeyY);
 
         // we call the function that is supposed to trigger the event
         // if the exact event is not triggered, the test will fail
@@ -123,5 +127,5 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
     //       it works as expected if I switch to the utils Test contract from PRB 🤷‍♂️
     //       Anyway, remove this useless function once the bug is fixed
     function initialize() public { }
-    function addFirstSigner(uint256, uint256, bytes calldata) public { }
+    function addFirstSigner(uint256, uint256, bytes32) public { }
 }

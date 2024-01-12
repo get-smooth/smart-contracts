@@ -20,7 +20,9 @@ contract AccountFactory {
     address public immutable accountImplementation;
     address public immutable nameServiceOwner;
 
-    event AccountCreatedAndInit(bytes32 loginHash, address account, bytes credId, uint256 pubKeyX, uint256 pubKeyY);
+    event AccountCreated(
+        bytes32 loginHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
+    );
 
     error InvalidNameServiceSignature(bytes32 loginHash, bytes nameServiceSignature);
 
@@ -101,10 +103,13 @@ contract AccountFactory {
             )
         );
 
-        // set the first signer of the account using the parameters given
-        account.addFirstSigner(pubKeyX, pubKeyY, credId);
+        // hash the credId to prepare it for the storage in the account
+        bytes32 credIdHash = keccak256(credId);
 
-        emit AccountCreatedAndInit(loginHash, address(account), credId, pubKeyX, pubKeyY);
+        // set the first signer of the account using the parameters given
+        account.addFirstSigner(pubKeyX, pubKeyY, credIdHash);
+
+        emit AccountCreated(loginHash, address(account), credIdHash, pubKeyX, pubKeyY);
 
         return address(account);
     }

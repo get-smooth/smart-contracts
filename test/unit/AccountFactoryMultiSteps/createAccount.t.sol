@@ -10,7 +10,9 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
 
     // copy here the event definition from the contract
     // @dev: once we bump to 0.8.21, import the event from the contract
-    event AccountCreated(bytes32 loginHash, address account);
+    event AccountCreated(
+        bytes32 loginHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
+    );
 
     function setUp() external {
         factory = new AccountFactoryMultiSteps(address(0), address(0), address(0));
@@ -76,7 +78,7 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         // we tell the VM to expect an event
         vm.expectEmit(true, true, false, true, address(factory));
         // we trigger the exact event we expect to be emitted in the next call
-        emit AccountCreated(loginHash, factory.getAddress(loginHash));
+        emit AccountCreated(loginHash, factory.getAddress(loginHash), bytes32(0), uint256(0), uint256(0));
 
         // we call the function that is supposed to trigger the event
         // if the exact event is not triggered, the test will fail

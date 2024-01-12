@@ -22,7 +22,7 @@ contract Account__GetSigner is BaseTest {
 
         // initialize the account and set the first signer
         account.initialize();
-        account.addFirstSigner(pubkeyX, pubkeyY, credId);
+        account.addFirstSigner(pubkeyX, pubkeyY, keccak256(credId));
 
         // fetch the signer stored
         (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = account.getSigner(credId);
@@ -41,7 +41,7 @@ contract Account__GetSigner is BaseTest {
 
         // initialize the account and set the first signer
         account.initialize();
-        account.addFirstSigner(pubkeyX, pubkeyY, credId);
+        account.addFirstSigner(pubkeyX, pubkeyY, credIdHash);
 
         // fetch the signer stored
         (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = account.getSigner(credIdHash);
@@ -60,7 +60,7 @@ contract Account__GetSigner is BaseTest {
 
         // initialize the account and set the first signer
         account.initialize();
-        account.addFirstSigner(pubkeyX, pubkeyY, credId);
+        account.addFirstSigner(pubkeyX, pubkeyY, keccak256(credId));
 
         // fetch the signer stored using both methods
         (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = account.getSigner(unknownCredId);

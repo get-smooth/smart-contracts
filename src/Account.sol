@@ -96,11 +96,8 @@ contract Account is Initializable {
     ///         will revert (reverting de facto the signer stored in this function)
     /// @param  pubkeyX The X coordinate of the signer's public key.
     /// @param  pubkeyY The Y coordinate of the signer's public key.
-    /// @param  credId The credential ID associated to the signer
-    function addFirstSigner(uint256 pubkeyX, uint256 pubkeyY, bytes memory credId) external singleUseLock {
-        // the length of the credId is unpredictable (cf webauthn length), that's why we hash it
-        bytes32 credIdHash = keccak256(credId);
-
+    /// @param  credIdHash The hash of the credential ID associated to the signer
+    function addFirstSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external singleUseLock {
         // add account's first signer and emit the signer addition event
         SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
         emit SignerAdded(credIdHash, pubkeyX, pubkeyY);

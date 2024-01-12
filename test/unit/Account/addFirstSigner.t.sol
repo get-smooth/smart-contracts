@@ -24,7 +24,7 @@ contract Account__AddFirstSigner is BaseTest {
 
         vm.expectRevert(abi.encodeWithSelector(SmartAccount.FirstSignerAlreadySet.selector));
 
-        account.addFirstSigner(pubkeyX, pubkeyY, "qdqdqdqdqddqd");
+        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
     }
 
     function test_BurnsTheFuse() external {
@@ -37,7 +37,7 @@ contract Account__AddFirstSigner is BaseTest {
         assertEq(vm.load(address(account), StorageSlotRegistry.FIRST_SIGNER_FUSE), bytes32(uint256(1)));
 
         // burn the fuse by adding the first signer
-        account.addFirstSigner(pubkeyX, pubkeyY, "qdqdqdqdqddqd");
+        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
 
         // make sure the fuse is set to false
         assertEq(vm.load(address(account), StorageSlotRegistry.FIRST_SIGNER_FUSE), bytes32(0));
@@ -48,13 +48,13 @@ contract Account__AddFirstSigner is BaseTest {
         account.initialize();
 
         // burn the fuse by adding the first signer
-        account.addFirstSigner(pubkeyX, pubkeyY, "qdqdqdqdqddqd");
+        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
 
         // expect an error for the next call of `addFirstSigner`
         vm.expectRevert(abi.encodeWithSelector(SmartAccount.FirstSignerAlreadySet.selector));
 
         // try to add the first signer again -- this must revert
-        account.addFirstSigner(pubkeyX, pubkeyY, "qdqdqdqdqddqd");
+        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
     }
 
     function test_StoresTheSigner() external {
@@ -75,7 +75,7 @@ contract Account__AddFirstSigner is BaseTest {
         assertEq(bytes32(uint256(vm.load(address(account), bytes32(uint256(startingSlot) + 2)))), bytes32(0));
 
         // add the first signer
-        account.addFirstSigner(pubkeyX, pubkeyY, credId);
+        account.addFirstSigner(pubkeyX, pubkeyY, credIdHash);
 
         // check the signer has been stored
         assertEq(vm.load(address(account), startingSlot), credIdHash);
@@ -103,6 +103,6 @@ contract Account__AddFirstSigner is BaseTest {
         emit SignerAdded(credIdHash, fuzzedPubKeyX, fuzzedPubKeyY);
 
         // burn the fuse by adding the first signer
-        account.addFirstSigner(fuzzedPubKeyX, fuzzedPubKeyY, credId);
+        account.addFirstSigner(fuzzedPubKeyX, fuzzedPubKeyY, credIdHash);
     }
 }

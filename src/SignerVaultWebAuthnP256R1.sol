@@ -8,20 +8,6 @@ import { WebAuthn256r1 } from "@webauthn/WebAuthn256r1.sol";
 /// @notice Use this library to store and retrieve WebAuthn signers.
 /// @dev    This library is using a custom storage layout to avoid collisions with other contracts.
 library SignerVaultWebAuthnP256R1 {
-    /// @dev Structure representing a signer using the p256r1 curve in the context of WebAuthn.
-    ///      - clientIdHash: The hash of the signer's client ID. This hash is used to determine
-    ///        the unique storage slot used to start storing the signer's data.
-    ///      - pubkeyX: The X coordinate of the signer's public key.
-    ///      - pubkeyY: The Y coordinate of the signer's public key.
-    ///      The process for deriving the storage slot involves hashing the clientIdHash with
-    ///      the root slot. The resulting slot is where the clientIdHash itself is stored.
-    ///      The subsequent slots are used to store the X and Y coordinates of the public key.
-    struct WebAuthnP256R1Signer {
-        bytes32 clientIdHash;
-        uint256 pubkeyX;
-        uint256 pubkeyY;
-    }
-
     /// @dev    Used by `tryGet` to revert if there is no signer
     error SignerNotFound(bytes clientId);
 
@@ -69,36 +55,58 @@ library SignerVaultWebAuthnP256R1 {
     }
 
     /// @notice Retrieves all the data associated with a stored signer.
-    /// @dev    Use `tryGet` for scenarios where the absence of a signer should cause a revert.
+    /// @dev    Returns an empty tuple (bytes32(0), uint256(0), uint256(0)) if no signer is found.
+    ///         Use `tryGet` for scenarios where the absence of a signer should cause a revert.
     /// @param  clientId The client ID of the signer, which is hashed to retrieve the signer's data.
     ///         Notably, in WebAuthn contexts, this data is dynamically sized and unpredictable in length.
-    /// @return WP256r1signer A struct containing all the signer's data.
-    ///         Returns an empty WP256r1signer (bytes32(0), uint256(0), uint256(0)) if no signer is found.
-    function get(bytes memory clientId) internal view returns (WebAuthnP256R1Signer memory WP256r1signer) {
-        bytes32 slot = getSignerStartingSlot(keccak256(clientId));
-        bytes32 clientIdHash;
-        uint256 pubkeyX;
-        uint256 pubkeyY;
+    /// @return  clientIdHash The hash of the client ID, uniquely identifying the signer.
+    /// @return  pubkeyX The X coordinate of the signer's public key.
+    /// @return  pubkeyY The Y coordinate of the signer's public key.
+    function get(bytes memory clientId)
+        internal
+        view
+        returns (bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        return get(keccak256(clientId));
+    }
+
+    /// @notice Retrieves all the data associated with a stored signer.
+    /// @dev    Returns an empty tuple (bytes32(0), uint256(0), uint256(0)) if no signer is found.
+    ///         Use `tryGet` for scenarios where the absence of a signer should cause a revert.
+    /// @param  _clientIdHash The hash of the client ID, uniquely identifying the signer
+    /// @return clientIdHash The hash of the client ID stored at the expected slot
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function get(bytes32 _clientIdHash)
+        internal
+        view
+        returns (bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        bytes32 slot = getSignerStartingSlot(_clientIdHash);
 
         assembly ("memory-safe") {
             clientIdHash := sload(slot)
             pubkeyX := sload(add(slot, 1))
             pubkeyY := sload(add(slot, 2))
         }
-
-        WP256r1signer = WebAuthnP256R1Signer({ clientIdHash: clientIdHash, pubkeyX: pubkeyX, pubkeyY: pubkeyY });
     }
 
     /// @notice Retrieves all data associated with a stored signer and reverts if the signer does not exist.
-    /// @dev    Use `get` instead if you prefer non-reverting behavior in the absence of a signer.
+    /// @dev    Reverts with SignerNotFound error if no signer is found.
+    ///         Use `get` instead if you prefer non-reverting behavior in the absence of a signer.
     /// @param  clientId The client ID of the signer, which is hashed before retrieving the signer's data.
     ///         In WebAuthn contexts, this client ID is dynamically sized and unpredictable in length.
-    /// @return WP256r1signer A struct containing all the signer's data. Reverts with SignerNotFound error if no signer
-    ///         is found.
-    function tryGet(bytes memory clientId) internal view returns (WebAuthnP256R1Signer memory WP256r1signer) {
-        WP256r1signer = get(clientId);
+    /// @return clientIdHash The hash of the client ID, uniquely identifying the signer.
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function tryGet(bytes memory clientId)
+        internal
+        view
+        returns (bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        (clientIdHash, pubkeyX, pubkeyY) = get(clientId);
 
-        if (WP256r1signer.clientIdHash == bytes32(0)) {
+        if (clientIdHash == bytes32(0)) {
             revert SignerNotFound(clientId);
         }
     }

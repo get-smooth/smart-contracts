@@ -158,20 +158,20 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         implementation.set(clientIdHash, pubkeyX, pubkeyY);
 
         // retrieve the signer for the given client id
-        SignerVaultWebAuthnP256R1.WebAuthnP256R1Signer memory signer = implementation.get(clientId);
-        assertEq(signer.clientIdHash, clientIdHash);
-        assertEq(signer.pubkeyX, pubkeyX);
-        assertEq(signer.pubkeyY, pubkeyY);
+        (bytes32 cliendIdHashStored, uint256 pubKeyXStored, uint256 pubKeyYStored) = implementation.get(clientId);
+        assertEq(cliendIdHashStored, clientIdHash);
+        assertEq(pubKeyXStored, pubkeyX);
+        assertEq(pubKeyYStored, pubkeyY);
     }
 
     function test_ShouldReturnAnEmptySignerIfNotFoundGivenAClientId(bytes calldata clientId) external {
         // it should return an empty signer if not found given a client id
 
         // retrieve the signer for the given client id
-        SignerVaultWebAuthnP256R1.WebAuthnP256R1Signer memory signer = implementation.get(clientId);
-        assertEq(signer.clientIdHash, bytes32(0));
-        assertEq(signer.pubkeyX, 0);
-        assertEq(signer.pubkeyY, 0);
+        (bytes32 cliendIdHashStored, uint256 pubKeyXStored, uint256 pubKeyYStored) = implementation.get(clientId);
+        assertEq(cliendIdHashStored, bytes32(0));
+        assertEq(pubKeyXStored, 0);
+        assertEq(pubKeyYStored, 0);
     }
 
     function test_ShouldRevertIfNoSignerFoundWhenUsingSafe(bytes calldata clientId) external {
@@ -378,7 +378,7 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
     function get(bytes calldata clientId)
         external
         view
-        returns (SignerVaultWebAuthnP256R1.WebAuthnP256R1Signer memory WP256r1signer)
+        returns (bytes32 clientIdHash, uint256 pubKeyX, uint256 pubKeyY)
     {
         return SignerVaultWebAuthnP256R1.get(clientId);
     }
@@ -386,7 +386,7 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
     function tryGet(bytes calldata clientId)
         external
         view
-        returns (SignerVaultWebAuthnP256R1.WebAuthnP256R1Signer memory WP256r1signer)
+        returns (bytes32 clientIdHash, uint256 pubKeyX, uint256 pubKeyY)
     {
         return SignerVaultWebAuthnP256R1.tryGet(clientId);
     }

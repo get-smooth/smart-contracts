@@ -19,7 +19,7 @@ contract Account is Initializable {
 
     /// @notice Emitted every time a signer is added to the account
     /// @dev The credIdHash is indexed to allow off-chain services to track account with same signer authorized
-    event SignerAdded(bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
+    event SignerAdded(bytes32 indexed credIdHash, uint256 pubkeyX, uint256 pubkeyY);
 
     // ==============================
     // ========== ERRORS ============
@@ -53,7 +53,7 @@ contract Account is Initializable {
         assembly ("memory-safe") {
             sstore(slot, 1)
         }
-        }
+    }
 
     // ==============================
     // ======== FUNCTIONS ===========
@@ -105,7 +105,37 @@ contract Account is Initializable {
         SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
         emit SignerAdded(credIdHash, pubkeyX, pubkeyY);
     }
+
+    /// @notice Return a signer stored in the account using its credIdHash. When storing a signer, the credId
+    ///         is hashed using keccak256 because its length is unpredictable. This function allows to
+    ///         retrieve a signer using its credIdHash.
+    /// @param  _credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function getSigner(bytes32 _credIdHash)
+        external
+        view
+        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(_credIdHash);
     }
+
+    /// @notice Return a signer stored in the account using the raw version of the credId
+    ///         (without hashing it).
+    /// @dev    This function hashes the credId internally adding an extra cost to the call
+    /// @param  credId The credential ID, uniquely identifying the signer.
+    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function getSigner(bytes memory credId)
+        external
+        view
+        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(credId);
+    }
+}
 
 // ==============================
 // ========== STATE =============

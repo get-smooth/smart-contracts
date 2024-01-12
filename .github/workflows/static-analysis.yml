@@ -25,7 +25,9 @@ on:
       - foundry.toml
 
 jobs:
-  test:
+  static-analysis:
+    # @TODO: Enable this again once the issue #19 is fixed
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo

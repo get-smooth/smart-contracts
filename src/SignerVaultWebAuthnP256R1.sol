@@ -9,46 +9,46 @@ import { WebAuthn256r1 } from "@webauthn/WebAuthn256r1.sol";
 /// @dev    This library is using a custom storage layout to avoid collisions with other contracts.
 library SignerVaultWebAuthnP256R1 {
     /// @dev    Used by `tryGet` to revert if there is no signer
-    error SignerNotFound(bytes clientId);
+    error SignerNotFound(bytes credId);
 
     /// @dev    The constant string identifier used to calculate the root slot.
     ///         The root slot is used as the starting point for derivating the storage slot for each signer.
     ///         It is extremely important this key never changes. It must stay the same for this type of signer.
     /// @notice This constant represents the root slot, a foundational element in calculating storage
     ///         locations for each signer.
-    /// @dev    A signer is represented by a clientIdHash and the two coordinates of its pubkey.
-    ///         - The clientIdHash is first encoded and then hashed with the root slot to determine the specific slot
-    ///             for storing the clientIdHash. The two coordinates of the pubkey are stored in the subsequent slots.
+    /// @dev    A signer is represented by a credIdHash and the two coordinates of its pubkey.
+    ///         - The credIdHash is first encoded and then hashed with the root slot to determine the specific slot
+    ///             for storing the credIdHash. The two coordinates of the pubkey are stored in the subsequent slots.
     ///         - The root slot is computed as the keccak256 hash of a value derived from a constant string,
     ///             modified to ensure the last byte does not form part of the slot address.
     ///         Final value: 0x766490bc3db2290d3ce2c7c2b394a53399f99517ba4974536d11869c06dc8900
     bytes32 internal constant ROOT = StorageSlotRegistry.WEBAUTHN_P256R1_SIGNER;
 
-    /// @notice Calculates the starting storage slot for a signer based on their clientIdHash.
+    /// @notice Calculates the starting storage slot for a signer based on their credIdHash.
     /// @dev    This function determines the storage location for a signer's data:
-    ///         - The first slot, returned by this function, is allocated for the clientIdHash.
+    ///         - The first slot, returned by this function, is allocated for the credIdHash.
     ///         - The following slot stores the X coordinates of the public key.
     ///         - The slot after that is designated for the Y coordinates of the public key.
-    /// @param  clientIdHash The clientIdHash used for deriving the storage slot.
+    /// @param  credIdHash The credIdHash used for deriving the storage slot.
     /// @return slot The calculated slot designated as the starting location for the signer's data.
-    function getSignerStartingSlot(bytes32 clientIdHash) internal pure returns (bytes32 slot) {
-        slot = keccak256(abi.encode(ROOT, clientIdHash));
+    function getSignerStartingSlot(bytes32 credIdHash) internal pure returns (bytes32 slot) {
+        slot = keccak256(abi.encode(ROOT, credIdHash));
     }
 
     /// @notice Stores signer's data in the vault at designated slots.
     /// @dev    This function efficiently stores the data of a signer in three distinct slots:
-    ///         - The first slot is allocated for the clientIdHash.
+    ///         - The first slot is allocated for the credIdHash.
     ///         - The second slot, directly after the first, holds the X coordinates of the public key.
     ///         - The third slot, following the second, contains the Y coordinates of the public key.
-    /// @param  clientIdHash The hash of the client ID, uniquely identifying the signer.
+    /// @param  credIdHash The hash of the credential ID, uniquely identifying the signer.
     /// @param  pubKeyX The X coordinate of the signer's public key.
     /// @param  pubKeyY The Y coordinate of the signer's public key.
-    function set(bytes32 clientIdHash, uint256 pubKeyX, uint256 pubKeyY) internal {
-        bytes32 slot = getSignerStartingSlot(clientIdHash);
+    function set(bytes32 credIdHash, uint256 pubKeyX, uint256 pubKeyY) internal {
+        bytes32 slot = getSignerStartingSlot(credIdHash);
 
         // store the signer's data in the vault
         assembly ("memory-safe") {
-            sstore(slot, clientIdHash)
+            sstore(slot, credIdHash)
             sstore(add(slot, 1), pubKeyX)
             sstore(add(slot, 2), pubKeyY)
         }
@@ -57,35 +57,27 @@ library SignerVaultWebAuthnP256R1 {
     /// @notice Retrieves all the data associated with a stored signer.
     /// @dev    Returns an empty tuple (bytes32(0), uint256(0), uint256(0)) if no signer is found.
     ///         Use `tryGet` for scenarios where the absence of a signer should cause a revert.
-    /// @param  clientId The client ID of the signer, which is hashed to retrieve the signer's data.
+    /// @param  credId The credential ID of the signer, which is hashed to retrieve the signer's data.
     ///         Notably, in WebAuthn contexts, this data is dynamically sized and unpredictable in length.
-    /// @return  clientIdHash The hash of the client ID, uniquely identifying the signer.
+    /// @return  credIdHash The hash of the credential ID, uniquely identifying the signer.
     /// @return  pubkeyX The X coordinate of the signer's public key.
     /// @return  pubkeyY The Y coordinate of the signer's public key.
-    function get(bytes memory clientId)
-        internal
-        view
-        returns (bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY)
-    {
-        return get(keccak256(clientId));
+    function get(bytes memory credId) internal view returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) {
+        return get(keccak256(credId));
     }
 
     /// @notice Retrieves all the data associated with a stored signer.
     /// @dev    Returns an empty tuple (bytes32(0), uint256(0), uint256(0)) if no signer is found.
     ///         Use `tryGet` for scenarios where the absence of a signer should cause a revert.
-    /// @param  _clientIdHash The hash of the client ID, uniquely identifying the signer
-    /// @return clientIdHash The hash of the client ID stored at the expected slot
+    /// @param  _credIdHash The hash of the credential ID, uniquely identifying the signer
+    /// @return credIdHash The hash of the credential ID stored at the expected slot
     /// @return pubkeyX The X coordinate of the signer's public key.
     /// @return pubkeyY The Y coordinate of the signer's public key.
-    function get(bytes32 _clientIdHash)
-        internal
-        view
-        returns (bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY)
-    {
-        bytes32 slot = getSignerStartingSlot(_clientIdHash);
+    function get(bytes32 _credIdHash) internal view returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) {
+        bytes32 slot = getSignerStartingSlot(_credIdHash);
 
         assembly ("memory-safe") {
-            clientIdHash := sload(slot)
+            credIdHash := sload(slot)
             pubkeyX := sload(add(slot, 1))
             pubkeyY := sload(add(slot, 2))
         }
@@ -94,28 +86,24 @@ library SignerVaultWebAuthnP256R1 {
     /// @notice Retrieves all data associated with a stored signer and reverts if the signer does not exist.
     /// @dev    Reverts with SignerNotFound error if no signer is found.
     ///         Use `get` instead if you prefer non-reverting behavior in the absence of a signer.
-    /// @param  clientId The client ID of the signer, which is hashed before retrieving the signer's data.
-    ///         In WebAuthn contexts, this client ID is dynamically sized and unpredictable in length.
-    /// @return clientIdHash The hash of the client ID, uniquely identifying the signer.
+    /// @param  credId The credential ID of the signer, which is hashed before retrieving the signer's data.
+    ///         In WebAuthn contexts, this credential ID is dynamically sized and unpredictable in length.
+    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
     /// @return pubkeyX The X coordinate of the signer's public key.
     /// @return pubkeyY The Y coordinate of the signer's public key.
-    function tryGet(bytes memory clientId)
-        internal
-        view
-        returns (bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY)
-    {
-        (clientIdHash, pubkeyX, pubkeyY) = get(clientId);
+    function tryGet(bytes memory credId) internal view returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) {
+        (credIdHash, pubkeyX, pubkeyY) = get(credId);
 
-        if (clientIdHash == bytes32(0)) {
-            revert SignerNotFound(clientId);
+        if (credIdHash == bytes32(0)) {
+            revert SignerNotFound(credId);
         }
     }
 
-    /// @notice Checks if a signer associated with a specific clientIdHash is stored in the vault.
-    /// @param  clientIdHash The hashed version of the signer's client ID.
+    /// @notice Checks if a signer associated with a specific credIdHash is stored in the vault.
+    /// @param  credIdHash The hashed version of the signer's credential ID.
     /// @return True if the signer is stored in the vault, false otherwise.
-    function has(bytes32 clientIdHash) internal view returns (bool) {
-        bytes32 slot = getSignerStartingSlot(clientIdHash);
+    function has(bytes32 credIdHash) internal view returns (bool) {
+        bytes32 slot = getSignerStartingSlot(credIdHash);
         uint256 pubkX;
         uint256 pubkY;
 
@@ -127,12 +115,12 @@ library SignerVaultWebAuthnP256R1 {
         return pubkX == 0 && pubkY == 0 ? false : true;
     }
 
-    /// @notice Verifies the presence of a signer in the vault based on the signer's client ID.
-    /// @param  clientId The client ID of the signer.
+    /// @notice Verifies the presence of a signer in the vault based on the signer's credential ID.
+    /// @param  credId The credential ID of the signer.
     /// @return True if the signer is stored in the vault, false otherwise.
-    function has(bytes memory clientId) internal view returns (bool) {
-        bytes32 clientIdHash = keccak256(clientId);
-        bytes32 slot = getSignerStartingSlot(clientIdHash);
+    function has(bytes memory credId) internal view returns (bool) {
+        bytes32 credIdHash = keccak256(credId);
+        bytes32 slot = getSignerStartingSlot(credIdHash);
         uint256 pubkX;
         uint256 pubkY;
 
@@ -146,9 +134,9 @@ library SignerVaultWebAuthnP256R1 {
 
     /// @notice Removes a signer from the vault.
     /// @dev    This function resets the storage slots associated with the signer.
-    /// @param  clientIdHash The hash of the client ID associated with the signer.
-    function remove(bytes32 clientIdHash) internal {
-        bytes32 slot = getSignerStartingSlot(clientIdHash);
+    /// @param  credIdHash The hash of the credential ID associated with the signer.
+    function remove(bytes32 credIdHash) internal {
+        bytes32 slot = getSignerStartingSlot(credIdHash);
 
         // reset the storage slots associated with the signer
         assembly ("memory-safe") {
@@ -158,15 +146,15 @@ library SignerVaultWebAuthnP256R1 {
         }
     }
 
-    /// @notice Retrieves the public key coordinates associated with a given clientIdHash from the vault.
-    /// @dev    Returns a zeroed tuple if no signer is associated with the provided clientIdHash.
-    ///         The function locates the pubkey coordinates by calculating the storage slot for the clientIdHash and
+    /// @notice Retrieves the public key coordinates associated with a given credIdHash from the vault.
+    /// @dev    Returns a zeroed tuple if no signer is associated with the provided credIdHash.
+    ///         The function locates the pubkey coordinates by calculating the storage slot for the credIdHash and
     ///         accessing the following slots where the pubkey coordinates are stored.
-    /// @param  clientIdHash The hash of the client ID associated with the signer.
+    /// @param  credIdHash The hash of the credential ID associated with the signer.
     /// @param  pubKeyX The X coordinate of the signer's public key.
     /// @param  pubKeyY The Y coordinate of the signer's public key.
-    function pubkey(bytes32 clientIdHash) internal view returns (uint256 pubKeyX, uint256 pubKeyY) {
-        bytes32 slot = getSignerStartingSlot(clientIdHash);
+    function pubkey(bytes32 credIdHash) internal view returns (uint256 pubKeyX, uint256 pubKeyY) {
+        bytes32 slot = getSignerStartingSlot(credIdHash);
 
         assembly ("memory-safe") {
             pubKeyX := sload(add(slot, 1))

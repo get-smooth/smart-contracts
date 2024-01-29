@@ -16,18 +16,18 @@ contract Account__Constructor is BaseTest {
         }
     }
 
-    function test_StoresAndExposesTheEntrypointAddress(address entrypoint) external assumeNoPrecompile(entrypoint) {
-        // it should expose the entrypoint address
-
-        SmartAccount account = new SmartAccount(entrypoint, address(0));
-        assertEq(address(account.entryPoint()), entrypoint);
-    }
-
     function test_StoresAndExposesTheWebauthnVerifierAddress(address webAuthnVerifier) external {
         // it should expose the webauthn verifier address
 
         SmartAccount account = new SmartAccount(address(0), webAuthnVerifier);
         assertEq(account.webAuthnVerifier(), webAuthnVerifier);
+    }
+
+    function test_StoresTheEntrypointAddress(address entrypoint) external assumeNoPrecompile(entrypoint) {
+        // it should expose the entrypoint address
+
+        SmartAccountTestWrapper account = new SmartAccountTestWrapper(entrypoint, address(0));
+        assertEq(account.exposedEntryPoint(), entrypoint);
     }
 
     function test_StoresTheDeployerAddress() external {
@@ -38,7 +38,7 @@ contract Account__Constructor is BaseTest {
         vm.prank(factory);
 
         // deploy the account. The address of the factory must be stored as the deployer
-        SmartAccoutExposedFactory account = new SmartAccoutExposedFactory(makeAddr("entrypoint"), makeAddr("verifier"));
+        SmartAccountTestWrapper account = new SmartAccountTestWrapper(makeAddr("entrypoint"), makeAddr("verifier"));
 
         assertEq(account.exposedFactory(), factory);
     }
@@ -61,10 +61,14 @@ contract Account__Constructor is BaseTest {
 }
 
 /// @dev Test contract that expose the factory address of the account
-contract SmartAccoutExposedFactory is SmartAccount {
+contract SmartAccountTestWrapper is SmartAccount {
     constructor(address entryPoint, address webAuthnVerifier) SmartAccount(entryPoint, webAuthnVerifier) { }
 
     function exposedFactory() external view returns (address) {
         return factory;
+    }
+
+    function exposedEntryPoint() external view returns (address) {
+        return address(entryPoint());
     }
 }

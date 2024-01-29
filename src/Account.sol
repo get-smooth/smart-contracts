@@ -2,17 +2,26 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { IEntryPoint } from "@eth-infinitism/interfaces/IEntryPoint.sol";
+import { UserOperation } from "@eth-infinitism/interfaces/UserOperation.sol";
+import { BaseAccount } from "@eth-infinitism/core/BaseAccount.sol";
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
 
-contract Account is Initializable {
+contract Account is Initializable, BaseAccount {
     // ==============================
     // ========= CONSTANTS ==========
     // ==============================
-    IEntryPoint public immutable entryPoint;
+
     address public immutable webAuthnVerifier;
+    /// @notice This variable is exposed by the `entryPoint` method
+    address internal immutable entryPointAddress;
     address internal immutable factory;
+
+    /// @notice Return the entrypoint used by this implementation
+    function entryPoint() public view override returns (IEntryPoint) {
+        return IEntryPoint(entryPointAddress);
+    }
 
     // ==============================
     // ========== EVENTS ============
@@ -41,7 +50,7 @@ contract Account is Initializable {
     /// @param _entryPoint The address of the 4337 entrypoint used by this implementation
     /// @param _webAuthnVerifier The address of the webauthn library used for verify the webauthn signature
     constructor(address _entryPoint, address _webAuthnVerifier) {
-        entryPoint = IEntryPoint(_entryPoint);
+        entryPointAddress = _entryPoint;
         webAuthnVerifier = _webAuthnVerifier;
 
         // address of the factory that deployed this contract.
@@ -144,6 +153,18 @@ contract Account is Initializable {
         returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
     {
         (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(credId);
+    }
+
+    /// @inheritdoc	BaseAccount
+    function _validateSignature(
+        UserOperation calldata userOp,
+        bytes32 userOpHash
+    )
+        internal
+        override
+        returns (uint256 validationData)
+    {
+        // TODO: validate the signature
     }
 }
 

@@ -74,6 +74,9 @@ contract Account is Initializable, BaseAccount {
     // ======== FUNCTIONS ===========
     // ==============================
 
+    /// @notice Allow the contract to receive native tokens
+    receive() external payable { }
+
     /// @notice This modifier check if the fuse has already been burnt and revert the transaction if it is the case
     ///         if the fuse has not been burnt yet, it burns it and allow the function to be called
     /// @dev    The fuse is stored at the slot given by the constant `StorageSlotRegistry.FIRST_SIGNER_FUSE`
@@ -81,7 +84,7 @@ contract Account is Initializable, BaseAccount {
         bytes32 slotFirstSignerFuse = StorageSlotRegistry.FIRST_SIGNER_FUSE;
         bool currentFuseValue;
 
-        // check the value of the fuse variable
+        // check the value of the fusƒe variable
         assembly ("memory-safe") {
             currentFuseValue := sload(slotFirstSignerFuse)
         }

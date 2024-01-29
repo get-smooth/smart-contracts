@@ -1,12 +1,12 @@
 AccountFactory__GetAddress
-├── it should never revert
+├── it never revert
 ├── given a random login hash
-│   └── it should return a valid address
+│   └── it return a valid address
 ├── given the hash of an empty string
-│   └── it should return a valid address
+│   └── it return a valid address
 ├── given a predetermined hash
-│   └── it should return the precomputed address
+│   └── it return the precomputed address
 ├── when the factory is deployed at a different address
-│   └── it should return an address different than the original factory
+│   └── it return an address different than the original factory
 └── when the nonce of the factory changes
     └── it has no impact on the address computed

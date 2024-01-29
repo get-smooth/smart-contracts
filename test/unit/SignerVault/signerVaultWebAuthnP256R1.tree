@@ -1,16 +1,16 @@
 SignerVault__WebAuthnP256R1
-├── it should always store a signer to the same storage slots
-├── it should not store two signers to the same storage slots
+├── it always store a signer to the same storage slots
+├── it does not store two signers to the same storage slots
 ├── it should be possible to override existing signer
-├── it should return the stored signer given a client id
-├── it should return an empty signer if not found given a client id
-├── it should revert if no signer found when using safe
-├── it should return true if signer exists given a client id hash
-├── it should return false if no signer exists given a client id hash
-├── it should return true if signer exists given a client id
-├── it should return false if no signer exists given a client id
-├── it should remove a stored signer based on a client id hash
-├── it should return the stored pubkey associated to a client id hash
-├── it should return true if verify correct webauthn payload
-├── it should return false if verify incorrect webauthn payload
-└── it should always use the same root
+├── it return the stored signer given a client id
+├── it return an empty signer if not found given a client id
+├── it reverts if no signer found when using safe
+├── it return true if signer exists given a client id hash
+├── it return false if no signer exists given a client id hash
+├── it return true if signer exists given a client id
+├── it return false if no signer exists given a client id
+├── it removes a stored signer based on a client id hash
+├── it return the stored pubkey associated to a client id hash
+├── it return true if verify correct webauthn payload
+├── it return false if verify incorrect webauthn payload
+└── it always use the same root

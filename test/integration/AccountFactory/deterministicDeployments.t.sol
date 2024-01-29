@@ -26,13 +26,13 @@ contract AccountFactoryDeterministicDeployment is BaseTest {
     }
 
     function test_WhenUsingTheCreateAccountFlow() external {
-        // it should deploy the account to the same address calculated by getAddress
+        // it deploy the account to the same address calculated by getAddress
 
         assertEq(factoryMultiSteps.getAddress(LOGIN_HASH), factoryMultiSteps.createAccount(LOGIN_HASH));
     }
 
     function test_WhenUsingTheCreateAccountAndInitFlow() external {
-        // it should deploy the account to the same address calculated by getAddress
+        // it deploy the account to the same address calculated by getAddress
 
         assertEq(
             factory.getAddress(LOGIN_HASH),

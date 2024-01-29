@@ -1,4 +1,3 @@
 SignerVault
-├── it should all have different root keys
-├── it should all have different root slots
-└── it should all derivate to a different address given the same key
+├── it all have different root slots
+└── it all derivate to a different address given the same key

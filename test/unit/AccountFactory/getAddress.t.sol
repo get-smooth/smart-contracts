@@ -13,8 +13,8 @@ contract AccountFactory__GetAddress is BaseTest {
         factory = new AccountFactory(address(0), address(0), address(0));
     }
 
-    function test_ShouldNeverRevert(bytes32 randomLoginHash) external {
-        // it should never revert
+    function test_NeverRevert(bytes32 randomLoginHash) external {
+        // it never revert
 
         try factory.getAddress(randomLoginHash) {
             assertTrue(true);
@@ -26,14 +26,14 @@ contract AccountFactory__GetAddress is BaseTest {
     }
 
     function test_GivenARandomLoginHash(bytes32 randomLoginHash) external {
-        // it should return a valid address
+        // it return a valid address
 
         address computedAddress = factory.getAddress(randomLoginHash);
         assertNotEq(computedAddress, address(0));
     }
 
     function test_GivenTheHashOfAnEmptyString() external {
-        // it should return a valid address
+        // it return a valid address
 
         address computedAddress = factory.getAddress(keccak256(""));
         assertNotEq(computedAddress, address(0));
@@ -41,14 +41,14 @@ contract AccountFactory__GetAddress is BaseTest {
     }
 
     function test_GivenAPredeterminedHash() external {
-        // it should return the precomputed address
+        // it return the precomputed address
 
         address computedAddress = factory.getAddress(LOGIN_HASH);
         assertEq(computedAddress, EXPECTED_LOGIN_HASH_ADDRESS);
     }
 
     function test_WhenTheFactoryIsDeployedAtADifferentAddress() external {
-        // it should return an address different than the original factory
+        // it return an address different than the original factory
 
         // we deploy a new instance of the factory at a different address but using the same parameters
         AccountFactory factory2 = new AccountFactory(address(0), address(0), address(0));

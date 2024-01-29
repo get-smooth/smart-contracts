@@ -52,7 +52,7 @@ contract Account is Initializable {
     /// @notice Called once during the creation of the instance. Set the fuse that gates the assignment of the first
     ///         signer to true. The first signer can then be stored by calling the `addFirstSigner` function.
     ///         The `initializer` modifier prevents the function to be called twice during its lifetime
-    function initialize() external initializer {
+    function initialize() external reinitializer(1) {
         bytes32 slot = StorageSlotRegistry.FIRST_SIGNER_FUSE;
 
         // toggle the fuse to allow the storing of the first signer by calling `addFirstSigner`

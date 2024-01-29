@@ -12,6 +12,7 @@ contract Account is Initializable {
     // ==============================
     IEntryPoint public immutable entryPoint;
     address public immutable webAuthnVerifier;
+    address internal immutable factory;
 
     // ==============================
     // ========== EVENTS ============
@@ -29,18 +30,23 @@ contract Account is Initializable {
     ///         - `addFirstSigner` is called before calling the `initialize` function
     ///         - `firstSignerFuse` has already been called in the past
     error FirstSignerAlreadySet();
+    error NotTheFactory();
 
     // ==============================
     // ======= CONSTRUCTION =========
     // ==============================
 
-    /// @notice Called by the factory at contrusction time when it deploys the account
+    /// @notice Called by the factory at construction time when it deploys the account
     /// @dev    Do not store any state in this function as the contract will be proxified, only immutable variables
     /// @param _entryPoint The address of the 4337 entrypoint used by this implementation
     /// @param _webAuthnVerifier The address of the webauthn library used for verify the webauthn signature
     constructor(address _entryPoint, address _webAuthnVerifier) {
         entryPoint = IEntryPoint(_entryPoint);
         webAuthnVerifier = _webAuthnVerifier;
+
+        // address of the factory that deployed this contract.
+        // only the factory will have the ability to set the first signer later on
+        factory = msg.sender;
     }
 
     /// @notice Called once during the creation of the instance. Set the fuse that gates the assignment of the first
@@ -83,21 +89,28 @@ contract Account is Initializable {
         _;
     }
 
+    /// @notice This modifier ensure the caller is the factory that deployed this contract
+    modifier onlyFactory() {
+        if (msg.sender != factory) revert NotTheFactory();
+        _;
+    }
+
     /// @notice Add the first signer to the account. This function is only call once by the factory
-    ///         during the deployment of the account. All the futures signers must be added using the
+    ///         during the deployment of the account. All the future signers must be added using the
     ///         `addSigner` function.
     /// @dev    This function is expected to add a signer generated using the WebAuthn protocol on the
     ///         secp256r1 curve. Adding another type of signer as the first signer is not supported yet.
-    ///
     ///         As the call of this function is expected to be wrapped in the same transaction than a
     ///         interaction with the account, we do not check webauthn's payload yet.
     ///         The payload is automatically check in the execution function meaning if the payload
     ///         is incorrect or do not correspond to the signer stored in this function, the whole tx
-    ///         will revert (reverting de facto the signer stored in this function)
+    ///         will revert (reverting de facto the signer stored in this function).
+    ///         The `singleUseLock` modifier prevents this function to be called twice during its lifetime
+    ///         The `onlyFactory` modifier ensures only the factory can call this function
     /// @param  pubkeyX The X coordinate of the signer's public key.
     /// @param  pubkeyY The Y coordinate of the signer's public key.
     /// @param  credIdHash The hash of the credential ID associated to the signer
-    function addFirstSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external singleUseLock {
+    function addFirstSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external onlyFactory singleUseLock {
         // add account's first signer and emit the signer addition event
         SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
         emit SignerAdded(credIdHash, pubkeyX, pubkeyY);

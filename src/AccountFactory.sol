@@ -17,7 +17,7 @@ import { Account } from "./Account.sol";
 /// @dev    The name service signature is only used to set the first-signer to the account. It is a EIP-191 message
 ///         signed by the nameServiceOwner. The message is the keccak256 hash of the login of the account.
 contract AccountFactory {
-    address public immutable accountImplementation;
+    address payable public immutable accountImplementation;
     address public immutable nameServiceOwner;
 
     event AccountCreated(
@@ -48,7 +48,7 @@ contract AccountFactory {
         account.addFirstSigner(0, 0, bytes32(0));
 
         // set the address of the implementation deployed
-        accountImplementation = address(account);
+        accountImplementation = payable(address(account));
         // set the address of the name service owner
         nameServiceOwner = _nameServiceOwner;
     }

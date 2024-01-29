@@ -10,16 +10,25 @@ contract Account__AddFirstSigner is BaseTest {
     SmartAccount private account;
     uint256 private pubkeyX = 0x1;
     uint256 private pubkeyY = 0x2;
+    address private immutable FACTORY = makeAddr("factory");
 
     // Duplicate of the event in the Account.sol file
     event SignerAdded(bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
 
-    function setUp() external {
+    modifier FactoryAsSender() {
+        vm.startPrank(FACTORY);
+
+        _;
+
+        vm.stopPrank();
+    }
+
+    function setUp() external FactoryAsSender {
         // deploy the account
         account = new SmartAccount(address(1), address(2));
     }
 
-    function test_RevertsIfTheFuseIsNotSet() external {
+    function test_RevertsIfTheFuseIsNotSet() external FactoryAsSender {
         // it reverts if the fuse is not set
 
         vm.expectRevert(abi.encodeWithSelector(SmartAccount.FirstSignerAlreadySet.selector));
@@ -27,7 +36,7 @@ contract Account__AddFirstSigner is BaseTest {
         account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
     }
 
-    function test_BurnsTheFuse() external {
+    function test_BurnsTheFuse() external FactoryAsSender {
         // it burns the fuse
 
         // initialize the account to set the fuse to true
@@ -43,7 +52,7 @@ contract Account__AddFirstSigner is BaseTest {
         assertEq(vm.load(address(account), StorageSlotRegistry.FIRST_SIGNER_FUSE), bytes32(0));
     }
 
-    function test_CanNotBeCalledTwice() external {
+    function test_CanNotBeCalledTwice() external FactoryAsSender {
         // initialize the account to set the fuse to true
         account.initialize();
 
@@ -57,7 +66,20 @@ contract Account__AddFirstSigner is BaseTest {
         account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
     }
 
-    function test_StoresTheSigner() external {
+    function test_RevertsIfNotCalledByTheFactory() external {
+        // it reverts if not called by the factory
+
+        // initialize the account to set the fuse to true
+        account.initialize();
+
+        // expect an error for the next call of `addFirstSigner`
+        vm.expectRevert(abi.encodeWithSelector(SmartAccount.NotTheFactory.selector));
+
+        //  try to add the first signer -- this must revert
+        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
+    }
+
+    function test_StoresTheSigner() external FactoryAsSender {
         // it stores the signer
 
         bytes memory credId = "qdqdqdqdqddqd";
@@ -83,7 +105,7 @@ contract Account__AddFirstSigner is BaseTest {
         assertEq(uint256(vm.load(address(account), bytes32(uint256(startingSlot) + 2))), pubkeyY);
     }
 
-    function test_EmitsTheSignerAddEvent(uint256 fuzzedPubKeyX, uint256 fuzzedPubKeyY) external {
+    function test_EmitsTheSignerAddEvent(uint256 fuzzedPubKeyX, uint256 fuzzedPubKeyY) external FactoryAsSender {
         // it emits the signer add event
 
         // bound the pubkey to the secp256r1 curve

@@ -45,4 +45,26 @@ contract Account__Constructor is BaseTest {
         // make sure nothing has been stored in the storage of the account
         assertEq(records[0].storageAccesses.length, 0);
     }
+
+    function test_StoresTheDeployerAddress() external {
+        // it stores the deployer address
+
+        // make the factory the sender for the next call
+        address factory = makeAddr("factory");
+        vm.prank(factory);
+
+        // deploy the account. The address of the factory must be stored as the deployer
+        SmartAccoutExposedFactory account = new SmartAccoutExposedFactory(makeAddr("entrypoint"), makeAddr("verifier"));
+
+        assertEq(account.exposedFactory(), factory);
+    }
+}
+
+/// @dev Test contract that expose the factory address of the account
+contract SmartAccoutExposedFactory is SmartAccount {
+    constructor(address entryPoint, address webAuthnVerifier) SmartAccount(entryPoint, webAuthnVerifier) { }
+
+    function exposedFactory() external view returns (address) {
+        return factory;
+    }
 }

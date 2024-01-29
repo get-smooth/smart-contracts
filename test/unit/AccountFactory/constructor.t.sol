@@ -7,7 +7,7 @@ import { BaseTest } from "test/BaseTest.sol";
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 
 contract AccountFactory__Constructor is BaseTest {
-    function test_ShouldNeverRevert() external {
+    function test_NeverRevert() external {
         try new AccountFactory(address(0), address(0), address(0)) {
             assertTrue(true);
         } catch Error(string memory) {
@@ -38,7 +38,7 @@ contract AccountFactory__Constructor is BaseTest {
         return address(uint160(uint256(keccak256(data))));
     }
 
-    function test_ShouldHaveCreatedTheImplementationContractDuringTheDeployement() external {
+    function test_HaveCreatedTheImplementationContractDuringTheDeployement() external {
         // it should have created the implementation contract during the deployement
 
         // predict where the factory will be deployed
@@ -58,7 +58,7 @@ contract AccountFactory__Constructor is BaseTest {
         assertFalse(keccak256(predictedImplementationAddress.code) == keccak256(""));
     }
 
-    function test_ShouldDeployTheImplementationContractToAPredictableAddress() external {
+    function test_DeployTheImplementationContractToAPredictableAddress() external {
         // it should deploy the account to a predictable address for a given nonce
 
         // predict where the factory will be deployed
@@ -75,14 +75,14 @@ contract AccountFactory__Constructor is BaseTest {
         assertFalse(keccak256(predictedImplementationAddress.code) == keccak256(""));
     }
 
-    function test_ShouldExposeTheImplementationAddressAfterBeingDeployed() external {
+    function test_ExposeTheImplementationAddressAfterBeingDeployed() external {
         // it should expose the implementation address after being deployed
 
         AccountFactory factory = new AccountFactory(address(0), address(0), address(0));
         assertNotEq(factory.accountImplementation(), address(0));
     }
 
-    function test_ShouldExposeTheOwnerOfNameServiceAfterBeingDeployed() external {
+    function test_ExposeTheOwnerOfNameServiceAfterBeingDeployed() external {
         // it should expose the implementation address after being deployed
 
         AccountFactory factory = new AccountFactory(address(0), address(0), address(99));

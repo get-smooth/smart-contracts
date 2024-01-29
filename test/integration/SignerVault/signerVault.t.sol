@@ -12,13 +12,13 @@ contract SignerVault is BaseTest {
         implementation = new SignerVaultTestWrapper();
     }
 
-    function test_ShouldAllHaveDifferentRootSlots() external {
+    function test_AllHaveDifferentRootSlots() external {
         // it should all have different root slot
 
         assertNotEq(implementation.webAuthnP256R1Root(), implementation.vanillaP256K1Root());
     }
 
-    function test_ShouldAllDerivateToADifferentAddressGivenTheSameKey(bytes32 clientIdHash, address signer) external {
+    function test_AllDerivateToADifferentAddressGivenTheSameKey(bytes32 clientIdHash, address signer) external {
         // it should all derivate to a different address given the same key
 
         vm.assume(clientIdHash != keccak256(""));

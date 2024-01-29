@@ -11,7 +11,7 @@ contract AccountFactory__CheckAccountExistence is BaseTest {
         factory = new AccountFactoryTestWrapper(address(0), address(0), address(0));
     }
 
-    function test_ShouldNeverRevert(bytes32 randomHash) external {
+    function test_NeverRevert(bytes32 randomHash) external {
         // it should never revert
 
         try factory.checkAccountExistence(randomHash) {
@@ -23,13 +23,13 @@ contract AccountFactory__CheckAccountExistence is BaseTest {
         }
     }
 
-    function test_ShouldReturnsZeroIfTheAddressHasNoCode() external {
+    function test_ReturnsZeroIfTheAddressHasNoCode() external {
         // it should returns zero if the address has no code
 
         assertEq(factory.checkAccountExistence(keccak256("qdqd")), address(0));
     }
 
-    function test_ShouldReturnsTheCalculatedAddressIfItHasSomeCode() external {
+    function test_ReturnsTheCalculatedAddressIfItHasSomeCode() external {
         // it should returns the calculated address if it has some code
 
         // precalculate the address where the account will be deployed

@@ -1,7 +1,7 @@
 SignerVault__VanillaP256K1
-├── it should always store a signer to the same storage slot
-├── it should not store two signers to the same storage slots
-├── it should return true if signer exists given the owner address
-├── it should return false if no signer exists given the owner address
-├── it should remove a stored signer based on the owner address
-└── it should always use the same root
+├── it always store a signer to the same storage slot
+├── it does not store two signers to the same storage slots
+├── it return true if signer exists given the owner address
+├── it return false if no signer exists given the owner address
+├── it remove a stored signer based on the owner address
+└── it always use the same root

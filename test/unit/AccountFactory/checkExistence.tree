@@ -1,4 +1,4 @@
 AccountFactory__CheckAccountExistence
-├── it should never revert
-├── it should returns zero if the address has no code
-└── it should returns the calculated address if it has some code
+├── it never revert
+├── it returns zero if the address has no code
+└── it returns the calculated address if it has some code

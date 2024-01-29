@@ -50,7 +50,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     }
 
     function test_WhenAValidButIncorrectSignatureIsProvided() external {
-        // it should returns false
+        // it returns false
 
         bytes memory wrongSignature = hex"0f58ae5d9d02744172592380e242c541bbeb9874e11b9ac3960658c1f592c28c717a"
             hex"6c973dcc9ef6c66f0ba73601d66085b12cc1435dfb1ef1723c3d6552dc091c";
@@ -59,7 +59,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     }
 
     function test_WhenAnIncorrectMessageIsProvided(bytes32 randomMessage) external {
-        // it should returns false
+        // it returns false
 
         vm.assume(randomMessage != keccak256(abi.encodePacked(login)));
 
@@ -67,7 +67,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     }
 
     function test_WhenAIncorrectAddressOfTheNameServiceIsProvided(address randomNameServiceOwner) external {
-        // it should returns false
+        // it returns false
 
         vm.assume(randomNameServiceOwner != nameServiceOwner);
 

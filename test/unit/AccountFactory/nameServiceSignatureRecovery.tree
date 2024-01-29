@@ -1,8 +1,8 @@
 AccountFactory__RecoverNameServiceSignature
 ├── when a valid but incorrect signature is provided
-│   └── it should returns false
+│   └── it returns false
 ├── when an incorrect message is provided
-│   └── it should returns false
+│   └── it returns false
 ├── when a incorrect address of the name service is provided
-│   └── it should returns false
+│   └── it returns false
 └── it should be easy to reconstruct the message from the raw login

@@ -21,7 +21,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory = new AccountFactory(address(0), address(0), SIGNER);
     }
 
-    function test_ShouldUseADeterministicDeploymentProcess() external {
+    function test_UseADeterministicDeploymentProcess() external {
         // predict where the account linked to a specific hash will be deployed
         address predictedAddress = factory.getAddress(LOGIN_HASH);
 
@@ -35,7 +35,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         assertNotEq(keccak256(predictedAddress.code), keccak256(""));
     }
 
-    function test_GivenAHashAlreadyUsed() external {
+    function test_ReturnExistingAccountAddressGivenAHashAlreadyUsed() external {
         // it should return the existing account address
 
         // make sure the second attempt of creation return the already deployed address
@@ -46,7 +46,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         );
     }
 
-    function test_GivenANewHash() external {
+    function test_DeployANewAccountIfNoneExistsGivenANewHash() external {
         // it should deploy a new account if none exists
 
         // deploy a valid proxy account using the constants predefined
@@ -67,7 +67,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         assertNotEq(keccak256(proxy2.code), keccak256(""));
     }
 
-    function test_RevertGiven_AnIncorrectValidSignature() external {
+    function test_RevertWithAnIncorrectValidSignature() external {
         // it should revert
 
         // this signature is a valid ECDSA signature but it as been created using a non authorized private key
@@ -83,7 +83,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(uint256(0), uint256(0), LOGIN_HASH, hex"", invalidSignature);
     }
 
-    function test_ShouldCallInitialize() external {
+    function test_CallInitialize() external {
         // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
         vm.expectCall(factory.accountImplementation(), abi.encodeWithSelector(this.initialize.selector), 1);
 
@@ -91,7 +91,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(uint256(0), uint256(0), LOGIN_HASH, hex"", SIGNATURE);
     }
 
-    function test_ShouldCallTheProxyAddFirstSignerFunction() external {
+    function test_CallTheProxyAddFirstSignerFunction() external {
         uint256 pubKeyX = uint256(43);
         uint256 pubKeyY = uint256(22);
         bytes memory credId = abi.encodePacked(keccak256("a"), keccak256("b"));
@@ -107,7 +107,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(pubKeyX, pubKeyY, LOGIN_HASH, credId, SIGNATURE);
     }
 
-    function test_ShouldTriggerAnEventOnDeployment() external {
+    function test_TriggerAnEventOnDeployment() external {
         uint256 pubKeyX = uint256(43);
         uint256 pubKeyY = uint256(22);
         bytes memory credId = abi.encodePacked(keccak256("a"), keccak256("b"));

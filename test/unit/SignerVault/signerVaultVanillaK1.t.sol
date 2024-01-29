@@ -23,7 +23,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
 
     // return vm.load(address(implementation), startingSlot);
 
-    function test_ShouldAlwaysStoreASignerToTheSameStorageSlot(address signer) external {
+    function test_AlwaysStoreASignerToTheSameStorageSlot(address signer) external {
         // it should always store a signer to the same storage slot
 
         signer = boundNoPrecompute(signer);
@@ -53,7 +53,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertEq(signerStored, signer);
     }
 
-    function test_ShouldNotStoreTwoSignersToTheSameStorageSlots(address signer1, address signer2) external {
+    function test_DoesNotStoreTwoSignersToTheSameStorageSlots(address signer1, address signer2) external {
         // it should not store two signers to the same storage slots
 
         signer1 = boundNoPrecompute(signer1);
@@ -70,7 +70,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertNotEq(slot1, slot2);
     }
 
-    function test_ShouldReturnTrueIfSignerExistsGivenTheOwnerAddress(address signer) external {
+    function test_ReturnTrueIfSignerExistsGivenTheOwnerAddress(address signer) external {
         // it should return true if signer exists given the owner address
 
         signer = boundNoPrecompute(signer);
@@ -82,7 +82,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertTrue(implementation.has(signer));
     }
 
-    function test_ShouldReturnFalseIfNoSignerExistsGivenTheOwnerAddress(address signer) external {
+    function test_ReturnFalseIfNoSignerExistsGivenTheOwnerAddress(address signer) external {
         // it should return false if no signer exists given the owner address
 
         signer = boundNoPrecompute(signer);
@@ -91,7 +91,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertFalse(implementation.has(signer));
     }
 
-    function test_ShouldRemoveAStoredSignerBasedOnTheOwnerAddress(address signer) external {
+    function test_RemoveAStoredSignerBasedOnTheOwnerAddress(address signer) external {
         // it should remove a stored signer based on the owner address
 
         signer = boundNoPrecompute(signer);
@@ -109,7 +109,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertFalse(implementation.has(signer));
     }
 
-    function test_ShouldAlwaysUseTheSameRoot() external {
+    function test_AlwaysUseTheSameRoot() external {
         // it should always use the same root
 
         assertEq(implementation.root(), 0x4af245f3834b267909e0839a9d1bd5a4d800d78cbc580638b0487080d20b0900);

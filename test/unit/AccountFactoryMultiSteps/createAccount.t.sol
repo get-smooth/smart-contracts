@@ -19,7 +19,7 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         implementation = factory.accountImplementation();
     }
 
-    function test_ShouldNeverRevert(bytes32 randomHash) external {
+    function test_NeverRevert(bytes32 randomHash) external {
         // it should never revert
 
         try factory.createAccount(randomHash) {
@@ -31,7 +31,7 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         }
     }
 
-    function test_ShouldUseADeterministicDeploymentProcess() external {
+    function test_UseADeterministicDeploymentProcess() external {
         // predict where the account linked to a specific hash will be deployed
         bytes32 loginHash = keccak256("muffin");
         address predictedAddress = factory.getAddress(loginHash);
@@ -62,7 +62,7 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         assertNotEq(factory.createAccount(loginHash1), factory.createAccount(loginHash2));
     }
 
-    function test_ShouldCallInitializeAfterDeployment() external {
+    function test_CallInitializeAfterDeployment() external {
         bytes32 loginHash = keccak256("plplplplplplplpl");
 
         // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
@@ -72,7 +72,7 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         factory.createAccount(loginHash);
     }
 
-    function test_ShouldTriggerAnEventOnDeployment() external {
+    function test_TriggerAnEventOnDeployment() external {
         bytes32 loginHash = keccak256("event");
 
         // we tell the VM to expect an event

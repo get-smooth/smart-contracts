@@ -47,7 +47,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
 
     /// @dev We manipulate the storage slots directly instead of calling the other utils functions
     ///      of the library to isolate the test as much as possible
-    function test_ShouldAlwaysStoreASignerToTheSameStorageSlots(
+    function test_AlwaysStoreASignerToTheSameStorageSlots(
         bytes32 clientIdHash,
         uint256 pubkeyX,
         uint256 pubkeyY
@@ -89,12 +89,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), pubkeyY);
     }
 
-    function test_ShouldNotStoreTwoSignersToTheSameStorageSlots(
-        bytes32 clientIdHash1,
-        bytes32 clientIdHash2
-    )
-        external
-    {
+    function test_DoesNotStoreTwoSignersToTheSameStorageSlots(bytes32 clientIdHash1, bytes32 clientIdHash2) external {
         // it should not store two signers to the same storage slots
 
         // bound the fuzzed arguments to have coherent values
@@ -138,7 +133,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), uint256(2));
     }
 
-    function test_ShouldReturnTheStoredSignerGivenAClientId(
+    function test_ReturnTheStoredSignerGivenAClientId(
         bytes calldata clientId,
         uint256 pubkeyX,
         uint256 pubkeyY
@@ -164,7 +159,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(pubKeyYStored, pubkeyY);
     }
 
-    function test_ShouldReturnAnEmptySignerIfNotFoundGivenAClientId(bytes calldata clientId) external {
+    function test_ReturnAnEmptySignerIfNotFoundGivenAClientId(bytes calldata clientId) external {
         // it should return an empty signer if not found given a client id
 
         // retrieve the signer for the given client id
@@ -174,7 +169,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(pubKeyYStored, 0);
     }
 
-    function test_ShouldRevertIfNoSignerFoundWhenUsingSafe(bytes calldata clientId) external {
+    function test_RevertsIfNoSignerFoundWhenUsingSafe(bytes calldata clientId) external {
         // it should revert if no signer found when using safe
 
         // we tell the VM to expect a revert with a precise error
@@ -184,7 +179,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         implementation.tryGet(clientId);
     }
 
-    function test_ShouldReturnTrueIfSignerExistsGivenAClientIdHash(
+    function test_ReturnTrueIfSignerExistsGivenAClientIdHash(
         bytes32 clientIdHash,
         uint256 pubkeyX,
         uint256 pubkeyY
@@ -203,14 +198,14 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertTrue(implementation.has(clientIdHash));
     }
 
-    function test_ShouldReturnFalseIfNoSignerExistsGivenAClientIdHash(bytes32 clientIdHash) external {
+    function test_ReturnFalseIfNoSignerExistsGivenAClientIdHash(bytes32 clientIdHash) external {
         // it should return false if no signer exists given a client id hash
 
         // ensure the signer exists
         assertFalse(implementation.has(clientIdHash));
     }
 
-    function test_ShouldReturnTrueIfSignerExistsGivenAClientId(
+    function test_ReturnTrueIfSignerExistsGivenAClientId(
         bytes calldata clientId,
         uint256 pubkeyX,
         uint256 pubkeyY
@@ -230,14 +225,14 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertTrue(implementation.has(clientId));
     }
 
-    function test_ShouldReturnFalseIfNoSignerExistsGivenAClientId(bytes calldata clientId) external {
+    function test_ReturnFalseIfNoSignerExistsGivenAClientId(bytes calldata clientId) external {
         // it should return false if no signer exists given a client id
 
         // ensure the signer exists
         assertFalse(implementation.has(clientId));
     }
 
-    function test_ShouldRemoveAStoredSignerBasedOnAClientIdHash(
+    function test_RemovesAStoredSignerBasedOnAClientIdHash(
         bytes32 clientIdHash,
         uint256 pubkeyX,
         uint256 pubkeyY
@@ -269,7 +264,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), 0);
     }
 
-    function test_ShouldReturnTheStoredPubkeyAssociatedToAClientIdHash(
+    function test_ReturnTheStoredPubkeyAssociatedToAClientIdHash(
         bytes32 clientIdHash,
         uint256 pubkeyX,
         uint256 pubkeyY
@@ -292,15 +287,8 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(pkY, pubkeyY);
     }
 
-    /// @dev The root value must never change. Never.
-    function test_ShouldAlwaysUseTheSameRoot() external {
-        // it should always use the same root
-
-        assertEq(implementation.root(), 0x766490bc3db2290d3ce2c7c2b394a53399f99517ba4974536d11869c06dc8900);
-    }
-
     // @dev the role of this test is not to test the `webauthn` library but to check it has been integrated correctly
-    function test_ShouldReturnTrueIfVerifyCorrectWebauthnPayload() external {
+    function test_ReturnTrueIfVerifyCorrectWebauthnPayload() external {
         // it should return true if verify correct webauthn payload
         assertTrue(
             implementation.verify(
@@ -330,7 +318,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
     }
 
     // @dev the role of this test is not to test the `webauthn` library but to check it has been integrated correctly
-    function test_ShouldReturnFalseIfVerifyIncorrectWebauthnPayload() external {
+    function test_ReturnFalseIfVerifyIncorrectWebauthnPayload() external {
         // it should return false if verify incorrect webauthn payload
         assertFalse(
             implementation.verify(
@@ -357,6 +345,13 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
                 32_136_952_818_958_550_240_756_825_111_900_051_564_117_520_891_182_470_183_735_244_184_006_536_587_423
             )
         );
+    }
+
+    /// @dev The root value must never change. Never.
+    function test_AlwaysUseTheSameRoot() external {
+        // it should always use the same root
+
+        assertEq(implementation.root(), 0x766490bc3db2290d3ce2c7c2b394a53399f99517ba4974536d11869c06dc8900);
     }
 }
 

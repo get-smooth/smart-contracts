@@ -1,9 +1,9 @@
-AccountFactory__CreateAccount
-├── it should never revert
-├── it should use a deterministic deployment process
+AccountFactoryMultiSteps__CreateAccount
+├── it never revert
+├── it use a deterministic deployment process
 ├── given a hash already used
-│   └── it should return existing account address
+│   └── it return existing account address
 ├── given a new hash
-│   └── it should deploy a new account if none exists
-├── it should call initialize after deployment
-└── it should trigger an event on deployment
+│   └── it deploy a new account if none exists
+├── it call initialize after deployment
+└── it trigger an event on deployment

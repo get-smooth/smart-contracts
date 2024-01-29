@@ -1,0 +1,3 @@
+Account__GetNonce
+├── it return the next sequential nonce of the account
+└── it return 0 for inactive account

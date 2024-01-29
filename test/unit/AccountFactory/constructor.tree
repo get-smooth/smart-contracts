@@ -3,4 +3,5 @@ AccountFactory__Constructor
 ├── it should have created the implementation contract during the deployement
 ├── it should deploy the implementation contract to a predictable address
 ├── it should expose the implementation address after being deployed
-└── it should expose the owner of name service after being deployed
+├── it should expose the owner of name service after being deployed
+└── it bricks the deployed account

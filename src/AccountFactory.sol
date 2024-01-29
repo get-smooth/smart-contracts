@@ -26,9 +26,10 @@ contract AccountFactory {
 
     error InvalidNameServiceSignature(bytes32 loginHash, bytes nameServiceSignature);
 
-    /// @notice Deploy the implementation of the account and store its address in the storage of the factory. This
-    ///         implementation will be used as the implementation reference
-    ///         for all the proxies deployed by this factory.
+    /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
+    ///         implementation will be used as the implementation reference for all the proxies deployed by this
+    ///         factory. To make sure the instance deployed cannot be used, we brick it by calling the `initialize`
+    ///         function and setting an invalid first signer.
     /// @param  entryPoint The unique address of the entrypoint (EIP-4337 related)
     /// @param  webAuthnVerifier The address of the crypto library that will be used by
     ///         the account to verify the WebAuthn signature of the signer(s)
@@ -39,8 +40,17 @@ contract AccountFactory {
     ///         As a valid signature from the nameServiceOwner is required to set the first signer of the account,
     ///         there is no need to make the account inoperable. No one will be able to use it.
     constructor(address entryPoint, address webAuthnVerifier, address _nameServiceOwner) {
+        // deploy the implementation of the account
+        Account account = new Account(entryPoint, webAuthnVerifier);
+
+        // Brick the instance deployed by initiliaze the account and set an invalid first signer
+        account.initialize();
+        account.addFirstSigner(0, 0, bytes32(0));
+
+        // set the address of the implementation deployed
+        accountImplementation = address(account);
+        // set the address of the name service owner
         nameServiceOwner = _nameServiceOwner;
-        accountImplementation = address(new Account(entryPoint, webAuthnVerifier));
     }
 
     /// @notice This function check if an account already exists based on the loginHash given
@@ -98,7 +108,7 @@ contract AccountFactory {
         Account account = Account(
             payable(
                 new ERC1967Proxy{ salt: loginHash }(
-                    address(accountImplementation), abi.encodeWithSelector(Account.initialize.selector)
+                    accountImplementation, abi.encodeWithSelector(Account.initialize.selector)
                 )
             )
         );
@@ -133,8 +143,7 @@ contract AccountFactory {
                                     type(ERC1967Proxy).creationCode,
                                     // arguments passed to the constructor of the contract deployed
                                     abi.encode(
-                                        address(accountImplementation),
-                                        abi.encodeWithSelector(Account.initialize.selector)
+                                        accountImplementation, abi.encodeWithSelector(Account.initialize.selector)
                                     )
                                 )
                             )

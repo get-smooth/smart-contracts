@@ -16,8 +16,18 @@ contract AccountFactoryTestWrapper is AccountFactory {
         AccountFactory(entryPoint, webAuthnVerifier, _nameServiceOwner)
     { }
 
-    function isNameServiceSignatureLegit(bytes32 hash, bytes calldata signature) external view returns (bool) {
-        return _isNameServiceSignatureLegit(hash, signature);
+    function isNameServiceSignatureLegit(
+        uint256 pubKeyX,
+        uint256 pubKeyY,
+        bytes32 loginHash,
+        bytes calldata credId,
+        bytes calldata signature
+    )
+        external
+        view
+        returns (bool)
+    {
+        return _isNameServiceSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, signature);
     }
 
     function checkAccountExistence(bytes32 loginHash) external view returns (address) {

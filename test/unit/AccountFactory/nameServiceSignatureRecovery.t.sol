@@ -1,86 +1,105 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
-import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
 import { AccountFactoryTestWrapper } from "test/unit/AccountFactory/AccountFactoryTestWrapper.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     AccountFactoryTestWrapper internal factory;
-    bytes internal signature;
-    string internal login;
-    address internal nameServiceOwner;
-
-    function _createSignature(
-        uint256 privateKey,
-        string memory _login
-    )
-        internal
-        returns (address addr, bytes memory sign)
-    {
-        // bound the fuzzed private key into a safe range for the k1 curve
-        uint256 sk = boundPrivateKey(privateKey);
-
-        // derive the address from the privateKey
-        address signer = vm.addr(sk);
-
-        // hash the provided login to get the message
-        bytes32 message = keccak256(abi.encodePacked(_login));
-        // reconstruct the EIP-191 hash from the provided message
-        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
-
-        // sign the hash using the fuzzed private key
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sk, hash);
-
-        // reconstruct the signature from the value of r, s and v
-        signature = abi.encodePacked(r, s, v);
-
-        return (signer, signature);
-    }
 
     function setUp() external {
-        // store the login in the contract bytecode
-        login = "qdqd.smoo.th";
-
-        // make a EIP-191 signature
-        (nameServiceOwner, signature) = _createSignature(12, login);
-
-        // deploy the address of the signer in a new instance of the factory
-        factory = new AccountFactoryTestWrapper(address(0), address(0), nameServiceOwner);
+        factory = new AccountFactoryTestWrapper(address(0), address(0), validCreate.signer);
     }
 
-    function test_WhenAValidButIncorrectSignatureIsProvided() external {
-        // it returns false
+    function test_ReturnTrueIfTheSignatureIsValid() external {
+        // it return true if the signature is valid
 
-        bytes memory wrongSignature = hex"0f58ae5d9d02744172592380e242c541bbeb9874e11b9ac3960658c1f592c28c717a"
-            hex"6c973dcc9ef6c66f0ba73601d66085b12cc1435dfb1ef1723c3d6552dc091c";
-        bytes32 message = keccak256(abi.encodePacked(login));
-        assertFalse(factory.isNameServiceSignatureLegit(message, wrongSignature));
+        assertTrue(
+            factory.isNameServiceSignatureLegit(
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.loginHash,
+                validCreate.credId,
+                validCreate.signature
+            )
+        );
     }
 
-    function test_WhenAnIncorrectMessageIsProvided(bytes32 randomMessage) external {
-        // it returns false
+    function test_ReturnFalseIfNotTheCorrectSigner(address alternativeSigner) external {
+        // it return false if not the correct signer
 
-        vm.assume(randomMessage != keccak256(abi.encodePacked(login)));
+        vm.assume(alternativeSigner != validCreate.signer);
 
-        assertFalse(factory.isNameServiceSignatureLegit(randomMessage, signature));
+        AccountFactoryTestWrapper factory2 = new AccountFactoryTestWrapper(address(0), address(0), alternativeSigner);
+
+        assertFalse(
+            factory2.isNameServiceSignatureLegit(
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.loginHash,
+                validCreate.credId,
+                validCreate.signature
+            )
+        );
     }
 
-    function test_WhenAIncorrectAddressOfTheNameServiceIsProvided(address randomNameServiceOwner) external {
-        // it returns false
+    function test_ReturnFalseIfNotTheCorrectPubKey(uint256 incorrectPubX, uint256 incorrectPubY) external {
+        // it return false if not the correct pubKey
 
-        vm.assume(randomNameServiceOwner != nameServiceOwner);
+        vm.assume(incorrectPubX != validCreate.pubKeyX);
+        vm.assume(incorrectPubY != validCreate.pubKeyY);
 
-        AccountFactoryTestWrapper customFactory =
-            new AccountFactoryTestWrapper(address(0), address(0), randomNameServiceOwner);
-        bytes32 message = keccak256(abi.encodePacked(login));
-        assertFalse(customFactory.isNameServiceSignatureLegit(message, signature));
+        assertFalse(
+            factory.isNameServiceSignatureLegit(
+                incorrectPubX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            )
+        );
+
+        assertFalse(
+            factory.isNameServiceSignatureLegit(
+                validCreate.pubKeyX, incorrectPubY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            )
+        );
     }
 
-    function test_ShouldBeEasyToReconstructTheMessageFromTheRawLogin() external {
-        // the message is the keccak256 hash of the raw login
+    function test_ReturnFalseIfNotTheCorrectLoginHash(bytes32 incorrectLoginHash) external {
+        // it return false if not the correct loginHash
 
-        bytes32 message = keccak256(abi.encodePacked(login));
-        assertTrue(factory.isNameServiceSignatureLegit(message, signature));
+        vm.assume(incorrectLoginHash != validCreate.loginHash);
+
+        assertFalse(
+            factory.isNameServiceSignatureLegit(
+                validCreate.pubKeyX, validCreate.pubKeyY, incorrectLoginHash, validCreate.credId, validCreate.signature
+            )
+        );
+    }
+
+    function test_ReturnFalseIfNotTheCorrectCredID(bytes memory incorrectCredId) external {
+        // it return false if not the correct credID
+
+        vm.assume(keccak256(incorrectCredId) != keccak256(validCreate.credId));
+
+        assertFalse(
+            factory.isNameServiceSignatureLegit(
+                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, incorrectCredId, validCreate.signature
+            )
+        );
+    }
+
+    function test_ReturnFalseIfNotTheCorrectSignature(bytes32 randomHash) external {
+        // it return false if not the correct signature
+
+        // generate a random private key
+        uint256 signerPrivateKey = vm.createWallet(123).privateKey;
+
+        // generate a random signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, randomHash);
+        bytes memory incorrectSignature = abi.encodePacked(r, s, v);
+
+        assertFalse(
+            factory.isNameServiceSignatureLegit(
+                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, incorrectSignature
+            )
+        );
     }
 }

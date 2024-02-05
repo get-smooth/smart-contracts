@@ -63,11 +63,26 @@ contract AccountFactory {
     }
 
     /// @notice This function check if the signature of the name service is signed by the correct entity
-    /// @param  message The message that has been signed
-    /// @param  signature The signature of the message
+    /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
+    /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
+    /// @param  loginHash The keccak256 hash of the login of the account
+    /// @param  credId The WebAuthn credential ID of the first signer. Take a look to the WebAuthn specification
+    /// @param  signature The signature of the name service. Its recovery must match the nameServiceOwner.
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
-    function _isNameServiceSignatureLegit(bytes32 message, bytes calldata signature) internal view returns (bool) {
+    function _isNameServiceSignatureLegit(
+        uint256 pubKeyX,
+        uint256 pubKeyY,
+        bytes32 loginHash,
+        bytes calldata credId,
+        bytes calldata signature
+    )
+        internal
+        view
+        returns (bool)
+    {
+        // FIXME: First param is signature type -- MOVE IT TO A ENUM ?
+        bytes memory message = abi.encode(0x00, loginHash, pubKeyX, pubKeyY, credId);
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
         address recoveredAddress = ECDSA.recover(hash, signature);
         return recoveredAddress == nameServiceOwner;
@@ -99,7 +114,7 @@ contract AccountFactory {
         }
 
         // check if the signature of the name service is valid
-        if (_isNameServiceSignatureLegit(loginHash, nameServiceSignature) == false) {
+        if (_isNameServiceSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, nameServiceSignature) == false) {
             revert InvalidNameServiceSignature(loginHash, nameServiceSignature);
         }
 

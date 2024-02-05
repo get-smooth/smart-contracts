@@ -1,8 +1,7 @@
 AccountFactory__RecoverNameServiceSignature
-├── when a valid but incorrect signature is provided
-│   └── it returns false
-├── when an incorrect message is provided
-│   └── it returns false
-├── when a incorrect address of the name service is provided
-│   └── it returns false
-└── it should be easy to reconstruct the message from the raw login
+├── it return true if the signature is valid
+├── it return false if not the correct signer
+├── it return false if not the correct pubKey
+├── it return false if not the correct loginHash
+├── it return false if not the correct credID
+└── it return false if not the correct signature

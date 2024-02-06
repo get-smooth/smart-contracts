@@ -82,11 +82,11 @@ contract AccountFactory__Constructor is BaseTest {
         assertNotEq(factory.accountImplementation(), address(0));
     }
 
-    function test_ExposeTheOwnerOfNameServiceAfterBeingDeployed() external {
-        // it should expose the implementation address after being deployed
+    function test_ExposeTheAdminAfterBeingDeployed() external {
+        // it should expose the admin after being deployed
 
         AccountFactory factory = new AccountFactory(address(0), address(0), address(99));
-        assertEq(factory.nameServiceOwner(), address(99));
+        assertEq(factory.admin(), address(99));
     }
 
     /// @notice The role of this test is to ensure the factory brick the instance of the account it deployed

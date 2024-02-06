@@ -11,12 +11,12 @@ contract AccountFactoryTestWrapper is AccountFactory {
     constructor(
         address entryPoint,
         address webAuthnVerifier,
-        address _nameServiceOwner
+        address admin
     )
-        AccountFactory(entryPoint, webAuthnVerifier, _nameServiceOwner)
+        AccountFactory(entryPoint, webAuthnVerifier, admin)
     { }
 
-    function isNameServiceSignatureLegit(
+    function isSignatureLegit(
         uint256 pubKeyX,
         uint256 pubKeyY,
         bytes32 loginHash,
@@ -27,7 +27,7 @@ contract AccountFactoryTestWrapper is AccountFactory {
         view
         returns (bool)
     {
-        return _isNameServiceSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, signature);
+        return _isSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, signature);
     }
 
     function checkAccountExistence(bytes32 loginHash) external view returns (address) {

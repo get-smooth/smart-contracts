@@ -15,7 +15,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // it return true if the signature is valid
 
         assertTrue(
-            factory.isNameServiceSignatureLegit(
+            factory.isSignatureLegit(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
                 validCreate.loginHash,
@@ -33,7 +33,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         AccountFactoryTestWrapper factory2 = new AccountFactoryTestWrapper(address(0), address(0), alternativeSigner);
 
         assertFalse(
-            factory2.isNameServiceSignatureLegit(
+            factory2.isSignatureLegit(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
                 validCreate.loginHash,
@@ -50,13 +50,13 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         vm.assume(incorrectPubY != validCreate.pubKeyY);
 
         assertFalse(
-            factory.isNameServiceSignatureLegit(
+            factory.isSignatureLegit(
                 incorrectPubX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
             )
         );
 
         assertFalse(
-            factory.isNameServiceSignatureLegit(
+            factory.isSignatureLegit(
                 validCreate.pubKeyX, incorrectPubY, validCreate.loginHash, validCreate.credId, validCreate.signature
             )
         );
@@ -68,7 +68,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         vm.assume(incorrectLoginHash != validCreate.loginHash);
 
         assertFalse(
-            factory.isNameServiceSignatureLegit(
+            factory.isSignatureLegit(
                 validCreate.pubKeyX, validCreate.pubKeyY, incorrectLoginHash, validCreate.credId, validCreate.signature
             )
         );
@@ -80,7 +80,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         vm.assume(keccak256(incorrectCredId) != keccak256(validCreate.credId));
 
         assertFalse(
-            factory.isNameServiceSignatureLegit(
+            factory.isSignatureLegit(
                 validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, incorrectCredId, validCreate.signature
             )
         );
@@ -97,7 +97,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         bytes memory incorrectSignature = abi.encodePacked(r, s, v);
 
         assertFalse(
-            factory.isNameServiceSignatureLegit(
+            factory.isSignatureLegit(
                 validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, incorrectSignature
             )
         );

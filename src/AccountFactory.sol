@@ -14,17 +14,17 @@ import { Account } from "./Account.sol";
 ///         using the CREATE2 opcode and they use the implementation contract deployed on construction as a
 ///         reference. Once the account has been deployed by the factory, the factory is also in charge of setting
 ///         the first signer of the account, leading to a fully-setup account for the user.
-/// @dev    The name service signature is only used to set the first-signer to the account. It is a EIP-191 message
-///         signed by the nameServiceOwner. The message is the keccak256 hash of the login of the account.
+/// @dev    The signature is only used to set the first-signer to the account. It is a EIP-191 message
+///         signed by the admin. The message is the keccak256 hash of the login of the account.
 contract AccountFactory {
     address payable public immutable accountImplementation;
-    address public immutable nameServiceOwner;
+    address public immutable admin;
 
     event AccountCreated(
         bytes32 loginHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
     );
 
-    error InvalidNameServiceSignature(bytes32 loginHash, bytes nameServiceSignature);
+    error InvalidSignature(bytes32 loginHash, bytes signature);
 
     /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
     ///         implementation will be used as the implementation reference for all the proxies deployed by this
@@ -33,13 +33,13 @@ contract AccountFactory {
     /// @param  entryPoint The unique address of the entrypoint (EIP-4337 related)
     /// @param  webAuthnVerifier The address of the crypto library that will be used by
     ///         the account to verify the WebAuthn signature of the signer(s)
-    /// @param  _nameServiceOwner The address used to verify the signature of the name service.
+    /// @param  _admin The address used to verify the signature
     ///         This address is stored in the storage of this contract that validate future signatures
     /// @dev    The account deployed here is expected to be proxied later, its own storage won't be used.
     ///         All the arguments passed to the constructor function are used to set immutable variables.
-    ///         As a valid signature from the nameServiceOwner is required to set the first signer of the account,
+    ///         As a valid signature from the admin is required to set the first signer of the account,
     ///         there is no need to make the account inoperable. No one will be able to use it.
-    constructor(address entryPoint, address webAuthnVerifier, address _nameServiceOwner) {
+    constructor(address entryPoint, address webAuthnVerifier, address _admin) {
         // deploy the implementation of the account
         Account account = new Account(entryPoint, webAuthnVerifier);
 
@@ -49,8 +49,8 @@ contract AccountFactory {
 
         // set the address of the implementation deployed
         accountImplementation = payable(address(account));
-        // set the address of the name service owner
-        nameServiceOwner = _nameServiceOwner;
+        // set the address of the expected signer of the signature
+        admin = _admin;
     }
 
     /// @notice This function check if an account already exists based on the loginHash given
@@ -62,15 +62,15 @@ contract AccountFactory {
         return calulatedAddress.code.length > 0 ? calulatedAddress : address(0);
     }
 
-    /// @notice This function check if the signature of the name service is signed by the correct entity
+    /// @notice This function check if the signature is signed by the correct entity
     /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  loginHash The keccak256 hash of the login of the account
     /// @param  credId The WebAuthn credential ID of the first signer. Take a look to the WebAuthn specification
-    /// @param  signature The signature of the name service. Its recovery must match the nameServiceOwner.
+    /// @param  signature Signature made off-chain. Its recovery must match the admin.
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
-    function _isNameServiceSignatureLegit(
+    function _isSignatureLegit(
         uint256 pubKeyX,
         uint256 pubKeyY,
         bytes32 loginHash,
@@ -85,7 +85,7 @@ contract AccountFactory {
         bytes memory message = abi.encode(0x00, loginHash, pubKeyX, pubKeyY, credId);
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
         address recoveredAddress = ECDSA.recover(hash, signature);
-        return recoveredAddress == nameServiceOwner;
+        return recoveredAddress == admin;
     }
 
     /// @notice This is the one-step scenario. This function either deploys an account and sets its first signer
@@ -94,7 +94,7 @@ contract AccountFactory {
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  loginHash The keccak256 hash of the login of the account
     /// @param  credId The WebAuthn credential ID of the first signer. Take a look to the WebAuthn specification
-    /// @param  nameServiceSignature The signature of the name service. Its recovery must match the nameServiceOwner.
+    /// @param  signature Signature made off-chain. Its recovery must match the admin.
     ///         The loginHash is expected to be the hash used by the recover function.
     /// @return The address of the account (either deployed or not)
     function createAndInitAccount(
@@ -102,7 +102,7 @@ contract AccountFactory {
         uint256 pubKeyY,
         bytes32 loginHash,
         bytes calldata credId,
-        bytes calldata nameServiceSignature
+        bytes calldata signature
     )
         external
         returns (address)
@@ -113,9 +113,9 @@ contract AccountFactory {
             return alreadyDeployedAddress;
         }
 
-        // check if the signature of the name service is valid
-        if (_isNameServiceSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, nameServiceSignature) == false) {
-            revert InvalidNameServiceSignature(loginHash, nameServiceSignature);
+        // check if the signature is valid
+        if (_isSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, signature) == false) {
+            revert InvalidSignature(loginHash, signature);
         }
 
         // deploy the proxy for the user. During the deployment, the initialize function in the implementation contract
@@ -178,12 +178,12 @@ contract AccountFactory {
 // - CREATE2 is used to deploy the proxy for our users. The formula of this deterministic computation
 //   depends on these parameters:
 //   - the address of the factory
-//   - the loginHash (used as the salt)
+//   - the loginHash
 //   - the implementation of the ERC1967Proxy (included in the init code hash)
 //   - the arguments passed to the constructor of the ERC1967Proxy (included in the init code hash):
 //      - the address of the implementation of the account
 //      - the signature selector of the initialize function present in the account implementation (first 4-bytes)
-//      - the value of loginHash
+//      - the loginHash
 //
 // - Once set, it's not possible to change the account implementation later.
 // - Once deployed by the constructor, it's not possible to change the instance of the account implementation.

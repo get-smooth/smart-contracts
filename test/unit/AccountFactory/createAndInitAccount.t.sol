@@ -76,9 +76,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // we tell the VM to expect a revert with a precise error
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AccountFactory.InvalidNameServiceSignature.selector, validCreate.loginHash, invalidSignature
-            )
+            abi.encodeWithSelector(AccountFactory.InvalidSignature.selector, validCreate.loginHash, invalidSignature)
         );
 
         // we call the function with the invalid signature to trigger the error

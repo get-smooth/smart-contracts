@@ -1,0 +1,5 @@
+Paymaster__Deposit
+├── it return current paymaster deposit
+├── it allow anybody to deposit
+├── it withdraw to anybody if caller is admin
+└── it reverts if withdrawer is not admin

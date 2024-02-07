@@ -1,0 +1,6 @@
+Paymaster__Constructor
+├── it set the admin address in the storage
+├── it set the entrypoint address as an immutable variable
+├── it set the admin address as an immutable variable
+├── it reverts if the admin is zero
+└── it emit a transfer event with the admin address

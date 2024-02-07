@@ -1,0 +1,13 @@
+Paymaster__ValidatePaymasterUserOp
+├── it never return context
+├── it revert if not called by entrypoint
+├── it return success if signature validated
+├── it return failure if incorrect sender
+├── it return failure if incorrect nonce
+├── it return failure if incorrect chainId
+├── it return failure if incorrect address
+├── it return failure if incorrect callData
+├── it return failure if paymasterAndData is 20 bytes
+├── it return failure if all parameters are null
+├── it does not read the storage
+└── it does not write the storage

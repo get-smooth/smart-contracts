@@ -6,7 +6,7 @@ import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract SignerVault is BaseTest {
-    SignerVaultTestWrapper implementation;
+    SignerVaultTestWrapper private implementation;
 
     function setUp() external {
         implementation = new SignerVaultTestWrapper();

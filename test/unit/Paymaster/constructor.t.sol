@@ -6,8 +6,8 @@ import { Paymaster } from "src/Paymaster.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract Paymaster__Constructor is BaseTest {
-    address admin = makeAddr("admin");
-    address entrypoint = makeAddr("entrypoint");
+    address private admin = makeAddr("admin");
+    address private entrypoint = makeAddr("entrypoint");
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 

@@ -10,13 +10,13 @@ contract Account__AddFirstSigner is BaseTest {
     SmartAccount private account;
     uint256 private pubkeyX = 0x1;
     uint256 private pubkeyY = 0x2;
-    address private immutable FACTORY = makeAddr("factory");
+    address private immutable factory = makeAddr("factory");
 
     // Duplicate of the event in the Account.sol file
     event SignerAdded(bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
 
     modifier FactoryAsSender() {
-        vm.startPrank(FACTORY);
+        vm.startPrank(factory);
 
         _;
 

@@ -3,12 +3,12 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { IPaymaster } from "@eth-infinitism/interfaces/IPaymaster.sol";
 import { Vm } from "forge-std/Vm.sol";
-import { Paymaster, OwnershipTransferNotAllowed } from "src/Paymaster.sol";
+import { Paymaster } from "src/Paymaster.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract Paymaster__PostOp is BaseTest {
-    address immutable admin = makeAddr("admin");
-    address immutable entrypoint = makeAddr("entrypoint");
+    address private immutable admin = makeAddr("admin");
+    address private immutable entrypoint = makeAddr("entrypoint");
 
     Paymaster private paymaster;
 

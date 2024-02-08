@@ -1,17 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
-import { IPaymaster } from "@eth-infinitism/interfaces/IPaymaster.sol";
-import { Vm, VmSafe } from "forge-std/Vm.sol";
+import { VmSafe } from "forge-std/Vm.sol";
 import { BaseTest } from "test/BaseTest.sol";
-import {
-    Paymaster,
-    OwnershipTransferNotAllowed,
-    MessageHashUtils,
-    UserOperation,
-    VALIDATION_SUCCESS,
-    VALIDATION_FAILURE
-} from "src/Paymaster.sol";
+import { Paymaster, MessageHashUtils, UserOperation, VALIDATION_SUCCESS, VALIDATION_FAILURE } from "src/Paymaster.sol";
 
 struct Arguments {
     address sender;
@@ -23,7 +15,7 @@ struct Arguments {
 }
 
 contract Paymaster__ValidatePaymasterUserOp is BaseTest {
-    address immutable entrypoint = makeAddr("entrypoint");
+    address private immutable entrypoint = makeAddr("entrypoint");
 
     Paymaster private paymaster;
     VmSafe.Wallet private admin;

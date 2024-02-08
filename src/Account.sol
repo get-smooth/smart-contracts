@@ -75,6 +75,7 @@ contract Account is Initializable, BaseAccount {
     // ==============================
 
     /// @notice Allow the contract to receive native tokens
+    // solhint-disable-next-line no-empty-blocks
     receive() external payable { }
 
     /// @notice This modifier check if the fuse has already been burnt and revert the transaction if it is the case

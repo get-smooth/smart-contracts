@@ -6,8 +6,8 @@ import { Paymaster } from "src/Paymaster.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract Paymaster__Deposit is BaseTest {
-    address immutable admin = makeAddr("admin");
-    address entrypoint;
+    address private immutable admin = makeAddr("admin");
+    address private entrypoint;
 
     Paymaster private paymaster;
 

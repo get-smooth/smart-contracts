@@ -102,4 +102,23 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
             )
         );
     }
+
+    function test_ReturnFalseIfNotTheCorrectSignatureLength(bytes32 r, bytes32 s) external {
+        // it return false if not the correct signature length
+
+        // NOTE: A valid signature is 65 bytes long
+        bytes memory signature64Bytes = abi.encodePacked(r, s);
+        bytes memory signature66Bytes = abi.encodePacked(r, s, hex"aabb");
+
+        assertFalse(
+            factory.isSignatureLegit(
+                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, signature64Bytes
+            )
+        );
+        assertFalse(
+            factory.isSignatureLegit(
+                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, signature66Bytes
+            )
+        );
+    }
 }

@@ -66,7 +66,7 @@ contract AccountFactory {
     /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  loginHash The keccak256 hash of the login of the account
-    /// @param  credId The WebAuthn credential ID of the first signer. Take a look to the WebAuthn specification
+    /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
     /// @param  signature Signature made off-chain. Its recovery must match the admin.
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
@@ -74,7 +74,7 @@ contract AccountFactory {
         uint256 pubKeyX,
         uint256 pubKeyY,
         bytes32 loginHash,
-        bytes calldata credId,
+        bytes32 credIdHash,
         bytes calldata signature
     )
         internal
@@ -83,7 +83,7 @@ contract AccountFactory {
     {
         // recreate the message signed by the admin
         // FIXME: First param is signature type -- MOVE IT TO A ENUM ?
-        bytes memory message = abi.encode(0x00, loginHash, pubKeyX, pubKeyY, credId);
+        bytes memory message = abi.encode(0x00, loginHash, pubKeyX, pubKeyY, credIdHash);
 
         // hash the message to prepare it for the recovery
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
@@ -98,7 +98,7 @@ contract AccountFactory {
     /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  loginHash The keccak256 hash of the login of the account
-    /// @param  credId The WebAuthn credential ID of the first signer. Take a look to the WebAuthn specification
+    /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
     /// @param  signature Signature made off-chain. Its recovery must match the admin.
     ///         The loginHash is expected to be the hash used by the recover function.
     /// @return The address of the account (either deployed or not)
@@ -106,7 +106,7 @@ contract AccountFactory {
         uint256 pubKeyX,
         uint256 pubKeyY,
         bytes32 loginHash,
-        bytes calldata credId,
+        bytes32 credIdHash,
         bytes calldata signature
     )
         external
@@ -119,7 +119,7 @@ contract AccountFactory {
         }
 
         // check if the signature is valid
-        if (_isSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, signature) == false) {
+        if (_isSignatureLegit(pubKeyX, pubKeyY, loginHash, credIdHash, signature) == false) {
             revert InvalidSignature(loginHash, signature);
         }
 
@@ -132,9 +132,6 @@ contract AccountFactory {
                 )
             )
         );
-
-        // hash the credId to prepare it for the storage in the account
-        bytes32 credIdHash = keccak256(credId);
 
         // set the first signer of the account using the parameters given
         account.addFirstSigner(pubKeyX, pubKeyY, credIdHash);

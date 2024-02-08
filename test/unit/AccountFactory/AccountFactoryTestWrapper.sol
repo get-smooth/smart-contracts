@@ -20,14 +20,14 @@ contract AccountFactoryTestWrapper is AccountFactory {
         uint256 pubKeyX,
         uint256 pubKeyY,
         bytes32 loginHash,
-        bytes calldata credId,
+        bytes32 credIdHash,
         bytes calldata signature
     )
         external
         view
         returns (bool)
     {
-        return _isSignatureLegit(pubKeyX, pubKeyY, loginHash, credId, signature);
+        return _isSignatureLegit(pubKeyX, pubKeyY, loginHash, credIdHash, signature);
     }
 
     function checkAccountExistence(bytes32 loginHash) external view returns (address) {

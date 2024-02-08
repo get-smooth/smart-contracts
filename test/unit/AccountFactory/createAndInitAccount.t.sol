@@ -27,7 +27,11 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // deploy the account contract using the same hash
         factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            validCreate.pubKeyX,
+            validCreate.pubKeyY,
+            validCreate.loginHash,
+            validCreate.credIdHash,
+            validCreate.signature
         );
 
         // make sure the account contract has been deployed
@@ -44,14 +48,14 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
                 validCreate.loginHash,
-                validCreate.credId,
+                validCreate.credIdHash,
                 validCreate.signature
             ),
             factory.createAndInitAccount(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
                 validCreate.loginHash,
-                validCreate.credId,
+                validCreate.credIdHash,
                 validCreate.signature
             )
         );
@@ -62,7 +66,11 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // deploy a valid proxy account using the constants predefined
         address proxy1 = factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            validCreate.pubKeyX,
+            validCreate.pubKeyY,
+            validCreate.loginHash,
+            validCreate.credIdHash,
+            validCreate.signature
         );
 
         assertNotEq(keccak256(proxy1.code), keccak256(""));
@@ -72,8 +80,8 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // it should revert
 
         // this signature is a valid ECDSA signature but it as been created using a non authorized private key
-        bytes memory invalidSignature = hex"1020211079cccfe88a67ed9d00d719c922b4d79e11ddb5f1f59c2e41"
-            hex"fb27d5fa3f7825d448a05d75273f75f42def0010fdfb4f6ac1e0abe65dc426f7536d325c1b";
+        bytes memory invalidSignature = hex"0f7d6c13539049272786a4084a723d9147d85eed579f1a5f7cb743"
+            hex"0d92ef48af08b662fec5e9741b995bc55a24c1449255bf39187a817a097cd7e369212ff8cf1c";
 
         // we tell the VM to expect a revert with a precise error
         vm.expectRevert(
@@ -82,7 +90,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // we call the function with the invalid signature to trigger the error
         factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, invalidSignature
+            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, invalidSignature
         );
     }
 
@@ -92,7 +100,11 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // we call the function that is supposed to trigger the call
         factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            validCreate.pubKeyX,
+            validCreate.pubKeyY,
+            validCreate.loginHash,
+            validCreate.credIdHash,
+            validCreate.signature
         );
     }
 
@@ -101,14 +113,18 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         vm.expectCall(
             factory.getAddress(validCreate.loginHash),
             abi.encodeCall(
-                SmartAccount.addFirstSigner, (validCreate.pubKeyX, validCreate.pubKeyY, keccak256(validCreate.credId))
+                SmartAccount.addFirstSigner, (validCreate.pubKeyX, validCreate.pubKeyY, validCreate.credIdHash)
             ),
             1
         );
 
         // we call the function that is supposed to trigger the call
         factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            validCreate.pubKeyX,
+            validCreate.pubKeyY,
+            validCreate.loginHash,
+            validCreate.credIdHash,
+            validCreate.signature
         );
     }
 
@@ -119,7 +135,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         emit AccountCreated(
             validCreate.loginHash,
             factory.getAddress(validCreate.loginHash),
-            keccak256(validCreate.credId),
+            validCreate.credIdHash,
             validCreate.pubKeyX,
             validCreate.pubKeyY
         );
@@ -127,7 +143,11 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // we call the function that is supposed to trigger the event
         // if the exact event is not triggered, the test will fail
         factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            validCreate.pubKeyX,
+            validCreate.pubKeyY,
+            validCreate.loginHash,
+            validCreate.credIdHash,
+            validCreate.signature
         );
     }
 }

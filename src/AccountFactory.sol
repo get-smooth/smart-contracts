@@ -81,11 +81,16 @@ contract AccountFactory {
         view
         returns (bool)
     {
+        // recreate the message signed by the admin
         // FIXME: First param is signature type -- MOVE IT TO A ENUM ?
         bytes memory message = abi.encode(0x00, loginHash, pubKeyX, pubKeyY, credId);
+
+        // hash the message to prepare it for the recovery
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
-        address recoveredAddress = ECDSA.recover(hash, signature);
-        return recoveredAddress == admin;
+
+        // recover the address of the signer and check if it matches the admin
+        (address recoveredAddress, ECDSA.RecoverError error,) = ECDSA.tryRecover(hash, signature);
+        return recoveredAddress == admin && error == ECDSA.RecoverError.NoError;
     }
 
     /// @notice This is the one-step scenario. This function either deploys an account and sets its first signer

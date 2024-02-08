@@ -28,13 +28,13 @@ library StorageSlotRegistry {
     /// @notice This is the storage slot used to store the login hash of an account.
     /// @dev    It is extremely important this value never changes.
     ///         Final value: 0x1d00c83ead4f6b6248f73d12dcfa1e48e66aad920ce1240c275af2141d4bc600
-    bytes32 constant LOGIN_HASH =
+    bytes32 internal constant LOGIN_HASH =
         keccak256(abi.encode(uint256(keccak256(abi.encode("smooth.account.login"))) - 1)) & ~bytes32(uint256(0xff));
 
     /// @notice This is the storage slot used to store the login hash of an account.
     /// @dev    It is extremely important this value never changes.
     ///         Final value: 0x593275b89ef7c0ca3a26846843c246cc0f5f68f4b1e63ab06aab2d7c48420700
-    bytes32 constant FIRST_SIGNER_FUSE = keccak256(
+    bytes32 internal constant FIRST_SIGNER_FUSE = keccak256(
         abi.encode(uint256(keccak256(abi.encode("smooth.account.first-signer-fuse"))) - 1)
     ) & ~bytes32(uint256(0xff));
 }

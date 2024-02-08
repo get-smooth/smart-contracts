@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
+import { Account as SmartAccount } from "src/Account.sol";
 import { AccountFactoryMultiSteps } from "src/AccountFactoryMultiSteps.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
@@ -66,7 +67,7 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         bytes32 loginHash = keccak256("plplplplplplplpl");
 
         // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
-        vm.expectCall(implementation, abi.encodeWithSelector(this.initialize.selector), 1);
+        vm.expectCall(implementation, abi.encodeWithSelector(SmartAccount.initialize.selector), 1);
 
         // we call the function that is supposed to trigger the call
         factory.createAccount(loginHash);
@@ -84,10 +85,4 @@ contract AccountFactoryMultiSteps__CreateAccount is BaseTest {
         // if the exact event is not triggered, the test will fail
         factory.createAccount(loginHash);
     }
-
-    // @dev: I don't know why but encodeCall crashes when using Account.initialize
-    //       when using the utils Test contract from Forge, so I had to copy the function here
-    //       it works as expected if I switch to the utils Test contract from PRB 🤷‍♂️
-    //       Anyway, remove this useless function once the bug is fixed
-    function initialize() public { }
 }

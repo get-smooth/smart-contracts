@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
+import { Account as SmartAccount } from "src/Account.sol";
 import { AccountFactory } from "src/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
@@ -87,7 +88,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     function test_CallInitialize() external {
         // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
-        vm.expectCall(factory.accountImplementation(), abi.encodeWithSelector(this.initialize.selector), 1);
+        vm.expectCall(factory.accountImplementation(), abi.encodeWithSelector(SmartAccount.initialize.selector), 1);
 
         // we call the function that is supposed to trigger the call
         factory.createAndInitAccount(
@@ -100,7 +101,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         vm.expectCall(
             factory.getAddress(validCreate.loginHash),
             abi.encodeCall(
-                this.addFirstSigner, (validCreate.pubKeyX, validCreate.pubKeyY, keccak256(validCreate.credId))
+                SmartAccount.addFirstSigner, (validCreate.pubKeyX, validCreate.pubKeyY, keccak256(validCreate.credId))
             ),
             1
         );
@@ -129,11 +130,4 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
             validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
         );
     }
-
-    // @dev: I don't know why but encodeCall crashes when using Account.XXX
-    //       when using the utils Test contract from Forge, so I had to copy the function here
-    //       it works as expected if I switch to the utils Test contract from PRB 🤷‍♂️
-    //       Anyway, remove this useless function once the bug is fixed
-    function initialize() public { }
-    function addFirstSigner(uint256, uint256, bytes32) public { }
 }

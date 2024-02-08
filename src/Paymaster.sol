@@ -102,5 +102,7 @@ contract Paymaster is BasePaymaster {
     /// @dev    As we never return a context from the `_validatePaymasterUserOp` function, this function will
     ///         never be called by the entrypoint. This function can be useful in scenarios where the paymaster
     ///         needs to perform some checks after the sponsorised execution of the account.
-    function _postOp(PostOpMode mode, bytes calldata context, uint256 actualGasCost) internal override { }
+    function _postOp(PostOpMode, bytes calldata, uint256) internal override {
+        return;
+    }
 }

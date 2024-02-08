@@ -3,7 +3,6 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { Account as SmartAccount } from "src/Account.sol";
 import { BaseTest } from "test/BaseTest.sol";
-import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
 
 contract Account__GetSigner is BaseTest {
     SmartAccount private account;
@@ -25,10 +24,10 @@ contract Account__GetSigner is BaseTest {
         account.addFirstSigner(pubkeyX, pubkeyY, keccak256(credId));
 
         // fetch the signer stored
-        (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = account.getSigner(credId);
-        assertEq($credIdHash, keccak256(credId));
-        assertEq($pubkeyX, pubkeyX);
-        assertEq($pubkeyY, pubkeyY);
+        (bytes32 _credIdHash, uint256 _pubkeyX, uint256 _pubkeyY) = account.getSigner(credId);
+        assertEq(_credIdHash, keccak256(credId));
+        assertEq(_pubkeyX, pubkeyX);
+        assertEq(_pubkeyY, pubkeyY);
     }
 
     function test_ReturnsTheStoredSignerWhenPassingCredIdHash() external {
@@ -44,10 +43,10 @@ contract Account__GetSigner is BaseTest {
         account.addFirstSigner(pubkeyX, pubkeyY, credIdHash);
 
         // fetch the signer stored
-        (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = account.getSigner(credIdHash);
-        assertEq($credIdHash, credIdHash);
-        assertEq($pubkeyX, pubkeyX);
-        assertEq($pubkeyY, pubkeyY);
+        (bytes32 _credIdHash, uint256 _pubkeyX, uint256 _pubkeyY) = account.getSigner(credIdHash);
+        assertEq(_credIdHash, credIdHash);
+        assertEq(_pubkeyX, pubkeyX);
+        assertEq(_pubkeyY, pubkeyY);
     }
 
     function test_ReturnsTheDefaultValueWhenPassingAnUnknownArgument() external {
@@ -63,14 +62,14 @@ contract Account__GetSigner is BaseTest {
         account.addFirstSigner(pubkeyX, pubkeyY, keccak256(credId));
 
         // fetch the signer stored using both methods
-        (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = account.getSigner(unknownCredId);
-        assertEq($credIdHash, bytes32(0));
-        assertEq($pubkeyX, uint256(0));
-        assertEq($pubkeyY, uint256(0));
+        (bytes32 _credIdHash, uint256 _pubkeyX, uint256 _pubkeyY) = account.getSigner(unknownCredId);
+        assertEq(_credIdHash, bytes32(0));
+        assertEq(_pubkeyX, uint256(0));
+        assertEq(_pubkeyY, uint256(0));
 
-        ($credIdHash, $pubkeyX, $pubkeyY) = account.getSigner(keccak256(unknownCredId));
-        assertEq($credIdHash, bytes32(0));
-        assertEq($pubkeyX, uint256(0));
-        assertEq($pubkeyY, uint256(0));
+        (_credIdHash, _pubkeyX, _pubkeyY) = account.getSigner(keccak256(unknownCredId));
+        assertEq(_credIdHash, bytes32(0));
+        assertEq(_pubkeyX, uint256(0));
+        assertEq(_pubkeyY, uint256(0));
     }
 }

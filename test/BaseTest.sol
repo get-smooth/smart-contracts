@@ -14,7 +14,7 @@ struct ValidCreationParams {
 }
 
 contract BaseTest is Test {
-    ValidCreationParams validCreate = ValidCreationParams({
+    ValidCreationParams internal validCreate = ValidCreationParams({
         pubKeyX: 0x7f0d4def2ddf61e1b8a8d8f73898122dd4c19ecff4b91a532ba3600422c7cf00,
         pubKeyY: 0xc5cee7d64bcb98fa32ac34272562aad6dc268aba398221da46f6403ece710bee,
         login: "qdqd",
@@ -25,7 +25,7 @@ contract BaseTest is Test {
         signer: 0xF3894322D26564e773Ad74b2a46BF4dE975ea0ec
     });
 
-    uint256 constant P256R1_MAX =
+    uint256 internal constant P256R1_MAX =
         115_792_089_210_356_248_762_697_446_949_407_573_530_086_143_415_290_314_195_533_631_308_867_097_853_951;
 
     modifier assumeNoPrecompile(address fuzzedAddress) {

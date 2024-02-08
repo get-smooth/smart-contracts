@@ -5,9 +5,9 @@ import { Paymaster, OwnershipTransferNotAllowed } from "src/Paymaster.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract Paymaster__Ownership is BaseTest {
-    address immutable admin = makeAddr("admin");
-    address immutable notAdmin = makeAddr("notAdmin");
-    address immutable entrypoint = makeAddr("entrypoint");
+    address private immutable admin = makeAddr("admin");
+    address private immutable notAdmin = makeAddr("notAdmin");
+    address private immutable entrypoint = makeAddr("entrypoint");
 
     Paymaster private paymaster;
 

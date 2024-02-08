@@ -5,10 +5,9 @@ import { Account as SmartAccount } from "src/Account.sol";
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
 import { BaseTest } from "test/BaseTest.sol";
-import { Vm } from "forge-std/Vm.sol";
 
 contract Account__Initiliaze is BaseTest {
-    SmartAccount account;
+    SmartAccount private account;
 
     function setUp() external {
         // deploy the account

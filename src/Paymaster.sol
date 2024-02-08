@@ -17,7 +17,8 @@ error OwnershipTransferNotAllowed();
 /// @title  Paymaster
 /// @notice Simple Paymaster contract that sponsors an user operation if the signature is signed by the admin
 /// @dev    Here's some opinionated design decisions we made:
-///         - The admin of the contract is immutable and set at the contract deployment
+///         - The admin of the contract is immutable and set at the contract deployment. Each paymaster instance has an
+///           unique admin address.
 ///         - The admin is in charge of signing the paymaster signature. He is the one that can sponsor an userOp
 ///         - We never access the storage of the contract to avoid stacking in the entrypoint contract
 ///         - We do not use the maxCost parameter meaning we do not check the maximum cost of the transaction
@@ -102,7 +103,7 @@ contract Paymaster is BasePaymaster {
     /// @dev    As we never return a context from the `_validatePaymasterUserOp` function, this function will
     ///         never be called by the entrypoint. This function can be useful in scenarios where the paymaster
     ///         needs to perform some checks after the sponsorised execution of the account.
-    function _postOp(PostOpMode, bytes calldata, uint256) internal override {
+    function _postOp(PostOpMode, bytes calldata, uint256) internal pure override {
         return;
     }
 }

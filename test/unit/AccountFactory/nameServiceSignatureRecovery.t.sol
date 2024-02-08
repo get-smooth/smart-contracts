@@ -19,7 +19,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
                 validCreate.loginHash,
-                validCreate.credId,
+                validCreate.credIdHash,
                 validCreate.signature
             )
         );
@@ -37,7 +37,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
                 validCreate.loginHash,
-                validCreate.credId,
+                validCreate.credIdHash,
                 validCreate.signature
             )
         );
@@ -51,13 +51,13 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.isSignatureLegit(
-                incorrectPubX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+                incorrectPubX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, validCreate.signature
             )
         );
 
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, incorrectPubY, validCreate.loginHash, validCreate.credId, validCreate.signature
+                validCreate.pubKeyX, incorrectPubY, validCreate.loginHash, validCreate.credIdHash, validCreate.signature
             )
         );
     }
@@ -69,19 +69,27 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, validCreate.pubKeyY, incorrectLoginHash, validCreate.credId, validCreate.signature
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                incorrectLoginHash,
+                validCreate.credIdHash,
+                validCreate.signature
             )
         );
     }
 
-    function test_ReturnFalseIfNotTheCorrectCredID(bytes memory incorrectCredId) external {
+    function test_ReturnFalseIfNotTheCorrectCredID(bytes32 incorrectCredIdHash) external {
         // it return false if not the correct credID
 
-        vm.assume(keccak256(incorrectCredId) != keccak256(validCreate.credId));
+        vm.assume(incorrectCredIdHash != validCreate.credIdHash);
 
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, incorrectCredId, validCreate.signature
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.loginHash,
+                incorrectCredIdHash,
+                validCreate.signature
             )
         );
     }
@@ -98,7 +106,11 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, incorrectSignature
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.loginHash,
+                validCreate.credIdHash,
+                incorrectSignature
             )
         );
     }
@@ -112,12 +124,20 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, signature64Bytes
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.loginHash,
+                validCreate.credIdHash,
+                signature64Bytes
             )
         );
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, signature66Bytes
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.loginHash,
+                validCreate.credIdHash,
+                signature66Bytes
             )
         );
     }

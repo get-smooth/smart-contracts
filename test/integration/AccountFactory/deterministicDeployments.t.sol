@@ -34,7 +34,7 @@ contract AccountFactoryDeterministicDeployment is BaseTest {
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
                 validCreate.loginHash,
-                validCreate.credId,
+                validCreate.credIdHash,
                 validCreate.signature
             )
         );
@@ -46,7 +46,11 @@ contract AccountFactoryDeterministicDeployment is BaseTest {
 
         // deploy the account using `createAndInitAccount`
         address createAccountAndInitAddress = factoryMultiSteps.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credId, validCreate.signature
+            validCreate.pubKeyX,
+            validCreate.pubKeyY,
+            validCreate.loginHash,
+            validCreate.credIdHash,
+            validCreate.signature
         );
 
         // revert to the state of the EVM before deploying the first account -- resetting the deployed account

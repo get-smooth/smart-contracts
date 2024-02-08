@@ -12,7 +12,7 @@ contract CreateAndInitAccount is BaseScript {
         uint256 pubKeyX,
         uint256 pubKeyY,
         bytes32 loginHash,
-        bytes calldata credId,
+        bytes32 credIdHash,
         bytes calldata nameServiceSignature // ℹ️ must be made by the nameServiceOwner of the AccountFactory
     )
         public
@@ -20,7 +20,7 @@ contract CreateAndInitAccount is BaseScript {
         returns (address)
     {
         AccountFactory factory = AccountFactory(factoryAddress);
-        return factory.createAndInitAccount(pubKeyX, pubKeyY, loginHash, credId, nameServiceSignature);
+        return factory.createAndInitAccount(pubKeyX, pubKeyY, loginHash, credIdHash, nameServiceSignature);
     }
 }
 

@@ -40,17 +40,18 @@ contract AccountFactory {
     ///         As a valid signature from the admin is required to set the first signer of the account,
     ///         there is no need to make the account inoperable. No one will be able to use it.
     constructor(address entryPoint, address webAuthnVerifier, address _admin) {
+        // set the address of the expected signer of the signature
+        admin = _admin;
+
         // deploy the implementation of the account
         Account account = new Account(entryPoint, webAuthnVerifier);
+
+        // set the address of the implementation deployed
+        accountImplementation = payable(address(account));
 
         // Brick the instance deployed by initiliaze the account and set an invalid first signer
         account.initialize();
         account.addFirstSigner(0, 0, bytes32(0));
-
-        // set the address of the implementation deployed
-        accountImplementation = payable(address(account));
-        // set the address of the expected signer of the signature
-        admin = _admin;
     }
 
     /// @notice This function check if an account already exists based on the loginHash given

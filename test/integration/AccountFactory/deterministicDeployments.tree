@@ -1,7 +1,0 @@
-AccountFactoryDeterministicDeployment
-├── when using the createAccount flow
-│   └── it deploy the account to the same address calculated by getAddress
-├── when using the createAccountAndInit flow
-│   └── it deploy the account to the same address calculated by getAddress
-└── when using both flows with the same parameters
-    └── it deploy the account to the same address

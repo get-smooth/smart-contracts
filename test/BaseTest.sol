@@ -51,8 +51,6 @@ contract BaseTest is Test {
             signature: signature,
             signer: signer.addr
         });
-
-        emit log_named_bytes("signature", signature);
     }
 
     uint256 internal constant P256R1_MAX =

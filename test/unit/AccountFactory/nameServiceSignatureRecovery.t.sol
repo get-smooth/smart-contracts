@@ -124,20 +124,12 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.loginHash,
-                validCreate.credIdHash,
-                signature64Bytes
+                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, signature64Bytes
             )
         );
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.loginHash,
-                validCreate.credIdHash,
-                signature66Bytes
+                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, signature66Bytes
             )
         );
     }

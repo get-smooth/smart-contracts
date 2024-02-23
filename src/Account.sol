@@ -7,6 +7,8 @@ import { BaseAccount } from "@eth-infinitism/core/BaseAccount.sol";
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
+import { AccountFactory } from "src/AccountFactory.sol";
+import "src/utils/Signature.sol" as Signature;
 
 contract Account is Initializable, BaseAccount {
     // ==============================
@@ -159,16 +161,100 @@ contract Account is Initializable, BaseAccount {
         (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(credId);
     }
 
-    /// @inheritdoc	BaseAccount
-    function _validateSignature(
-        UserOperation calldata userOp,
-        bytes32 userOpHash
+    /// @notice The validation of the creation signature
+    /// @dev This creation signature is the signature that can only be used once during account creation (nonce == 0).
+    ///      This signature is different from the ones the account will use for validation for the rest of its lifetime.
+    ///      This signature is not a webauthn signature made on p256r1 but a traditional EIP-191 signature made on
+    ///      p256k1 and signed by the owner of the factory to prove the account has been authorized for deployment
+    ///      (== the username is available to be picked)
+    /// @param initCode The initCode field presents in the userOp. It has been used to create the account
+    /// @return 0 if the signature is valid, 1 otherwise
+    function _validateCreationSignature(
+        bytes calldata signature,
+        bytes calldata initCode
     )
         internal
+        view
+        returns (uint256)
+    {
+        // 1. check that the nonce is 0x00. The value of the first key is checked here
+        if (getNonce() != 0) return Signature.State.FAILURE;
+
+        // 2. ensure the initCode is at least 152-bytes long
+        if (initCode.length < 152) return Signature.State.FAILURE;
+
+        // 3. get the data that composes the message from the initcode bytes (except the selector)
+        // The initCode is composed of:
+        //  - 20 bytes for the address of the factory used to deploy this account
+        //  - 4 bytes for the selector of the factory function called  --NOT_USED--
+        //  - 32 bytes for the X coordinate of the public key
+        //  - 32 bytes for the Y coordinate of the public key
+        //  - 32 bytes for the loginHash
+        //  - 32 bytes for the credIdHash
+        //  - X bytes for the signature --NOT_USED--
+        //
+        // Using bytes slicing instead of `abi.decode` works because all the simple types have been packed
+        // at the beginning of the signature function that is called by the initCode. It would be necessary
+        // to use `abi.decode` if we were interested of retrieving the signature (the last parameter of the factory's
+        // function) because it is a dynamic type (1 word is used to store the address where the length is stored, 1
+        // word is used to store the length and then the data is stored in the next words).
+        // This technique is more gas efficient than using `abi.decode` because the signature is not copied in memory by
+        // the compiler
+        //
+        // Note that any change in the factory's function signature will break the signature validation of this account!
+        address userOpFactory = address(bytes20(initCode[:20]));
+        uint256 pubKeyX = uint256(bytes32(initCode[24:56]));
+        uint256 pubKeyY = uint256(bytes32(initCode[56:88]));
+        bytes32 loginHash = bytes32(initCode[88:120]);
+        bytes32 credIdHash = bytes32(initCode[120:152]);
+
+        // 4. check the factory is the same than the one stored here
+        if (userOpFactory != factory) return Signature.State.FAILURE;
+
+        // 5. recreate the message and try to recover the signer
+        bytes memory message = abi.encode(Signature.Type.CREATION, loginHash, pubKeyX, pubKeyY, credIdHash);
+
+        // 6. fetch the expected signer from the factory contract
+        address expectedSigner = AccountFactory(factory).admin();
+
+        // 7. Check the signature is valid and revert if it is not
+        if (Signature.recover(expectedSigner, message, signature) == false) return Signature.State.FAILURE;
+
+        // 8. Check the signer is the same than the one stored by the factory during the account creation process
+        (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = SignerVaultWebAuthnP256R1.get(credIdHash);
+        if ($credIdHash != credIdHash || $pubkeyX != pubKeyX || $pubkeyY != pubKeyY) return Signature.State.FAILURE;
+
+        return Signature.State.SUCCESS;
+    }
+
+    /// @notice Validate the userOp signature
+    /// @dev We do not return any time-range, only the signature validation
+    /// @param userOp validate the userOp.signature field
+    /// @param * convenient field: the hash of the request, to check the signature against
+    /// @return validationData signature and time-range of this operation.
+    ///         - 20 bytes: sigAuthorizer - 0 for valid signature, 1 to mark signature failure
+    ///         - 06 bytes: validUntil - last timestamp this operation is valid. 0 for "indefinite"
+    ///         - 06 bytes: validAfter - first timestamp this operation is valid
+    function _validateSignature(
+        UserOperation calldata userOp,
+        bytes32 // userOpHash
+    )
+        internal
+        view
         override
         returns (uint256 validationData)
     {
-        // TODO: validate the signature
+        // 1.a check the signature is a "webauthn p256r1" signature
+        if (userOp.signature[0] == Signature.Type.WEBAUTHN_P256R1) {
+            // TODO: verify the webauthn signature
+        }
+
+        // 1.b check the signature is a "creation" signature (length is checked by the signature library)
+        if (userOp.signature[0] == Signature.Type.CREATION) {
+            return _validateCreationSignature(userOp.signature, userOp.initCode);
+        }
+
+        return Signature.State.FAILURE;
     }
 }
 

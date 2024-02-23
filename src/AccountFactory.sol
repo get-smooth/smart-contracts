@@ -2,8 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
-import { ECDSA } from "@openzeppelin/utils/cryptography/ECDSA.sol";
-import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
+import "src/utils/Signature.sol" as Signature;
 import { Account } from "./Account.sol";
 
 // TODO: Implement an universal registry and use it to store the value of `nameServiceOwner`
@@ -83,15 +82,10 @@ contract AccountFactory {
         returns (bool)
     {
         // recreate the message signed by the admin
-        // FIXME: First param is signature type -- MOVE IT TO A ENUM ?
-        bytes memory message = abi.encode(0x00, loginHash, pubKeyX, pubKeyY, credIdHash);
+        bytes memory message = abi.encode(Signature.Type.CREATION, loginHash, pubKeyX, pubKeyY, credIdHash);
 
-        // hash the message to prepare it for the recovery
-        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
-
-        // recover the address of the signer and check if it matches the admin
-        (address recoveredAddress, ECDSA.RecoverError error,) = ECDSA.tryRecover(hash, signature);
-        return recoveredAddress == admin && error == ECDSA.RecoverError.NoError;
+        // try to recover the address and return the result
+        return Signature.recover(admin, message, signature);
     }
 
     /// @notice This is the one-step scenario. This function either deploys an account and sets its first signer

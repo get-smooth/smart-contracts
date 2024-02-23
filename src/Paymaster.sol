@@ -2,13 +2,9 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { BasePaymaster, Ownable } from "@eth-infinitism/core/BasePaymaster.sol";
-import { ECDSA } from "@openzeppelin/utils/cryptography/ECDSA.sol";
-import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
 import { UserOperation } from "@eth-infinitism/interfaces/UserOperation.sol";
 import { IEntryPoint } from "@eth-infinitism/interfaces/IEntryPoint.sol";
-
-uint256 constant VALIDATION_SUCCESS = 0;
-uint256 constant VALIDATION_FAILURE = 1;
+import "src/utils/Signature.sol" as Signature;
 
 /// @dev Used to revert when someone try to change the admin of the contract. The admin is immutable
 error OwnershipTransferNotAllowed();
@@ -89,14 +85,11 @@ contract Paymaster is BasePaymaster {
         // - By including the address of this contract, we prevent replay attacks across different paymasters.
         // - By including the callData, we only allow the paymaster to pay for a specific action.
         bytes memory message = abi.encode(userOp.sender, userOp.nonce, block.chainid, address(this), userOp.callData);
-        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
 
-        // The first 20 bytes of the paymasterAndData is the address of the paymaster, the rest is the signature
-        (address recoveredAddress, ECDSA.RecoverError error,) = ECDSA.tryRecover(hash, userOp.paymasterAndData[20:]);
-
-        // return whether the paymaster accepts or refuses sponsorship of the user operation
-        validationData =
-            recoveredAddress == admin && error == ECDSA.RecoverError.NoError ? VALIDATION_SUCCESS : VALIDATION_FAILURE;
+        // try recover the signature and return whether the paymaster accepts or refuses the sponsor
+        validationData = Signature.recover(admin, message, userOp.paymasterAndData[20:])
+            ? Signature.State.SUCCESS
+            : Signature.State.FAILURE;
     }
 
     /// @notice Not used in this implementation.

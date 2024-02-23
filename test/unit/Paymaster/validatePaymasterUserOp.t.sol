@@ -2,8 +2,9 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { VmSafe } from "forge-std/Vm.sol";
+import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
 import { BaseTest } from "test/BaseTest.sol";
-import { Paymaster, MessageHashUtils, UserOperation, VALIDATION_SUCCESS, VALIDATION_FAILURE } from "src/Paymaster.sol";
+import { Paymaster, UserOperation, Signature } from "src/Paymaster.sol";
 
 struct Arguments {
     address sender;
@@ -151,7 +152,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_SUCCESS);
+        assertEq(validationData, Signature.State.SUCCESS);
     }
 
     function test_ReturnFailureIfIncorrectSender() external {
@@ -167,7 +168,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_FAILURE);
+        assertEq(validationData, Signature.State.FAILURE);
     }
 
     function test_ReturnFailureIfIncorrectNonce() external {
@@ -182,7 +183,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_FAILURE);
+        assertEq(validationData, Signature.State.FAILURE);
     }
 
     function test_ReturnFailureIfIncorrectChainId() external {
@@ -208,7 +209,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_FAILURE);
+        assertEq(validationData, Signature.State.FAILURE);
     }
 
     function test_ReturnFailureIfIncorrectAddress() external {
@@ -234,7 +235,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_FAILURE);
+        assertEq(validationData, Signature.State.FAILURE);
     }
 
     function test_ReturnFailureIfIncorrectCallData() external {
@@ -249,7 +250,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_FAILURE);
+        assertEq(validationData, Signature.State.FAILURE);
     }
 
     // NOTE: The paymasterAndData is the concatenation of the paymaster address and the signature
@@ -267,7 +268,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_FAILURE);
+        assertEq(validationData, Signature.State.FAILURE);
     }
 
     function test_ReturnFailureIfAllParametersAreNull() external {
@@ -294,7 +295,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, uint256 validationData) = paymaster.validatePaymasterUserOp(userOp, bytes32(0), 0);
 
         // make sure the context is empty
-        assertEq(validationData, VALIDATION_FAILURE);
+        assertEq(validationData, Signature.State.FAILURE);
     }
 
     function test_DoesNotReadTheStorage() external {
@@ -311,7 +312,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (bytes32[] memory reads,) = vm.accesses(address(paymaster));
 
         // check the validationData is correct and no storage has been accessed
-        assertEq(validationData, VALIDATION_SUCCESS);
+        assertEq(validationData, Signature.State.SUCCESS);
         assertEq(reads.length, 0);
     }
 
@@ -329,7 +330,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         (, bytes32[] memory writes) = vm.accesses(address(paymaster));
 
         // check the validationData is correct and no storage has been accessed
-        assertEq(validationData, VALIDATION_SUCCESS);
+        assertEq(validationData, Signature.State.SUCCESS);
         assertEq(writes.length, 0);
     }
 }

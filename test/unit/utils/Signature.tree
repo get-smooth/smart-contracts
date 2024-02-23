@@ -1,0 +1,7 @@
+Signature_Test
+├── it return 0 for a successful signature verification
+├── it return 1 for a failed signature verification
+├── it return 0 for a creation signature
+├── it return 1 for a webauthn p256r1 signature
+├── it return true if the signature is correctly recovered
+└── it return false if the signature is incorrectly recovered

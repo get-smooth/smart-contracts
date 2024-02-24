@@ -110,6 +110,12 @@ contract Account is Initializable, BaseAccount {
         _;
     }
 
+    /// @notice This modifier ensure the caller is the 4337 entrypoint stored
+    modifier onlyEntrypoint() {
+        _requireFromEntryPoint();
+        _;
+    }
+
     /// @notice Add the first signer to the account. This function is only call once by the factory
     ///         during the deployment of the account. All the future signers must be added using the
     ///         `addSigner` function.
@@ -255,6 +261,31 @@ contract Account is Initializable, BaseAccount {
         }
 
         return Signature.State.FAILURE;
+    }
+
+    // *********** EXECUTE ***********//
+
+    /// @notice Execute a transaction
+    /// @dev Revert if the call fails
+    /// @param target The address of the contract to call
+    /// @param value The value to pass in this call
+    /// @param data The calldata to pass in this call (selector + encoded arguments)
+    function _call(address target, uint256 value, bytes calldata data) internal {
+        (bool success, bytes memory result) = target.call{ value: value }(data);
+        if (!success) {
+            assembly {
+                revert(add(result, 32), mload(result))
+            }
+        }
+    }
+
+    /// @notice Execute a transaction if called by the entrypoint
+    /// @dev Revert if the call fails
+    /// @param target The address of the contract to call
+    /// @param value The value to pass in this call
+    /// @param data The calldata to pass in this call (selector + encoded arguments)
+    function execute(address target, uint256 value, bytes calldata data) external onlyEntrypoint {
+        _call(target, value, data);
     }
 }
 

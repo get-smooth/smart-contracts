@@ -42,6 +42,9 @@ contract Account is Initializable, BaseAccount {
     ///         - `firstSignerFuse` has already been called in the past
     error FirstSignerAlreadySet();
     error NotTheFactory();
+    /// @notice This error is thrown if arguments passed to the `executeBatch` function are not of the same length
+    /// @dev    `values` can be of length 0 if no value is passed to the calls
+    error IncorrectExecutionBatchParameters();
 
     // ==============================
     // ======= CONSTRUCTION =========
@@ -286,6 +289,38 @@ contract Account is Initializable, BaseAccount {
     /// @param data The calldata to pass in this call (selector + encoded arguments)
     function execute(address target, uint256 value, bytes calldata data) external onlyEntrypoint {
         _call(target, value, data);
+    }
+
+    /// @notice Execute a sequence of transactions if called by the entrypoint
+    /// @dev Revert if one of the the calls fail. Parameters with the same index define the same tx
+    /// @param targets The list of contracts to call
+    /// @param values The list of value to pass to the calls. Can be zero-length for no-value calls
+    /// @param datas The calldata to pass to the calls (selector + encoded arguments)
+    function executeBatch(
+        address[] calldata targets,
+        uint256[] calldata values,
+        bytes[] calldata datas
+    )
+        external
+        onlyEntrypoint
+    {
+        // 1. check the length of the parameters is correct. Note that `values` can be of length 0 if no value is passed
+        if (targets.length != datas.length || (values.length != 0 && values.length != datas.length)) {
+            revert IncorrectExecutionBatchParameters();
+        }
+
+        // 2. check if at least one value is passed to the calls
+        bool isPayable = values.length != 0;
+        uint256 nbOfTransactions = targets.length;
+
+        // 3. execute the transactions
+        for (uint256 i; i < nbOfTransactions;) {
+            _call(targets[i], isPayable ? values[i] : 0, datas[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 }
 

@@ -1,0 +1,9 @@
+Account__ExecuteBatch
+├── it execute the batch if parameters are correct
+├── it execute the batch even if values is empty
+├── it execute the batch even if only one call
+├── it does nothing if arguments are empty
+├── it revert the batch if one of the call reverts
+├── it revert if values and datas are not the same length
+├── it revert if targets and datas are not the same length
+└── it revert if not called by the entrypoint

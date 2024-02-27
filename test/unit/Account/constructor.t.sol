@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
+import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { Account as SmartAccount } from "src/Account.sol";
 import { BaseTest } from "test/BaseTest.sol";
-import { Vm } from "forge-std/Vm.sol";
 
 contract Account__Constructor is BaseTest {
     function test_NeverReverts() external {
@@ -43,20 +43,22 @@ contract Account__Constructor is BaseTest {
         assertEq(account.exposedFactory(), factory);
     }
 
-    function test_DoNotStoreAnyStorageVariables() external {
-        // it should not store any storage variable
+    // @DEV: constant used by the `Initializable` library
+    bytes32 private constant INITIALIZABLE_STORAGE = 0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
 
-        // start recoding future state changes
-        vm.startStateDiffRecording();
+    function test_DisableTheInitializer() external {
+        // it disable the initializer
 
-        // deploy the account (this will trigger the constructor logic)
-        address(new SmartAccount(address(1), address(2)));
+        // deploy the account
+        SmartAccountTestWrapper account = new SmartAccountTestWrapper(makeAddr("entrypoint"), makeAddr("verifier"));
 
-        // stop recording state changes and get the state diff
-        Vm.AccountAccess[] memory records = vm.stopAndReturnStateDiff();
+        // make sure the version is set to the max value possible
+        bytes32 value = vm.load(address(account), INITIALIZABLE_STORAGE);
+        assertEq(value, bytes32(uint256(type(uint64).max)));
 
-        // make sure nothing has been stored in the storage of the account
-        assertEq(records[0].storageAccesses.length, 0);
+        // make sure the initializer is not callable
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        account.initialize();
     }
 }
 

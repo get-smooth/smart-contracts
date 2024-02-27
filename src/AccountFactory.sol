@@ -47,10 +47,6 @@ contract AccountFactory {
 
         // set the address of the implementation deployed
         accountImplementation = payable(address(account));
-
-        // Brick the instance deployed by initiliaze the account and set an invalid first signer
-        account.initialize();
-        account.addFirstSigner(0, 0, bytes32(0));
     }
 
     /// @notice This function check if an account already exists based on the loginHash given

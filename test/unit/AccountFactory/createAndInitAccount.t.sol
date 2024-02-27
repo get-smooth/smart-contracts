@@ -7,6 +7,7 @@ import { BaseTest } from "test/BaseTest.sol";
 
 contract AccountFactory__CreateAndInitAccount is BaseTest {
     AccountFactory private factory;
+    address private mockedEntrypoint;
 
     // copy here the event definition from the contract
     // @dev: once we bump to 0.8.21, import the event from the contract
@@ -15,7 +16,11 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
     );
 
     function setUp() external {
-        factory = new AccountFactory(address(0), address(0), validCreate.signer);
+        // deploy the mocked mockedEntrypoint
+        mockedEntrypoint = address(new MockEntryPoint());
+
+        // deploy the factory
+        factory = new AccountFactory(mockedEntrypoint, makeAddr("verifier"), validCreate.signer);
     }
 
     function test_UseADeterministicDeploymentProcess() external {
@@ -149,5 +154,15 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
             validCreate.credIdHash,
             validCreate.signature
         );
+    }
+}
+
+// Testing purpose only -- mimics the nonce manager of the entrypoint contract
+contract MockEntryPoint {
+    mapping(address account => mapping(uint256 index => uint256 nonce)) public nonces;
+
+    function getNonce(address account, uint192 index) external view returns (uint256) {
+        // harcoded to 0 for testing the creation flow
+        return nonces[account][index];
     }
 }

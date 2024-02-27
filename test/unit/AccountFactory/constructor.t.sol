@@ -2,13 +2,17 @@
 pragma solidity >=0.8.20;
 
 import { AccountFactory } from "src/AccountFactory.sol";
-import { Account as SmartAccount } from "src/Account.sol";
 import { BaseTest } from "test/BaseTest.sol";
-import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 
 contract AccountFactory__Constructor is BaseTest {
+    address private entrypoint;
+
+    function setUp() external {
+        entrypoint = address(new MockEntryPoint());
+    }
+
     function test_NeverRevert() external {
-        try new AccountFactory(address(0), address(0), address(0)) {
+        try new AccountFactory(entrypoint, address(0), address(0)) {
             assertTrue(true);
         } catch Error(string memory) {
             fail("factory.constructor() reverted");
@@ -52,7 +56,7 @@ contract AccountFactory__Constructor is BaseTest {
         assertTrue(keccak256(predictedImplementationAddress.code) == keccak256(""));
 
         // deploy the factory contract -- it is supposed to deploy the implementation contract during the deployement
-        address(new AccountFactory(address(0), address(0), address(0)));
+        address(new AccountFactory(entrypoint, makeAddr("verifier"), makeAddr("admin")));
 
         // make sure the implementation contract has been deployed
         assertFalse(keccak256(predictedImplementationAddress.code) == keccak256(""));
@@ -69,7 +73,7 @@ contract AccountFactory__Constructor is BaseTest {
         address predictedImplementationAddress = _predictCREATEAddress(predictedFactoryAddress, uint64(1));
 
         // deploy the factory contract -- it is supposed to deploy the implementation contract during the deployement
-        address(new AccountFactory(address(0), address(0), address(0)));
+        address(new AccountFactory(entrypoint, makeAddr("verifier"), makeAddr("admin")));
 
         // make sure the implementation contract has been deployed
         assertFalse(keccak256(predictedImplementationAddress.code) == keccak256(""));
@@ -78,38 +82,24 @@ contract AccountFactory__Constructor is BaseTest {
     function test_ExposeTheImplementationAddressAfterBeingDeployed() external {
         // it should expose the implementation address after being deployed
 
-        AccountFactory factory = new AccountFactory(address(0), address(0), address(0));
+        AccountFactory factory = new AccountFactory(entrypoint, makeAddr("verifier"), makeAddr("admin"));
         assertNotEq(factory.accountImplementation(), address(0));
     }
 
     function test_ExposeTheAdminAfterBeingDeployed() external {
         // it should expose the admin after being deployed
 
-        AccountFactory factory = new AccountFactory(address(0), address(0), address(99));
-        assertEq(factory.admin(), address(99));
+        AccountFactory factory = new AccountFactory(entrypoint, makeAddr("verifier"), makeAddr("admin"));
+        assertEq(factory.admin(), makeAddr("admin"));
     }
+}
 
-    /// @notice The role of this test is to ensure the factory brick the instance of the account it deployed
-    ///         By bricking, we refer to the process of making the instance of the account deployed unusable by anyone
-    ///         The role of the instace deployed by the factory is to be used as reference implementation for proxies
-    ///         only. The brick process is irreversible but only affect the instance itself as it use its own storage
-    function test_BricksTheDeployedAccount() external {
-        // it bricks the deployed account
+// Testing purpose only -- mimics the nonce manager of the entrypoint contract
+contract MockEntryPoint {
+    mapping(address account => mapping(uint256 index => uint256 nonce)) public nonces;
 
-        // deploy the factory and get the address of the implementation contract
-        // the constructor function of the factory contract is responsible of bricking the account
-        AccountFactory factory = new AccountFactory(address(0), address(0), address(99));
-        SmartAccount account = SmartAccount(factory.accountImplementation());
-
-        // try to call the `initialize` function on the account
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
-        account.initialize();
-
-        // try to call the `addFirstSigner` function on the account
-        vm.expectRevert(SmartAccount.FirstSignerAlreadySet.selector);
-        // the `addFirstSigner` function only accept to be called by the factory,
-        // that's why we set the factory address as msg.sender
-        vm.prank(address(factory));
-        account.addFirstSigner(uint256(2), uint256(2), bytes32(hex"22"));
+    function getNonce(address account, uint192 index) external view returns (uint256) {
+        // harcoded to 0 for testing the creation flow
+        return nonces[account][index];
     }
 }

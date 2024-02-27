@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
-import { WebAuthn256r1 } from "@webauthn/WebAuthn256r1.sol";
+import { IWebAuthn256r1 } from "src/interfaces/IWebAuthn256r1.sol";
 
 /// @title  A signer vault for WebAuthn signers using the p256r1 curve.
 /// @notice Use this library to store and retrieve WebAuthn signers.
@@ -198,6 +198,7 @@ library SignerVaultWebAuthnP256R1 {
     /// @param qy The y value of the public key used for the signature
     /// @return bool True if the signature is valid, false otherwise
     function verify(
+        IWebAuthn256r1 verifier,
         bytes1 authenticatorDataFlagMask,
         bytes calldata authenticatorData,
         bytes calldata clientData,
@@ -211,7 +212,7 @@ library SignerVaultWebAuthnP256R1 {
         internal
         returns (bool)
     {
-        return WebAuthn256r1.verify(
+        return verifier.verify(
             authenticatorDataFlagMask,
             authenticatorData,
             clientData,

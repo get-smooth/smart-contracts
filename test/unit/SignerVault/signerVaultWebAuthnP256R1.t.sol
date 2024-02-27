@@ -2,13 +2,17 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { BaseTest } from "test/BaseTest.sol";
-import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
+import { SignerVaultWebAuthnP256R1, IWebAuthn256r1 } from "src/SignerVaultWebAuthnP256R1.sol";
 
 contract SignerVault__WebAuthnP256R1 is BaseTest {
+    VerifierMock internal verifierMock;
     SignerVaultWebAuthnP256R1TestWrapper internal implementation;
 
     function setUp() external {
-        implementation = new SignerVaultWebAuthnP256R1TestWrapper();
+        verifierMock = new VerifierMock();
+
+        // deploy a contract that exposes all the internal functions of the library
+        implementation = new SignerVaultWebAuthnP256R1TestWrapper(address(verifierMock));
     }
 
     // user-defined value used to make the tests clearer
@@ -288,61 +292,128 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
     }
 
     // @dev the role of this test is not to test the `webauthn` library but to check it has been integrated correctly
-    function test_ReturnTrueIfVerifyCorrectWebauthnPayload() external {
+    function test_ReturnTrueIfSuccessfulVerification() external {
+        // valid webauthn payload
+        bytes1 authenticatorDataFlagMask = bytes1(bytes32(uint256(1)));
+        bytes memory authenticatorData = hex"f8e4b678e1c62f7355266eaa4dc1148573440937063a46d848da1e25babbd20b010000004d";
+        bytes memory clientData = hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e67"
+            hex"65223a224e546f2d3161424547526e78786a6d6b61544865687972444e583369"
+            hex"7a6c7169316f776d4f643955474a30222c226f726967696e223a226874747073"
+            hex"3a2f2f66726573682e6c65646765722e636f6d222c2263726f73734f726967696e223a66616c73657d";
+        bytes memory clientChallenge = hex"353a3ed5a0441919f1c639a46931de872ac3357de2ce5aa2d68c2639df54189d";
+        uint256 clientChallengeOffset = 0x24;
+        uint256 r =
+            45_847_212_378_479_006_099_766_816_358_861_726_414_873_720_355_505_495_069_909_394_794_949_093_093_607;
+        uint256 s =
+            55_835_259_151_215_769_394_881_684_156_457_977_412_783_812_617_123_006_733_908_193_526_332_337_539_398;
+        uint256 qx =
+            114_874_632_398_302_156_264_159_990_279_427_641_021_947_882_640_101_801_130_664_833_947_273_521_181_002;
+        uint256 qy =
+            32_136_952_818_958_550_240_756_825_111_900_051_564_117_520_891_182_470_183_735_244_184_006_536_587_423;
+
+        // mock the call to the verifier contract to return true
+        vm.mockCall(
+            address(verifierMock),
+            abi.encodeWithSelector(
+                IWebAuthn256r1.verify.selector,
+                authenticatorDataFlagMask,
+                authenticatorData,
+                clientData,
+                clientChallenge,
+                clientChallengeOffset,
+                r,
+                s,
+                qx,
+                qy
+            ),
+            abi.encode(true)
+        );
+
         // it should return true if verify correct webauthn payload
         assertTrue(
             implementation.verify(
                 // authenticatorDataFlagMask
-                0x01,
+                authenticatorDataFlagMask,
                 // authenticatorData
-                hex"f8e4b678e1c62f7355266eaa4dc1148573440937063a46d848da1e25babbd20b010000004d",
+                authenticatorData,
                 // clientData
-                hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e67"
-                hex"65223a224e546f2d3161424547526e78786a6d6b61544865687972444e583369"
-                hex"7a6c7169316f776d4f643955474a30222c226f726967696e223a226874747073"
-                hex"3a2f2f66726573682e6c65646765722e636f6d222c2263726f73734f726967696e223a66616c73657d",
+                clientData,
                 // clientChallenge
-                hex"353a3ed5a0441919f1c639a46931de872ac3357de2ce5aa2d68c2639df54189d",
+                clientChallenge,
                 // clientChallengeOffset
-                0x24,
+                clientChallengeOffset,
                 // r
-                45_847_212_378_479_006_099_766_816_358_861_726_414_873_720_355_505_495_069_909_394_794_949_093_093_607,
+                r,
                 // s
-                55_835_259_151_215_769_394_881_684_156_457_977_412_783_812_617_123_006_733_908_193_526_332_337_539_398,
+                s,
                 // qx
-                114_874_632_398_302_156_264_159_990_279_427_641_021_947_882_640_101_801_130_664_833_947_273_521_181_002,
+                qx,
                 // qy
-                32_136_952_818_958_550_240_756_825_111_900_051_564_117_520_891_182_470_183_735_244_184_006_536_587_423
+                qy
             )
         );
     }
 
     // @dev the role of this test is not to test the `webauthn` library but to check it has been integrated correctly
-    function test_ReturnFalseIfVerifyIncorrectWebauthnPayload() external {
-        // it should return false if verify incorrect webauthn payload
+    function test_ReturnFalseIfUnsuccessfulVerification() external {
+        // invalid webauthn payload
+        bytes1 authenticatorDataFlagMask = bytes1(bytes32(uint256(1)));
+        bytes memory authenticatorData = hex"f8e4b678e1c62f7355266eaa4dc1148573440937063a46d848da1e25babbd20b010000004d";
+        bytes memory clientData = hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e67"
+            hex"65223a224e546f2d3161424547526e78786a6d6b61544865687972444e583369"
+            hex"7a6c7169316f776d4f643955474a30222c226f726967696e223a226874747073"
+            hex"3a2f2f66726573682e6c65646765722e636f6d222c2263726f73734f726967696e223a66616c73657d";
+        bytes memory clientChallenge = hex"353a3ed5a0441919f1c639a46931de872ac3357de2ce5aa2d68c2639df54189d";
+        uint256 clientChallengeOffset = 0x24;
+        // incorrect R
+        uint256 r =
+            46_847_212_378_479_006_099_766_816_358_861_726_414_873_720_355_505_495_069_909_394_794_949_093_093_607;
+        uint256 s =
+            55_835_259_151_215_769_394_881_684_156_457_977_412_783_812_617_123_006_733_908_193_526_332_337_539_398;
+        uint256 qx =
+            114_874_632_398_302_156_264_159_990_279_427_641_021_947_882_640_101_801_130_664_833_947_273_521_181_002;
+        uint256 qy =
+            32_136_952_818_958_550_240_756_825_111_900_051_564_117_520_891_182_470_183_735_244_184_006_536_587_423;
+
+        // mock the call to the verifier contract to return false
+        vm.mockCall(
+            address(verifierMock),
+            abi.encodeWithSelector(
+                IWebAuthn256r1.verify.selector,
+                authenticatorDataFlagMask,
+                authenticatorData,
+                clientData,
+                clientChallenge,
+                clientChallengeOffset,
+                r,
+                s,
+                qx,
+                qy
+            ),
+            abi.encode(false)
+        );
+
+        // it should return true if verify correct webauthn payload
         assertFalse(
             implementation.verify(
                 // authenticatorDataFlagMask
-                0x01,
+                authenticatorDataFlagMask,
                 // authenticatorData
-                hex"f8e4b678e1c62f7355266eaa4dc1148573440937063a46d848da1e25babbd20b010000004d",
+                authenticatorData,
                 // clientData
-                hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e67"
-                hex"65223a224e546f2d3161424547526e78786a6d6b61544865687972444e583369"
-                hex"7a6c7169316f776d4f643955474a30222c226f726967696e223a226874747073"
-                hex"3a2f2f66726573682e6c65646765722e636f6d222c2263726f73734f726967696e223a66616c73657d",
+                clientData,
                 // clientChallenge
-                hex"353a3ed5a0441919f1c639a46931de872ac3357de2ce5aa2d68c2639df54189d",
+                clientChallenge,
                 // clientChallengeOffset
-                0x24,
-                // r -- INCORRECT
-                42_847_212_378_479_006_099_766_816_358_861_726_414_873_720_355_505_495_069_909_394_794_949_093_093_607,
+                clientChallengeOffset,
+                // r
+                r,
                 // s
-                55_835_259_151_215_769_394_881_684_156_457_977_412_783_812_617_123_006_733_908_193_526_332_337_539_398,
+                s,
                 // qx
-                114_874_632_398_302_156_264_159_990_279_427_641_021_947_882_640_101_801_130_664_833_947_273_521_181_002,
+                qx,
                 // qy
-                32_136_952_818_958_550_240_756_825_111_900_051_564_117_520_891_182_470_183_735_244_184_006_536_587_423
+                qy
             )
         );
     }
@@ -355,9 +426,35 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
     }
 }
 
+contract VerifierMock {
+    function verify(
+        bytes1,
+        bytes calldata,
+        bytes calldata,
+        bytes calldata,
+        uint256,
+        uint256,
+        uint256,
+        uint256,
+        uint256
+    )
+        external
+        pure
+        returns (bool)
+    {
+        return true;
+    }
+}
+
 /// @notice this contract is a wrapper around the SignerVaultWebAuthnP256R1 library
 /// @dev wrapper must be placed after the test contracts for bulloak to work
 contract SignerVaultWebAuthnP256R1TestWrapper {
+    address internal immutable verifier;
+
+    constructor(address _verifier) {
+        verifier = _verifier;
+    }
+
     function root() external pure returns (bytes32) {
         return SignerVaultWebAuthnP256R1.ROOT;
     }
@@ -417,6 +514,7 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
         returns (bool)
     {
         return SignerVaultWebAuthnP256R1.verify(
+            IWebAuthn256r1(verifier),
             authenticatorDataFlagMask,
             authenticatorData,
             clientData,

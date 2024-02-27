@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
+import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
-import { IWebAuthn256r1 } from "src/interfaces/IWebAuthn256r1.sol";
 
 /// @title  A signer vault for WebAuthn signers using the p256r1 curve.
 /// @notice Use this library to store and retrieve WebAuthn signers.

@@ -4,89 +4,61 @@ pragma solidity >=0.8.20 <0.9.0;
 import { Account as SmartAccount } from "src/Account.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
 import { BaseTest } from "test/BaseTest.sol";
-import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
 
 contract Account__AddFirstSigner is BaseTest {
     SmartAccount private account;
+    address private factory;
+    address private entrypoint;
+
     uint256 private pubkeyX = 0x1;
     uint256 private pubkeyY = 0x2;
-    address private immutable factory = makeAddr("factory");
 
     // Duplicate of the event in the Account.sol file
     event SignerAdded(bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
 
-    modifier FactoryAsSender() {
-        vm.startPrank(factory);
+    function setUp() external {
+        // deploy the entrypoint
+        entrypoint = address(new MockEntryPoint());
 
-        _;
-
-        vm.stopPrank();
+        // deploy the account using the "factory"
+        factory = makeAddr("factory");
+        vm.prank(factory);
+        account = new SmartAccount(entrypoint, makeAddr("verifier"));
     }
 
-    function setUp() external FactoryAsSender {
-        // deploy the account
-        account = new SmartAccount(address(1), address(2));
-    }
+    function test_RevertsIfTheNonceIsNot0(uint256 randomNonce) external {
+        // it reverts if the nonce is not 0
 
-    function test_RevertsIfTheFuseIsNotSet() external FactoryAsSender {
-        // it reverts if the fuse is not set
+        randomNonce = bound(randomNonce, 1, type(uint256).max);
 
-        vm.expectRevert(abi.encodeWithSelector(SmartAccount.FirstSignerAlreadySet.selector));
-
-        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
-    }
-
-    function test_BurnsTheFuse() external FactoryAsSender {
-        // it burns the fuse
-
-        // initialize the account to set the fuse to true
-        account.initialize();
-
-        // make sure the fuse is set to true
-        assertEq(vm.load(address(account), StorageSlotRegistry.FIRST_SIGNER_FUSE), bytes32(uint256(1)));
-
-        // burn the fuse by adding the first signer
-        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
-
-        // make sure the fuse is set to false
-        assertEq(vm.load(address(account), StorageSlotRegistry.FIRST_SIGNER_FUSE), bytes32(0));
-    }
-
-    function test_CanNotBeCalledTwice() external FactoryAsSender {
-        // initialize the account to set the fuse to true
-        account.initialize();
-
-        // burn the fuse by adding the first signer
-        account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
+        // mock the call to the entrypoint to return the random nonce
+        vm.mockCall(
+            address(entrypoint), abi.encodeWithSelector(MockEntryPoint.getNonce.selector), abi.encode(randomNonce)
+        );
 
         // expect an error for the next call of `addFirstSigner`
-        vm.expectRevert(abi.encodeWithSelector(SmartAccount.FirstSignerAlreadySet.selector));
+        vm.expectRevert(SmartAccount.InvalidSignerAddition.selector);
 
-        // try to add the first signer again -- this must revert
+        //  try to add the first signer -- this must revert
+        vm.prank(factory);
         account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
     }
 
     function test_RevertsIfNotCalledByTheFactory() external {
         // it reverts if not called by the factory
 
-        // initialize the account to set the fuse to true
-        account.initialize();
-
         // expect an error for the next call of `addFirstSigner`
-        vm.expectRevert(abi.encodeWithSelector(SmartAccount.NotTheFactory.selector));
+        vm.expectRevert(SmartAccount.NotTheFactory.selector);
 
         //  try to add the first signer -- this must revert
         account.addFirstSigner(pubkeyX, pubkeyY, keccak256("qdqdqdqdqddqd"));
     }
 
-    function test_StoresTheSigner() external FactoryAsSender {
+    function test_StoresTheSigner() external {
         // it stores the signer
 
         bytes memory credId = "qdqdqdqdqddqd";
         bytes32 credIdHash = keccak256(credId);
-
-        // initialize the account to set the fuse to true
-        account.initialize();
 
         // get the starting slot of the signer
         bytes32 startingSlot = SignerVaultWebAuthnP256R1.getSignerStartingSlot(credIdHash);
@@ -97,6 +69,7 @@ contract Account__AddFirstSigner is BaseTest {
         assertEq(bytes32(uint256(vm.load(address(account), bytes32(uint256(startingSlot) + 2)))), bytes32(0));
 
         // add the first signer
+        vm.prank(factory);
         account.addFirstSigner(pubkeyX, pubkeyY, credIdHash);
 
         // check the signer has been stored
@@ -105,7 +78,7 @@ contract Account__AddFirstSigner is BaseTest {
         assertEq(uint256(vm.load(address(account), bytes32(uint256(startingSlot) + 2))), pubkeyY);
     }
 
-    function test_EmitsTheSignerAddEvent(uint256 fuzzedPubKeyX, uint256 fuzzedPubKeyY) external FactoryAsSender {
+    function test_EmitsTheSignerAddEvent(uint256 fuzzedPubKeyX, uint256 fuzzedPubKeyY) external {
         // it emits the signer add event
 
         // bound the pubkey to the secp256r1 curve
@@ -115,9 +88,6 @@ contract Account__AddFirstSigner is BaseTest {
         bytes memory credId = "qdqdqdqdqddqd";
         bytes32 credIdHash = keccak256(credId);
 
-        // initialize the account to set the fuse to true
-        account.initialize();
-
         // we tell the VM to expect an event
         vm.expectEmit(true, true, true, true, address(account));
 
@@ -125,6 +95,16 @@ contract Account__AddFirstSigner is BaseTest {
         emit SignerAdded(credIdHash, fuzzedPubKeyX, fuzzedPubKeyY);
 
         // burn the fuse by adding the first signer
+        vm.prank(factory);
         account.addFirstSigner(fuzzedPubKeyX, fuzzedPubKeyY, credIdHash);
+    }
+}
+
+contract MockEntryPoint {
+    uint256 internal nonce;
+
+    function getNonce(address, uint192) external pure returns (uint256) {
+        // harcoded to 0 for testing the creation flow
+        return 0;
     }
 }

@@ -37,10 +37,8 @@ contract Account is Initializable, BaseAccount {
     // ========== ERRORS ============
     // ==============================
 
-    /// @notice This error is thrown if `firstSignerFuse` is set to false. That can happen if:
-    ///         - `addFirstSigner` is called before calling the `initialize` function
-    ///         - `firstSignerFuse` has already been called in the past
-    error FirstSignerAlreadySet();
+    /// @notice This error is thrown if the factory tries to add the first signer when the nonce is not 0x00
+    error InvalidSignerAddition();
     error NotTheFactory();
     /// @notice This error is thrown if arguments passed to the `executeBatch` function are not of the same length
     /// @dev    `values` can be of length 0 if no value is passed to the calls
@@ -61,19 +59,13 @@ contract Account is Initializable, BaseAccount {
         // address of the factory that deployed this contract.
         // only the factory will have the ability to set the first signer later on
         factory = msg.sender;
+
+        // prevent the implementation contract from being used directly
+        _disableInitializers();
     }
 
-    /// @notice Called once during the creation of the instance. Set the fuse that gates the assignment of the first
-    ///         signer to true. The first signer can then be stored by calling the `addFirstSigner` function.
-    ///         The `initializer` modifier prevents the function to be called twice during its lifetime
-    function initialize() external reinitializer(1) {
-        bytes32 slot = StorageSlotRegistry.FIRST_SIGNER_FUSE;
-
-        // toggle the fuse to allow the storing of the first signer by calling `addFirstSigner`
-        assembly ("memory-safe") {
-            sstore(slot, 1)
-        }
-    }
+    /// @notice Called once during the creation of the instance. Initialize the contract with the version 1.
+    function initialize() external reinitializer(1) { }
 
     // ==============================
     // ======== FUNCTIONS ===========
@@ -82,30 +74,6 @@ contract Account is Initializable, BaseAccount {
     /// @notice Allow the contract to receive native tokens
     // solhint-disable-next-line no-empty-blocks
     receive() external payable { }
-
-    /// @notice This modifier check if the fuse has already been burnt and revert the transaction if it is the case
-    ///         if the fuse has not been burnt yet, it burns it and allow the function to be called
-    /// @dev    The fuse is stored at the slot given by the constant `StorageSlotRegistry.FIRST_SIGNER_FUSE`
-    modifier singleUseLock() {
-        bytes32 slotFirstSignerFuse = StorageSlotRegistry.FIRST_SIGNER_FUSE;
-        bool currentFuseValue;
-
-        // check the value of the fusƒe variable
-        assembly ("memory-safe") {
-            currentFuseValue := sload(slotFirstSignerFuse)
-        }
-
-        // if the fuse has already been burnt (set to false), revert the transaction
-        if (currentFuseValue == false) revert FirstSignerAlreadySet();
-
-        // burn the fuse to prevent this function to be called again in the future
-        assembly ("memory-safe") {
-            sstore(slotFirstSignerFuse, 0)
-        }
-
-        // continue the execution of the function
-        _;
-    }
 
     /// @notice This modifier ensure the caller is the factory that deployed this contract
     modifier onlyFactory() {
@@ -124,18 +92,15 @@ contract Account is Initializable, BaseAccount {
     ///         `addSigner` function.
     /// @dev    This function is expected to add a signer generated using the WebAuthn protocol on the
     ///         secp256r1 curve. Adding another type of signer as the first signer is not supported yet.
-    ///         As the call of this function is expected to be wrapped in the same transaction than a
-    ///         interaction with the account, we do not check webauthn's payload yet.
-    ///         The payload is automatically check in the execution function meaning if the payload
-    ///         is incorrect or do not correspond to the signer stored in this function, the whole tx
-    ///         will revert (reverting de facto the signer stored in this function).
-    ///         The `singleUseLock` modifier prevents this function to be called twice during its lifetime
-    ///         The `onlyFactory` modifier ensures only the factory can call this function
+    ///         This function can only be called once when the nonce of the account is 0x00.
     /// @param  pubkeyX The X coordinate of the signer's public key.
     /// @param  pubkeyY The Y coordinate of the signer's public key.
     /// @param  credIdHash The hash of the credential ID associated to the signer
-    function addFirstSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external onlyFactory singleUseLock {
-        // add account's first signer and emit the signer addition event
+    function addFirstSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external onlyFactory {
+        // 1. check that the nonce is 0x00. The value of the first key is checked here
+        if (getNonce() != 0) revert InvalidSignerAddition();
+
+        // 2. add account's first signer and emit the signer addition event
         SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
         emit SignerAdded(credIdHash, pubkeyX, pubkeyY);
     }
@@ -323,16 +288,3 @@ contract Account is Initializable, BaseAccount {
         }
     }
 }
-
-// ==============================
-// ========== STATE =============
-// ==============================
-
-// SLOT: `StorageSlotRegistry.FIRST_SIGNER_FUSE`
-//  This variable is used to prevent the first signer to be added twice. Here's the expected lifecycle
-//   - The slot points to the default value (0x00 = false) by default
-//   - The value is set to true only once by the `initialize` function
-//   - Then the value is set back to false while the `addFirstSigner` function is called
-//
-//   It is expected the `addFirstSigner` function is called in the same tx than the `initialize` function.
-//   The `initialize` function can only be called once, meaning there is no way to set back the value to true

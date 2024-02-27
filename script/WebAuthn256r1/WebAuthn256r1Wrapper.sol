@@ -2,7 +2,7 @@
 pragma solidity >=0.8.19 <0.9.0;
 
 import { WebAuthn256r1 } from "@webauthn/WebAuthn256r1.sol";
-import { IWebAuthn256r1 } from "src/interfaces/IWebAuthn256r1.sol";
+import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 
 /// @title A wrapper for the WebAuthn256r1 library
 contract WebAuthn256r1Wrapper is IWebAuthn256r1 {

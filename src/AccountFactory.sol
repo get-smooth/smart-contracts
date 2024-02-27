@@ -5,7 +5,12 @@ import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 import "src/utils/Signature.sol" as Signature;
 import { Account } from "./Account.sol";
 
-// TODO: Implement an universal registry and use it to store the value of `nameServiceOwner`
+// TODO:    Implement an universal registry and use it to store the value of `admin`
+// FIXME:   createAndInitAccount() Understand the implications of the ban system of the function
+// TODO:    What about storing the credId off-chain for the login scenario ? As we moved from `credId` to `credIdHash`
+//          for the create function, we do not log the credId anymore. Investigate
+// TODO:    Add the address of the factory in the signature?
+// TODO:    make isSignatureLegit public?
 
 /// @title  4337-compliant Account Factory
 /// @notice This contract is a 4337-compliant factory for smart-accounts. It is in charge of deploying an account

@@ -135,5 +135,6 @@ contract MockTarget {
         revert("MockTarget: sumBroken");
     }
 
+    // solhint-disable-next-line no-empty-blocks
     receive() external payable { }
 }

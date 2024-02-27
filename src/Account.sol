@@ -5,11 +5,22 @@ import { IEntryPoint } from "@eth-infinitism/interfaces/IEntryPoint.sol";
 import { UserOperation } from "@eth-infinitism/interfaces/UserOperation.sol";
 import { BaseAccount } from "@eth-infinitism/core/BaseAccount.sol";
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
-import { StorageSlotRegistry } from "src/StorageSlotRegistry.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
 import { AccountFactory } from "src/AccountFactory.sol";
 import "src/utils/Signature.sol" as Signature;
 
+// @DEV: MONO-SIGNER VERSION
+/**
+ * TODO:
+ *  - Inherit from eth-infinitism's Account contract
+ *  - Manage webauthn signer
+ *  - One click scenario (including verify)
+ *  - 4337 chore (postOp etc...)
+ *  --- Take a look to proxy's versions
+ *  --- Take a look to the initialize library to replace the `singleUseLock` modifier
+ *  - Document the fact this contract does not use the native solidity storage system
+ *  - Switch factory to public?
+ */
 contract Account is Initializable, BaseAccount {
     // ==============================
     // ========= CONSTANTS ==========
@@ -195,6 +206,7 @@ contract Account is Initializable, BaseAccount {
         if (Signature.recover(expectedSigner, message, signature) == false) return Signature.State.FAILURE;
 
         // 8. Check the signer is the same than the one stored by the factory during the account creation process
+        // solhint-disable-next-line var-name-mixedcase
         (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = SignerVaultWebAuthnP256R1.get(credIdHash);
         if ($credIdHash != credIdHash || $pubkeyX != pubKeyX || $pubkeyY != pubKeyY) return Signature.State.FAILURE;
 

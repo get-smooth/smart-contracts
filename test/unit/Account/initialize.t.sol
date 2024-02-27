@@ -51,6 +51,6 @@ contract Account__Initiliaze is BaseTest {
         // implementation)
         vm.expectRevert(Initializable.InvalidInitialization.selector);
         // solhint-disable-next-line avoid-low-level-calls
-        address(account).delegatecall(abi.encodeWithSignature("initialize()"));
+        (success,) = address(account).delegatecall(abi.encodeWithSignature("initialize()"));
     }
 }

@@ -191,7 +191,6 @@ library SignerVaultWebAuthnP256R1 {
     ///                        we use this field to pass the arbitrary execution order.
     ///                        This value is expected to not be encoded in Base64, the encoding is done
     ///                        during the verification.
-    /// @param clientChallengeOffset The offset of the client challenge in the client data
     /// @param r uint256 The r value of the ECDSA signature.
     /// @param s uint256 The s value of the ECDSA signature.
     /// @param qx The x value of the public key used for the signature
@@ -203,7 +202,6 @@ library SignerVaultWebAuthnP256R1 {
         bytes calldata authenticatorData,
         bytes calldata clientData,
         bytes calldata clientChallenge,
-        uint256 clientChallengeOffset,
         uint256 r,
         uint256 s,
         uint256 qx,
@@ -212,16 +210,6 @@ library SignerVaultWebAuthnP256R1 {
         internal
         returns (bool)
     {
-        return verifier.verify(
-            authenticatorDataFlagMask,
-            authenticatorData,
-            clientData,
-            clientChallenge,
-            clientChallengeOffset,
-            r,
-            s,
-            qx,
-            qy
-        );
+        return verifier.verify(authenticatorDataFlagMask, authenticatorData, clientData, clientChallenge, r, s, qx, qy);
     }
 }

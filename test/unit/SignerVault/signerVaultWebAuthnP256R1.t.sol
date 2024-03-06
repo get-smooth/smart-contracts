@@ -302,7 +302,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
             hex"7a6c7169316f776d4f643955474a30222c226f726967696e223a226874747073"
             hex"3a2f2f66726573682e6c65646765722e636f6d222c2263726f73734f726967696e223a66616c73657d";
         bytes memory clientChallenge = hex"353a3ed5a0441919f1c639a46931de872ac3357de2ce5aa2d68c2639df54189d";
-        uint256 clientChallengeOffset = 0x24;
         uint256 r =
             45_847_212_378_479_006_099_766_816_358_861_726_414_873_720_355_505_495_069_909_394_794_949_093_093_607;
         uint256 s =
@@ -321,7 +320,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
                 authenticatorData,
                 clientData,
                 clientChallenge,
-                clientChallengeOffset,
                 r,
                 s,
                 qx,
@@ -341,8 +339,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
                 clientData,
                 // clientChallenge
                 clientChallenge,
-                // clientChallengeOffset
-                clientChallengeOffset,
                 // r
                 r,
                 // s
@@ -365,7 +361,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
             hex"7a6c7169316f776d4f643955474a30222c226f726967696e223a226874747073"
             hex"3a2f2f66726573682e6c65646765722e636f6d222c2263726f73734f726967696e223a66616c73657d";
         bytes memory clientChallenge = hex"353a3ed5a0441919f1c639a46931de872ac3357de2ce5aa2d68c2639df54189d";
-        uint256 clientChallengeOffset = 0x24;
         // incorrect R
         uint256 r =
             46_847_212_378_479_006_099_766_816_358_861_726_414_873_720_355_505_495_069_909_394_794_949_093_093_607;
@@ -385,7 +380,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
                 authenticatorData,
                 clientData,
                 clientChallenge,
-                clientChallengeOffset,
                 r,
                 s,
                 qx,
@@ -405,8 +399,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
                 clientData,
                 // clientChallenge
                 clientChallenge,
-                // clientChallengeOffset
-                clientChallengeOffset,
                 // r
                 r,
                 // s
@@ -505,7 +497,6 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
         bytes calldata authenticatorData,
         bytes calldata clientData,
         bytes calldata clientChallenge,
-        uint256 clientChallengeOffset,
         uint256 r,
         uint256 s,
         uint256 qx,
@@ -520,7 +511,6 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
             authenticatorData,
             clientData,
             clientChallenge,
-            clientChallengeOffset,
             r,
             s,
             qx,

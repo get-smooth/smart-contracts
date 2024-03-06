@@ -11,8 +11,7 @@ contract WebAuthn256r1Wrapper is IWebAuthn256r1 {
         bytes1 authenticatorDataFlagMask,
         bytes calldata authenticatorData,
         bytes calldata clientData,
-        bytes calldata clientChallenge,
-        uint256 clientChallengeOffset,
+        bytes calldata challenge,
         uint256 r,
         uint256 s,
         uint256 qx,
@@ -21,16 +20,6 @@ contract WebAuthn256r1Wrapper is IWebAuthn256r1 {
         external
         returns (bool)
     {
-        return WebAuthn256r1.verify(
-            authenticatorDataFlagMask,
-            authenticatorData,
-            clientData,
-            clientChallenge,
-            clientChallengeOffset,
-            r,
-            s,
-            qx,
-            qy
-        );
+        return WebAuthn256r1.verify(authenticatorDataFlagMask, authenticatorData, clientData, challenge, r, s, qx, qy);
     }
 }

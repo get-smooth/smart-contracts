@@ -16,22 +16,13 @@ contract WebAuthn256r1Verify is BaseScript {
         bytes memory authenticatorData = vm.envBytes("AUTH_DATA");
         bytes memory clientData = vm.envBytes("CLIENT_DATA");
         bytes memory clientChallenge = vm.envBytes("CLIENT_CHALLENGE");
-        uint256 clientChallengeOffset = vm.envUint("CLIENT_CHALLENGE_OFFSET");
         uint256 r = vm.envUint("R");
         uint256 s = vm.envUint("S");
         uint256 qx = vm.envUint("QX");
         uint256 qy = vm.envUint("QY");
 
         return WebAuthn256r1Wrapper(verifierAddress).verify(
-            authenticatorDataFlagMask,
-            authenticatorData,
-            clientData,
-            clientChallenge,
-            clientChallengeOffset,
-            r,
-            s,
-            qx,
-            qy
+            authenticatorDataFlagMask, authenticatorData, clientData, clientChallenge, r, s, qx, qy
         );
     }
 }

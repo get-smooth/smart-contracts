@@ -8,6 +8,7 @@ import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
 import { AccountFactory } from "src/AccountFactory.sol";
 import "src/utils/Signature.sol" as Signature;
+import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 
 // @DEV: MONO-SIGNER VERSION
 /**
@@ -213,6 +214,29 @@ contract Account is Initializable, BaseAccount {
         return Signature.State.SUCCESS;
     }
 
+    function _validateWebAuthnP256R1Signature(UserOperation calldata userOp) internal returns (uint256) {
+        // 1. decode the signature
+        (, bytes memory authData, bytes memory clientData, uint256 r, uint256 s, bytes32 credIdHash) =
+            abi.decode(userOp.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
+
+        // 2. retrieve the public key of the signer
+        (uint256 pubkeyX, uint256 pubkeyY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
+        if (pubkeyX == 0 && pubkeyY == 0) return Signature.State.FAILURE;
+
+        // 3. reconstruct the challenge
+        bytes memory packedData = abi.encode(address(this), userOp.nonce, userOp.callData, userOp.paymasterAndData);
+        bytes memory encodedPackedData = abi.encode(keccak256(packedData), entryPointAddress, block.chainid);
+        bytes32 challenge = keccak256(encodedPackedData);
+
+        // 3. verify the signature
+        bool isSignatureValid = IWebAuthn256r1(webAuthnVerifier).verify(
+            authData, clientData, abi.encodePacked(challenge), r, s, pubkeyX, pubkeyY
+        );
+        if (isSignatureValid == false) return Signature.State.FAILURE;
+
+        return Signature.State.SUCCESS;
+    }
+
     /// @notice Validate the userOp signature
     /// @dev We do not return any time-range, only the signature validation
     /// @param userOp validate the userOp.signature field
@@ -226,17 +250,18 @@ contract Account is Initializable, BaseAccount {
         bytes32 // userOpHash
     )
         internal
-        view
         override
         returns (uint256 validationData)
     {
+        bytes1 signatureType = userOp.signature[0];
+
         // 1.a check the signature is a "webauthn p256r1" signature
-        if (userOp.signature[0] == Signature.Type.WEBAUTHN_P256R1) {
-            // TODO: verify the webauthn signature
+        if (signatureType == Signature.Type.WEBAUTHN_P256R1) {
+            return _validateWebAuthnP256R1Signature(userOp);
         }
 
         // 1.b check the signature is a "creation" signature (length is checked by the signature library)
-        if (userOp.signature[0] == Signature.Type.CREATION) {
+        if (signatureType == Signature.Type.CREATION) {
             return _validateCreationSignature(userOp.signature, userOp.initCode);
         }
 

@@ -9,10 +9,9 @@ import { BaseScript } from "../Base.s.sol";
 contract WebAuthn256r1Verify is BaseScript {
     function run() public payable broadcast returns (bool) {
         // get the address of the verifier contract
-        address verifierAddress = vm.envAddress("VERIFIER");
+        address verifier = vm.envAddress("VERIFIER");
 
         // get the parameters for the verification
-        bytes1 authenticatorDataFlagMask = bytes1(vm.envBytes32("AUTH_DATA_FLAG_MASK"));
         bytes memory authenticatorData = vm.envBytes("AUTH_DATA");
         bytes memory clientData = vm.envBytes("CLIENT_DATA");
         bytes memory clientChallenge = vm.envBytes("CLIENT_CHALLENGE");
@@ -21,9 +20,7 @@ contract WebAuthn256r1Verify is BaseScript {
         uint256 qx = vm.envUint("QX");
         uint256 qy = vm.envUint("QY");
 
-        return WebAuthn256r1Wrapper(verifierAddress).verify(
-            authenticatorDataFlagMask, authenticatorData, clientData, clientChallenge, r, s, qx, qy
-        );
+        return WebAuthn256r1Wrapper(verifier).verify(authenticatorData, clientData, clientChallenge, r, s, qx, qy);
     }
 }
 

@@ -164,21 +164,6 @@ library SignerVaultWebAuthnP256R1 {
 
     /// @notice Verify ECDSA signature though WebAuthn on the secp256r1 curve
     /// @dev    This function is a wrapper around the WebAuthn256r1 library.
-    ///         Note the required interactions with the precompiled contract can revert the transaction
-    /// @param authenticatorDataFlagMask This is a bit mask that will be used to validate the flag in the
-    ///                                  authenticator data. The flag is located at byte 32 of the authenticator
-    ///                                  data and is used to indicate, among other things, wheter the user's
-    ///                                  presence/verification ceremonies have been performed.
-    ///                                  This argument is not expected to be exposed to the end user, it is the
-    ///                                  responsibility of the caller to enforce the value of the flag for their flows.
-    ///
-    ///                                  Here are some flags you may want to use depending on your needs.
-    ///                                  - 0x01: User presence (UP) is required. If the UP flag is not set, revert
-    ///                                  - 0x04: User verification (UV) is required. If the UV flag is not set, revert
-    ///                                  - 0x05: UV and UP are both accepted. If none of them is set, revert
-    ///
-    //                                  Read more about UP here: https://www.w3.org/TR/webauthn-2/#test-of-user-presence
-    //                                  Read more about UV here: https://www.w3.org/TR/webauthn-2/#user-verification
     /// @param authenticatorData The authenticator data structure encodes contextual bindings made by the authenticator.
     ///                          Described here: https://www.w3.org/TR/webauthn-2/#authenticator-data
     /// @param clientData      This is the client data that was signed. The client data represents the
@@ -198,7 +183,6 @@ library SignerVaultWebAuthnP256R1 {
     /// @return bool True if the signature is valid, false otherwise
     function verify(
         IWebAuthn256r1 verifier,
-        bytes1 authenticatorDataFlagMask,
         bytes calldata authenticatorData,
         bytes calldata clientData,
         bytes calldata clientChallenge,
@@ -210,6 +194,6 @@ library SignerVaultWebAuthnP256R1 {
         internal
         returns (bool)
     {
-        return verifier.verify(authenticatorDataFlagMask, authenticatorData, clientData, clientChallenge, r, s, qx, qy);
+        return verifier.verify(authenticatorData, clientData, clientChallenge, r, s, qx, qy);
     }
 }

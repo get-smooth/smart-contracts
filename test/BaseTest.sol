@@ -65,4 +65,20 @@ contract BaseTest is Test {
     function boundP256R1(uint256 x) internal pure returns (uint256) {
         return x % P256R1_MAX;
     }
+
+    function truncBytes(
+        bytes calldata data,
+        uint256 start,
+        uint256 end
+    )
+        external
+        pure
+        returns (bytes memory truncData)
+    {
+        truncData = data[start:end];
+    }
+
+    function _truncBytes(bytes memory data, uint256 start, uint256 end) internal view returns (bytes memory truncData) {
+        truncData = BaseTest(address(this)).truncBytes(data, start, end);
+    }
 }

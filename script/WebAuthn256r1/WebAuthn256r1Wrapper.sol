@@ -8,7 +8,6 @@ import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 contract WebAuthn256r1Wrapper is IWebAuthn256r1 {
     /// @notice Verify ECDSA signature though WebAuthn on the secp256r1 curve
     function verify(
-        bytes1 authenticatorDataFlagMask,
         bytes calldata authenticatorData,
         bytes calldata clientData,
         bytes calldata challenge,
@@ -20,6 +19,6 @@ contract WebAuthn256r1Wrapper is IWebAuthn256r1 {
         external
         returns (bool)
     {
-        return WebAuthn256r1.verify(authenticatorDataFlagMask, authenticatorData, clientData, challenge, r, s, qx, qy);
+        return WebAuthn256r1.verify(authenticatorData, clientData, challenge, r, s, qx, qy);
     }
 }

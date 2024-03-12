@@ -295,7 +295,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
     // @dev the role of this test is not to test the `webauthn` library but to check it has been integrated correctly
     function test_ReturnTrueIfSuccessfulVerification() external {
         // valid webauthn payload
-        bytes1 authenticatorDataFlagMask = bytes1(bytes32(uint256(1)));
         bytes memory authenticatorData = hex"f8e4b678e1c62f7355266eaa4dc1148573440937063a46d848da1e25babbd20b010000004d";
         bytes memory clientData = hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e67"
             hex"65223a224e546f2d3161424547526e78786a6d6b61544865687972444e583369"
@@ -315,15 +314,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         vm.mockCall(
             address(verifierMock),
             abi.encodeWithSelector(
-                IWebAuthn256r1.verify.selector,
-                authenticatorDataFlagMask,
-                authenticatorData,
-                clientData,
-                clientChallenge,
-                r,
-                s,
-                qx,
-                qy
+                IWebAuthn256r1.verify.selector, authenticatorData, clientData, clientChallenge, r, s, qx, qy
             ),
             abi.encode(true)
         );
@@ -331,8 +322,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         // it should return true if verify correct webauthn payload
         assertTrue(
             implementation.verify(
-                // authenticatorDataFlagMask
-                authenticatorDataFlagMask,
                 // authenticatorData
                 authenticatorData,
                 // clientData
@@ -354,7 +343,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
     // @dev the role of this test is not to test the `webauthn` library but to check it has been integrated correctly
     function test_ReturnFalseIfUnsuccessfulVerification() external {
         // invalid webauthn payload
-        bytes1 authenticatorDataFlagMask = bytes1(bytes32(uint256(1)));
         bytes memory authenticatorData = hex"f8e4b678e1c62f7355266eaa4dc1148573440937063a46d848da1e25babbd20b010000004d";
         bytes memory clientData = hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e67"
             hex"65223a224e546f2d3161424547526e78786a6d6b61544865687972444e583369"
@@ -375,15 +363,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         vm.mockCall(
             address(verifierMock),
             abi.encodeWithSelector(
-                IWebAuthn256r1.verify.selector,
-                authenticatorDataFlagMask,
-                authenticatorData,
-                clientData,
-                clientChallenge,
-                r,
-                s,
-                qx,
-                qy
+                IWebAuthn256r1.verify.selector, authenticatorData, clientData, clientChallenge, r, s, qx, qy
             ),
             abi.encode(false)
         );
@@ -391,8 +371,6 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         // it should return true if verify correct webauthn payload
         assertFalse(
             implementation.verify(
-                // authenticatorDataFlagMask
-                authenticatorDataFlagMask,
                 // authenticatorData
                 authenticatorData,
                 // clientData
@@ -493,7 +471,6 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
     }
 
     function verify(
-        bytes1 authenticatorDataFlagMask,
         bytes calldata authenticatorData,
         bytes calldata clientData,
         bytes calldata clientChallenge,
@@ -506,15 +483,7 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
         returns (bool)
     {
         return SignerVaultWebAuthnP256R1.verify(
-            IWebAuthn256r1(verifier),
-            authenticatorDataFlagMask,
-            authenticatorData,
-            clientData,
-            clientChallenge,
-            r,
-            s,
-            qx,
-            qy
+            IWebAuthn256r1(verifier), authenticatorData, clientData, clientChallenge, r, s, qx, qy
         );
     }
 }

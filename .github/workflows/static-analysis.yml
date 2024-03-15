@@ -26,6 +26,8 @@ on:
 
 jobs:
   static-analysis:
+    # @TODO: Never enable this again. Replace slither with something else.
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo

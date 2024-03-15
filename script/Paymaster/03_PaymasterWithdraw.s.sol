@@ -11,12 +11,15 @@ contract PaymasterWithdraw is BaseScript {
     function run() public payable broadcast {
         address paymasterAddress = vm.envAddress("PAYMASTER");
         address payable recipient = payable(vm.envAddress("RECIPIENT"));
-        uint256 amount = vm.envUint("AMOUNT");
 
         Paymaster paymaster = Paymaster(paymasterAddress);
 
         // get the initial balance of the paymaster
         uint256 initialBalance = paymaster.getDeposit();
+        uint256 amount = vm.envOr("AMOUNT", initialBalance);
+
+        // ensure we don't withdraw more than the paymaster has
+        require(initialBalance >= amount, "Insufficient deposited funds");
 
         // withdraw some funds to the recipient
         paymaster.withdrawTo(recipient, amount);

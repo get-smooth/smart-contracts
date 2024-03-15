@@ -3,7 +3,7 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 import "src/utils/Signature.sol" as Signature;
-import { Account } from "./Account.sol";
+import { Account as SmartAccount } from "./Account.sol";
 
 // TODO:    Implement an universal registry and use it to store the value of `admin`
 // FIXME:   createAndInitAccount() Understand the implications of the ban system of the function
@@ -25,10 +25,10 @@ contract AccountFactory {
     address public immutable admin;
 
     event AccountCreated(
-        bytes32 loginHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
+        bytes32 usernameHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
     );
 
-    error InvalidSignature(bytes32 loginHash, bytes signature);
+    error InvalidSignature(bytes32 usernameHash, bytes signature);
 
     /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
     ///         implementation will be used as the implementation reference for all the proxies deployed by this
@@ -48,25 +48,16 @@ contract AccountFactory {
         admin = _admin;
 
         // deploy the implementation of the account
-        Account account = new Account(entryPoint, webAuthnVerifier);
+        SmartAccount account = new SmartAccount(entryPoint, webAuthnVerifier);
 
         // set the address of the implementation deployed
         accountImplementation = payable(address(account));
     }
 
-    /// @notice This function check if an account already exists based on the loginHash given
-    /// @param  loginHash The keccak256 hash of the login of the account
-    /// @return The address of the account if it exists, address(0) otherwise
-    function _checkAccountExistence(bytes32 loginHash) internal view returns (address) {
-        // calculate the address of the account based on the loginHash and return it if it exists
-        address calulatedAddress = getAddress(loginHash);
-        return calulatedAddress.code.length > 0 ? calulatedAddress : address(0);
-    }
-
     /// @notice This function check if the signature is signed by the correct entity
     /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
-    /// @param  loginHash The keccak256 hash of the login of the account
+    /// @param  usernameHash The keccak256 hash of the login of the account
     /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
     /// @param  signature Signature made off-chain. Its recovery must match the admin.
     /// @return True if the signature is legit, false otherwise
@@ -74,16 +65,18 @@ contract AccountFactory {
     function _isSignatureLegit(
         uint256 pubKeyX,
         uint256 pubKeyY,
-        bytes32 loginHash,
+        bytes32 usernameHash,
         bytes32 credIdHash,
+        address accountAddress,
         bytes calldata signature
     )
         internal
-        view
         returns (bool)
     {
         // recreate the message signed by the admin
-        bytes memory message = abi.encode(Signature.Type.CREATION, loginHash, pubKeyX, pubKeyY, credIdHash);
+        bytes memory message = abi.encode(
+            Signature.Type.CREATION, usernameHash, pubKeyX, pubKeyY, credIdHash, accountAddress, block.chainid
+        );
 
         // try to recover the address and return the result
         return Signature.recover(admin, message, signature);
@@ -93,55 +86,55 @@ contract AccountFactory {
     ///         or returns the address of an existing account based on the parameter given
     /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
-    /// @param  loginHash The keccak256 hash of the login of the account
+    /// @param  usernameHash The keccak256 hash of the login of the account
     /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
     /// @param  signature Signature made off-chain. Its recovery must match the admin.
-    ///         The loginHash is expected to be the hash used by the recover function.
+    ///         The usernameHash is expected to be the hash used by the recover function.
     /// @return The address of the account (either deployed or not)
     function createAndInitAccount(
         uint256 pubKeyX,
         uint256 pubKeyY,
-        bytes32 loginHash,
+        bytes32 usernameHash,
         bytes32 credIdHash,
         bytes calldata signature
     )
         external
         returns (address)
     {
-        // check if the account is already deployed and return prematurely if it is
-        address alreadyDeployedAddress = _checkAccountExistence(loginHash);
-        if (alreadyDeployedAddress != address(0)) {
-            return alreadyDeployedAddress;
+        // 1. get the address of the account if it exists
+        address accountAddress = getAddress(usernameHash);
+
+        // 2. check if the account is already deployed and return prematurely if it is
+        if (accountAddress.code.length > 0) return accountAddress;
+
+        // 3. check if the signature is valid
+        if (_isSignatureLegit(pubKeyX, pubKeyY, usernameHash, credIdHash, accountAddress, signature) == false) {
+            revert InvalidSignature(usernameHash, signature);
         }
 
-        // check if the signature is valid
-        if (_isSignatureLegit(pubKeyX, pubKeyY, loginHash, credIdHash, signature) == false) {
-            revert InvalidSignature(loginHash, signature);
-        }
-
-        // deploy the proxy for the user. During the deployment, the initialize function in the implementation contract
+        // 4. deploy the proxy for the user. During the deployment, the initialize function in the implementation
         // is called using the `delegatecall` opcode
-        Account account = Account(
+        SmartAccount account = SmartAccount(
             payable(
-                new ERC1967Proxy{ salt: loginHash }(
-                    accountImplementation, abi.encodeWithSelector(Account.initialize.selector)
+                new ERC1967Proxy{ salt: usernameHash }(
+                    accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
                 )
             )
         );
 
-        // set the first signer of the account using the parameters given
+        // 5. set the initial signer of the account using the parameters given
         account.addFirstSigner(pubKeyX, pubKeyY, credIdHash);
 
-        emit AccountCreated(loginHash, address(account), credIdHash, pubKeyX, pubKeyY);
-
+        // 6. emit the event and return the address of the deployed account
+        emit AccountCreated(usernameHash, address(account), credIdHash, pubKeyX, pubKeyY);
         return address(account);
     }
 
     /// @notice This utility function returns the address of the account that would be deployed
     /// @dev    This is the under the hood formula used by the CREATE2 opcode
-    /// @param  loginHash The keccak256 hash of the login of the account
+    /// @param  usernameHash The keccak256 hash of the login of the account
     /// @return The address of the account that would be deployed
-    function getAddress(bytes32 loginHash) public view returns (address) {
+    function getAddress(bytes32 usernameHash) public view returns (address) {
         return address(
             uint160(
                 uint256(
@@ -149,14 +142,14 @@ contract AccountFactory {
                         abi.encodePacked(
                             bytes1(0xff), // init code hash prefix
                             address(this), // deployer address
-                            loginHash, // the salt used to deploy the contract
+                            usernameHash, // the salt used to deploy the contract
                             keccak256( // the init code hash
                                 abi.encodePacked(
                                     // creation code of the contract deployed
                                     type(ERC1967Proxy).creationCode,
                                     // arguments passed to the constructor of the contract deployed
                                     abi.encode(
-                                        accountImplementation, abi.encodeWithSelector(Account.initialize.selector)
+                                        accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
                                     )
                                 )
                             )
@@ -176,12 +169,12 @@ contract AccountFactory {
 // - CREATE2 is used to deploy the proxy for our users. The formula of this deterministic computation
 //   depends on these parameters:
 //   - the address of the factory
-//   - the loginHash
+//   - the usernameHash
 //   - the implementation of the ERC1967Proxy (included in the init code hash)
 //   - the arguments passed to the constructor of the ERC1967Proxy (included in the init code hash):
 //      - the address of the implementation of the account
 //      - the signature selector of the initialize function present in the account implementation (first 4-bytes)
-//      - the loginHash
+//      - the usernameHash
 //
 // - Once set, it's not possible to change the account implementation later.
 // - Once deployed by the constructor, it's not possible to change the instance of the account implementation.

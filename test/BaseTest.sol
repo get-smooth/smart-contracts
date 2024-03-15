@@ -4,35 +4,47 @@ pragma solidity >=0.8.20 <0.9.0;
 import { Test } from "forge-std/Test.sol";
 import { VmSafe } from "forge-std/Vm.sol";
 import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
+import { AccountFactory } from "src/AccountFactory.sol";
+import "src/utils/Signature.sol" as Signature;
 
 struct ValidCreationParams {
     uint256 pubKeyX;
     uint256 pubKeyY;
-    string login;
-    bytes32 loginHash;
+    bytes32 usernameHash;
     bytes32 credIdHash;
-    bytes signature;
     address signer;
+    bytes signature;
 }
 
 contract BaseTest is Test {
+    VmSafe.Wallet internal signer;
+
     // store a set of valid creation parameters that can be used in tests
     ValidCreationParams internal validCreate;
+
+    // use a random username hash
+    bytes32 internal __usernameHash = 0x975f1d0637811aba12c41f7b0d68ee42aa76a3a1cba43b96f60f0e3ea2f2206a;
+
+    // generate a credId hash that corresponds to the login
+    bytes32 internal __credIdHash = 0x511deddb8b836e8ced2f5e8a4ee0ac63ae4095b426398cc712aa772a4c68a099;
 
     // generate a set of valid creation parameters
     constructor() {
         // generate the wallet for the secret signer
-        VmSafe.Wallet memory signer = vm.createWallet(4337);
+        signer = vm.createWallet(4337);
 
-        // set a random login and hash it
-        string memory login = "samus-aran";
-        bytes32 loginHash = keccak256(bytes(login));
-
-        // generate a credId hash that corresponds to the login
-        bytes32 credIdHash = 0x511deddb8b836e8ced2f5e8a4ee0ac63ae4095b426398cc712aa772a4c68a099;
+        // TODO: remove valid create here
 
         // recreate the message to sign
-        bytes memory message = abi.encode(0x00, loginHash, signer.publicKeyX, signer.publicKeyY, credIdHash);
+        bytes memory message = abi.encode(
+            Signature.Type.CREATION,
+            __usernameHash,
+            signer.publicKeyX,
+            signer.publicKeyY,
+            __credIdHash,
+            address(32),
+            block.chainid
+        );
 
         // hash the message with the EIP-191 prefix
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
@@ -45,11 +57,10 @@ contract BaseTest is Test {
         validCreate = ValidCreationParams({
             pubKeyX: signer.publicKeyX,
             pubKeyY: signer.publicKeyY,
-            login: login,
-            loginHash: loginHash,
-            credIdHash: credIdHash,
-            signature: signature,
-            signer: signer.addr
+            usernameHash: __usernameHash,
+            credIdHash: __credIdHash,
+            signer: signer.addr,
+            signature: signature
         });
     }
 
@@ -60,6 +71,28 @@ contract BaseTest is Test {
         assumeNotPrecompile(fuzzedAddress);
 
         _;
+    }
+
+    function _craftCreationSignature(address factoryAddress) internal returns (bytes memory signature) {
+        address accountAddress = AccountFactory(factoryAddress).getAddress(validCreate.usernameHash);
+
+        // recreate the message to sign
+        bytes memory message = abi.encode(
+            Signature.Type.CREATION,
+            __usernameHash,
+            signer.publicKeyX,
+            signer.publicKeyY,
+            __credIdHash,
+            accountAddress,
+            block.chainid
+        );
+
+        // hash the message with the EIP-191 prefix
+        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
+
+        // sign the hash of the message and get the signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer.privateKey, hash);
+        signature = abi.encodePacked(r, s, v);
     }
 
     function boundP256R1(uint256 x) internal pure returns (uint256) {

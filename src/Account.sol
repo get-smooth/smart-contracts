@@ -175,7 +175,7 @@ contract Account is Initializable, BaseAccount {
         //  - 4 bytes for the selector of the factory function called  --NOT_USED--
         //  - 32 bytes for the X coordinate of the public key
         //  - 32 bytes for the Y coordinate of the public key
-        //  - 32 bytes for the loginHash
+        //  - 32 bytes for the usernameHash
         //  - 32 bytes for the credIdHash
         //  - X bytes for the signature --NOT_USED--
         //
@@ -189,27 +189,29 @@ contract Account is Initializable, BaseAccount {
         //
         // Note that any change in the factory's function signature will break the signature validation of this account!
         address userOpFactory = address(bytes20(initCode[:20]));
-        uint256 pubKeyX = uint256(bytes32(initCode[24:56]));
-        uint256 pubKeyY = uint256(bytes32(initCode[56:88]));
-        bytes32 loginHash = bytes32(initCode[88:120]);
+        uint256 pubX = uint256(bytes32(initCode[24:56]));
+        uint256 pubY = uint256(bytes32(initCode[56:88]));
+        bytes32 usernameHash = bytes32(initCode[88:120]);
         bytes32 credIdHash = bytes32(initCode[120:152]);
 
         // 4. check the factory is the same than the one stored here
         if (userOpFactory != factory) return Signature.State.FAILURE;
 
         // 5. recreate the message and try to recover the signer
-        bytes memory message = abi.encode(Signature.Type.CREATION, loginHash, pubKeyX, pubKeyY, credIdHash);
+        bytes memory message =
+            abi.encode(Signature.Type.CREATION, usernameHash, pubX, pubY, credIdHash, address(this), block.chainid);
 
         // 6. fetch the expected signer from the factory contract
         address expectedSigner = AccountFactory(factory).admin();
 
         // 7. Check the signature is valid and revert if it is not
-        if (Signature.recover(expectedSigner, message, signature) == false) return Signature.State.FAILURE;
+        // NOTE: The signature prefix, added manually to identify the signature, is removed before the recovering process
+        if (Signature.recover(expectedSigner, message, signature[1:]) == false) return Signature.State.FAILURE;
 
         // 8. Check the signer is the same than the one stored by the factory during the account creation process
         // solhint-disable-next-line var-name-mixedcase
         (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = SignerVaultWebAuthnP256R1.get(credIdHash);
-        if ($credIdHash != credIdHash || $pubkeyX != pubKeyX || $pubkeyY != pubKeyY) return Signature.State.FAILURE;
+        if ($credIdHash != credIdHash || $pubkeyX != pubX || $pubkeyY != pubY) return Signature.State.FAILURE;
 
         return Signature.State.SUCCESS;
     }

@@ -13,14 +13,17 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
     function test_ReturnTrueIfTheSignatureIsValid() external {
         // it return true if the signature is valid
+        bytes memory signature = _craftCreationSignature(address(factory));
+        address accountAddresss = factory.getAddress(validCreate.usernameHash);
 
         assertTrue(
             factory.isSignatureLegit(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
-                validCreate.loginHash,
+                validCreate.usernameHash,
                 validCreate.credIdHash,
-                validCreate.signature
+                accountAddresss,
+                signature
             )
         );
     }
@@ -28,17 +31,22 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     function test_ReturnFalseIfNotTheCorrectSigner(address alternativeSigner) external {
         // it return false if not the correct signer
 
+        // deploy a new factory with a different admin
         vm.assume(alternativeSigner != validCreate.signer);
-
         AccountFactoryTestWrapper factory2 = new AccountFactoryTestWrapper(address(0), address(0), alternativeSigner);
+
+        // calculate the signature and the future address of the account
+        bytes memory signature = _craftCreationSignature(address(factory2));
+        address accountAddresss = factory2.getAddress(validCreate.usernameHash);
 
         assertFalse(
             factory2.isSignatureLegit(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
-                validCreate.loginHash,
+                validCreate.usernameHash,
                 validCreate.credIdHash,
-                validCreate.signature
+                accountAddresss,
+                signature
             )
         );
     }
@@ -49,15 +57,29 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         vm.assume(incorrectPubX != validCreate.pubKeyX);
         vm.assume(incorrectPubY != validCreate.pubKeyY);
 
+        // calculate the signature and the future address of the account
+        bytes memory signature = _craftCreationSignature(address(factory));
+        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+
         assertFalse(
             factory.isSignatureLegit(
-                incorrectPubX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, validCreate.signature
+                incorrectPubX,
+                validCreate.pubKeyY,
+                validCreate.usernameHash,
+                validCreate.credIdHash,
+                accountAddresss,
+                signature
             )
         );
 
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, incorrectPubY, validCreate.loginHash, validCreate.credIdHash, validCreate.signature
+                validCreate.pubKeyX,
+                incorrectPubY,
+                validCreate.usernameHash,
+                validCreate.credIdHash,
+                accountAddresss,
+                signature
             )
         );
     }
@@ -65,7 +87,11 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     function test_ReturnFalseIfNotTheCorrectLoginHash(bytes32 incorrectLoginHash) external {
         // it return false if not the correct loginHash
 
-        vm.assume(incorrectLoginHash != validCreate.loginHash);
+        vm.assume(incorrectLoginHash != validCreate.usernameHash);
+
+        // calculate the signature and the future address of the account
+        bytes memory signature = _craftCreationSignature(address(factory));
+        address accountAddresss = factory.getAddress(validCreate.usernameHash);
 
         assertFalse(
             factory.isSignatureLegit(
@@ -73,7 +99,8 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
                 validCreate.pubKeyY,
                 incorrectLoginHash,
                 validCreate.credIdHash,
-                validCreate.signature
+                accountAddresss,
+                signature
             )
         );
     }
@@ -83,19 +110,48 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         vm.assume(incorrectCredIdHash != validCreate.credIdHash);
 
+        // calculate the signature and the future address of the account
+        bytes memory signature = _craftCreationSignature(address(factory));
+        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+
         assertFalse(
             factory.isSignatureLegit(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
-                validCreate.loginHash,
+                validCreate.usernameHash,
                 incorrectCredIdHash,
-                validCreate.signature
+                accountAddresss,
+                signature
+            )
+        );
+    }
+
+    function test_ReturnFalseIfNotTheCorrectAccountAddress(address incorrectAddress) external {
+        // it return false if not the correct AccountAddress
+
+        // calculate the signature and the future address of the account
+        bytes memory signature = _craftCreationSignature(address(factory));
+        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+
+        vm.assume(accountAddresss != incorrectAddress);
+
+        assertFalse(
+            factory.isSignatureLegit(
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.usernameHash,
+                validCreate.credIdHash,
+                incorrectAddress,
+                signature
             )
         );
     }
 
     function test_ReturnFalseIfNotTheCorrectSignature(bytes32 randomHash) external {
         // it return false if not the correct signature
+
+        // calculate the signature and the future address of the account
+        address accountAddresss = factory.getAddress(validCreate.usernameHash);
 
         // generate a random private key
         uint256 signerPrivateKey = vm.createWallet(123).privateKey;
@@ -108,8 +164,9 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
             factory.isSignatureLegit(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
-                validCreate.loginHash,
+                validCreate.usernameHash,
                 validCreate.credIdHash,
+                accountAddresss,
                 incorrectSignature
             )
         );
@@ -122,14 +179,27 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         bytes memory signature64Bytes = abi.encodePacked(r, s);
         bytes memory signature66Bytes = abi.encodePacked(r, s, hex"aabb");
 
+        // calculate the signature and the future address of the account
+        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, signature64Bytes
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.usernameHash,
+                validCreate.credIdHash,
+                accountAddresss,
+                signature64Bytes
             )
         );
         assertFalse(
             factory.isSignatureLegit(
-                validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, signature66Bytes
+                validCreate.pubKeyX,
+                validCreate.pubKeyY,
+                validCreate.usernameHash,
+                validCreate.credIdHash,
+                accountAddresss,
+                signature66Bytes
             )
         );
     }

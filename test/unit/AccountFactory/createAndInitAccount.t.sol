@@ -25,7 +25,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     function test_UseADeterministicDeploymentProcess() external {
         // predict where the account linked to a specific hash will be deployed
-        address predictedAddress = factory.getAddress(validCreate.loginHash);
+        address predictedAddress = factory.getAddress(validCreate.usernameHash);
 
         // check the address of the account doesn't have any code before the deployment
         assertEq(keccak256(predictedAddress.code), keccak256(""));
@@ -34,9 +34,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(
             validCreate.pubKeyX,
             validCreate.pubKeyY,
-            validCreate.loginHash,
+            validCreate.usernameHash,
             validCreate.credIdHash,
-            validCreate.signature
+            _craftCreationSignature(address(factory))
         );
 
         // make sure the account contract has been deployed
@@ -52,16 +52,16 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
             factory.createAndInitAccount(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
-                validCreate.loginHash,
+                validCreate.usernameHash,
                 validCreate.credIdHash,
-                validCreate.signature
+                _craftCreationSignature(address(factory))
             ),
             factory.createAndInitAccount(
                 validCreate.pubKeyX,
                 validCreate.pubKeyY,
-                validCreate.loginHash,
+                validCreate.usernameHash,
                 validCreate.credIdHash,
-                validCreate.signature
+                _craftCreationSignature(address(factory))
             )
         );
     }
@@ -73,9 +73,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         address proxy1 = factory.createAndInitAccount(
             validCreate.pubKeyX,
             validCreate.pubKeyY,
-            validCreate.loginHash,
+            validCreate.usernameHash,
             validCreate.credIdHash,
-            validCreate.signature
+            _craftCreationSignature(address(factory))
         );
 
         assertNotEq(keccak256(proxy1.code), keccak256(""));
@@ -90,12 +90,12 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // we tell the VM to expect a revert with a precise error
         vm.expectRevert(
-            abi.encodeWithSelector(AccountFactory.InvalidSignature.selector, validCreate.loginHash, invalidSignature)
+            abi.encodeWithSelector(AccountFactory.InvalidSignature.selector, validCreate.usernameHash, invalidSignature)
         );
 
         // we call the function with the invalid signature to trigger the error
         factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.loginHash, validCreate.credIdHash, invalidSignature
+            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.usernameHash, validCreate.credIdHash, invalidSignature
         );
     }
 
@@ -107,16 +107,16 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(
             validCreate.pubKeyX,
             validCreate.pubKeyY,
-            validCreate.loginHash,
+            validCreate.usernameHash,
             validCreate.credIdHash,
-            validCreate.signature
+            _craftCreationSignature(address(factory))
         );
     }
 
     function test_CallTheProxyAddFirstSignerFunction() external {
         // we tell the VM to expect *one* call to the addFirstSigner function with the loginHash as parameter
         vm.expectCall(
-            factory.getAddress(validCreate.loginHash),
+            factory.getAddress(validCreate.usernameHash),
             abi.encodeCall(
                 SmartAccount.addFirstSigner, (validCreate.pubKeyX, validCreate.pubKeyY, validCreate.credIdHash)
             ),
@@ -127,9 +127,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(
             validCreate.pubKeyX,
             validCreate.pubKeyY,
-            validCreate.loginHash,
+            validCreate.usernameHash,
             validCreate.credIdHash,
-            validCreate.signature
+            _craftCreationSignature(address(factory))
         );
     }
 
@@ -138,8 +138,8 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         vm.expectEmit(true, true, true, true, address(factory));
         // we trigger the exact event we expect to be emitted in the next call
         emit AccountCreated(
-            validCreate.loginHash,
-            factory.getAddress(validCreate.loginHash),
+            validCreate.usernameHash,
+            factory.getAddress(validCreate.usernameHash),
             validCreate.credIdHash,
             validCreate.pubKeyX,
             validCreate.pubKeyY
@@ -150,9 +150,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(
             validCreate.pubKeyX,
             validCreate.pubKeyY,
-            validCreate.loginHash,
+            validCreate.usernameHash,
             validCreate.credIdHash,
-            validCreate.signature
+            _craftCreationSignature(address(factory))
         );
     }
 }

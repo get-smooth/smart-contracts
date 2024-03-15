@@ -9,15 +9,15 @@ import "src/utils/Signature.sol" as Signature;
 /*
  * SIGNER DATA
  */
-bytes32 constant credIdHash = 0x1e2610e428c731346ea84133f0f697c7f9d850dea75972a0b487a011f5bfa13f;
-uint256 constant PUBKEY_X = 0x9e50fb3fb1bea8f2617ab7e110b4f78ca954a5837db303b0cf44774ce29bc289;
-uint256 constant PUBKEY_Y = 0x30a5ccf7d7fc3e3337e84462a0129cb931b426130178d5ad58d62ca2246961a3;
+bytes32 constant credIdHash = 0x4cd5aa6deff7dd05707516e2d7387f952d7b0339e05aef921dda69af523ccddd;
+uint256 constant PUBKEY_X = 0x10eb9a2121b69f163dfde7061c821a27f47e5fbf98f1f0e2625385a55d33108d;
+uint256 constant PUBKEY_Y = 0xbb517696abfc14aba626a7b6d28796f07dd0d1cb1d15bb2f5d8ca9a0d182ef87;
 
 /*
  * ENVIRONMENT DATA
  */
-uint256 constant nonce = 0x01;
-address payable constant sender = payable(0x0F712Ba1E2AE34EdC4DecDD6957F2E658926ecE2);
+uint256 constant nonce = 0x1;
+address payable constant sender = payable(0xfB10aB832bD4Efba97002d9D7B58A029CC06b6A9);
 uint256 constant chainId = 0x013881;
 address constant entryPointAddress = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
 
@@ -25,34 +25,29 @@ address constant entryPointAddress = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
  * TX DATA
  */
 bytes constant callData =
-    hex"b61d27f6000000000000000000000000a6a3690753395517744f94046d7c25281a64aa5d0000000000000000"
-    hex"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-    hex"0000000000000000000000600000000000000000000000000000000000000000000000000000000000000004"
-    hex"b0d691fe00000000000000000000000000000000000000000000000000000000";
-
+    hex"b61d27f600000000000000000000000029e69af6083f790d31804ed9adad40ccc32accc9000000000000000000"
+    hex"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    hex"0000000000000000006000000000000000000000000000000000000000000000000000000000000000041249c5"
+    hex"8b00000000000000000000000000000000000000000000000000000000";
+bytes constant initCode = hex"";
 /*
  * WEBAUTHN DATA
  */
 bytes constant signature =
-    hex"0100000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-    hex"00000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000"
-    hex"0000000000000120d61fda0cc7ed7305f96b1b5fb2f9bc7e9fa8f276aad03fc52e0fde13607b8d5c1db64a8f"
-    hex"efa8d2ea2fe66a341b0f8812d27e44dfaa6a8483701c3d4bf878c4dc1e2610e428c731346ea84133f0f697c7"
-    hex"f9d850dea75972a0b487a011f5bfa13f00000000000000000000000000000000000000000000000000000000"
-    hex"0000002549960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba831d97631d00000000000000"
-    hex"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-    hex"0000000000000000000000867b2274797065223a22776562617574686e2e676574222c226368616c6c656e67"
-    hex"65223a225a737356636a353141674e30424f6b4562543774616532716c304967785262503754316447637263"
-    hex"567559222c226f726967696e223a22687474703a2f2f6c6f63616c686f73743a33303030222c2263726f7373"
-    hex"4f726967696e223a66616c73657d0000000000000000000000000000000000000000000000000000";
-
+    hex"010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    hex"000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000"
+    hex"0000000001209a07c80a4524bf1f57323227366cf58c1570b2de01715339b2eae4c4079db8362f5c1236df3429"
+    hex"aeff30ab90b667a40e5b8bf99cde59ce5c6b75691e957fee184cd5aa6deff7dd05707516e2d7387f952d7b0339"
+    hex"e05aef921dda69af523ccddd000000000000000000000000000000000000000000000000000000000000002549"
+    hex"960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba831d97631d00000000000000000000000000"
+    hex"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    hex"00000000867b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a22484a3534"
+    hex"6245436f4e652d745431487a4c4c52307964667943676a53636f42354d74432d31304a4e774977222c226f7269"
+    hex"67696e223a22687474703a2f2f6c6f63616c686f73743a33303030222c2263726f73734f726967696e223a6661"
+    hex"6c73657d0000000000000000000000000000000000000000000000000000";
 bytes constant paymasterAndData =
-    hex"d9e37961e256e4c758c130969710b6cedb4c1cc7de5e93d837836371d93ce781536fd52324d90b00272e4f7f"
-    hex"732519456d6a37751f0db70a7caa2f6ab0a4c1315c5774ba2905969da0a77b08458b5fe9f46f84f11c";
-bytes constant clientData =
-    hex"7b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a225a737356636a3531"
-    hex"41674e30424f6b4562543774616532716c304967785262503754316447637263567559222c226f726967696e"
-    hex"223a22687474703a2f2f6c6f63616c686f73743a33303030222c2263726f73734f726967696e223a66616c73" hex"657d";
+    hex"904dff443aac03cefc537a85a98c1cd590dbbcb9d41670a13abb75fc1e8ce03534a2af932c758611cd58dd0f32"
+    hex"e35069c2b42a2f42fffe2f583727d3f826fcfc169ae240befc9488e36f5d0f9d5b2c16aead3ba91c";
 
 contract Account__validateWebAuthnP256R1Signature is BaseTest {
     function setUp() external {
@@ -72,24 +67,26 @@ contract Account__validateWebAuthnP256R1Signature is BaseTest {
     }
 
     function test_ReturnTrueIfTheSignatureRecoveryIsCorrect() external {
-        // 1. Set the first signer of the account
+        // 0. Set the first signer of the account
         SmartAccountMock(sender).addFirstSigner(PUBKEY_X, PUBKEY_Y, credIdHash);
+
+        // 1. Manually set the Nonce to 0x01
+        EntryPointMock(entryPointAddress).incrementNonce();
 
         // 2. Create a UserOperation with the expected values
         UserOperation memory userOp = UserOperation({
             // fields used in the signature
             sender: sender,
             nonce: nonce,
+            initCode: initCode,
+            callData: callData,
             paymasterAndData: paymasterAndData,
             signature: signature,
-            callData: callData,
-            // fields not integrated in the signature
-            initCode: "",
-            callGasLimit: 0,
-            verificationGasLimit: 0,
-            preVerificationGas: 0,
-            maxFeePerGas: 0,
-            maxPriorityFeePerGas: 0
+            callGasLimit: 0xb65b,
+            verificationGasLimit: 0x5bca6,
+            preVerificationGas: 0xe0f9,
+            maxFeePerGas: 0x156ecb419,
+            maxPriorityFeePerGas: 0x156ecb3fb
         });
 
         // 3. Verify the signature
@@ -103,19 +100,17 @@ contract Account__validateWebAuthnP256R1Signature is BaseTest {
 
         // 2. Create a UserOperation with the expected values
         UserOperation memory userOp = UserOperation({
-            // fields used in the signature
             sender: sender,
             nonce: nonce,
+            initCode: initCode,
+            callData: callData,
             paymasterAndData: paymasterAndData,
             signature: signature,
-            callData: callData,
-            // fields not integrated in the signature
-            initCode: "",
-            callGasLimit: 0,
-            verificationGasLimit: 0,
-            preVerificationGas: 0,
-            maxFeePerGas: 0,
-            maxPriorityFeePerGas: 0
+            callGasLimit: 0xb65b,
+            verificationGasLimit: 0x5bca6,
+            preVerificationGas: 0xe0f9,
+            maxFeePerGas: 0x156ecb419,
+            maxPriorityFeePerGas: 0x156ecb3fb
         });
 
         // 3. mock the call to the webauthn verifier to return false
@@ -183,9 +178,15 @@ contract Account__validateWebAuthnP256R1Signature is BaseTest {
 }
 
 contract EntryPointMock {
+    uint256 internal _nonce;
+
     function getNonce(address, uint192) external pure returns (uint256) {
         // allow the addition of the first signer
         return 0;
+    }
+
+    function incrementNonce() external {
+        _nonce++;
     }
 }
 

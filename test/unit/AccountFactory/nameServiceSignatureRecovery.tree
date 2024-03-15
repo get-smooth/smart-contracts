@@ -4,5 +4,6 @@ AccountFactory__RecoverNameServiceSignature
 ├── it return false if not the correct pubKey
 ├── it return false if not the correct loginHash
 ├── it return false if not the correct credID
+├── it return false if not the correct accountAddresss
 ├── it return false if not the correct signature
 └── it return false if not the correct signature length

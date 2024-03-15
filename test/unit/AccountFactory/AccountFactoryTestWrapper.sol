@@ -19,18 +19,18 @@ contract AccountFactoryTestWrapper is AccountFactory {
     function isSignatureLegit(
         uint256 pubKeyX,
         uint256 pubKeyY,
-        bytes32 loginHash,
+        bytes32 usernameHash,
         bytes32 credIdHash,
+        address accountAddress,
         bytes calldata signature
     )
         external
-        view
         returns (bool)
     {
-        return _isSignatureLegit(pubKeyX, pubKeyY, loginHash, credIdHash, signature);
+        return _isSignatureLegit(pubKeyX, pubKeyY, usernameHash, credIdHash, accountAddress, signature);
     }
 
-    function checkAccountExistence(bytes32 loginHash) external view returns (address) {
-        return _checkAccountExistence(loginHash);
-    }
+    // function checkAccountExistence(bytes32 loginHash) external view returns (address) {
+    //     return _checkAccountExistence(loginHash);
+    // }
 }

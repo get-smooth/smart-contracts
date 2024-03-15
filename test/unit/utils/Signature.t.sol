@@ -3,6 +3,8 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { BaseTest } from "test/BaseTest.sol";
 import "src/utils/Signature.sol" as Signature;
+import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
+import { VmSafe } from "forge-std/Vm.sol";
 
 contract Signature_Test is BaseTest {
     function test_Return0ForASuccessfulSignatureVerification() external {
@@ -28,21 +30,22 @@ contract Signature_Test is BaseTest {
     function test_ReturnTrueIfTheSignatureIsCorrectlyRecovered() external {
         // it return true if the signature is correctly recovered
 
-        // we use the valid creation parameters from the BaseTest contract to recreate the message to sign
-        bytes memory message = abi.encode(
-            Signature.Type.CREATION,
-            validCreate.loginHash,
-            validCreate.pubKeyX,
-            validCreate.pubKeyY,
-            validCreate.credIdHash
-        );
-        // we get the valid signer and the valid signature from the BaseTest contract
-        address expectedSigner = validCreate.signer;
-        bytes memory signature = validCreate.signature;
+        // generate the wallet for the secret signer
+        VmSafe.Wallet memory signer = vm.createWallet(72);
+
+        // recreate the message to sign
+        bytes memory message = abi.encode(Signature.Type.CREATION, address(32), block.chainid);
+
+        // hash the message with the EIP-191 prefix
+        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
+
+        // sign the hash of the message and get the signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signer.privateKey, hash);
+        bytes memory signature = abi.encodePacked(r, s, v);
 
         // we call the function of this contract that wrap the recover function exposed by the library to move the
         // signature to calldata
-        bool isValid = this.wrappedRecover(expectedSigner, message, signature);
+        bool isValid = this.wrappedRecover(signer.addr, message, signature);
 
         // we assert that the call was successful and that the signature is correctly recovered
         assertEq(isValid, true);

@@ -6,14 +6,15 @@ import { Paymaster } from "src/Paymaster.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract Paymaster__Deposit is BaseTest {
-    address private immutable admin = makeAddr("admin");
+    address private owner = makeAddr("owner");
+    address private operator = makeAddr("operator");
     address private entrypoint;
 
     Paymaster private paymaster;
 
     function setUp() external {
         entrypoint = address(new MockedEntryPointTest());
-        paymaster = new Paymaster(entrypoint, admin);
+        paymaster = new Paymaster(entrypoint, owner, operator);
     }
 
     function test_ReturnCurrentPaymasterDeposit() external {
@@ -44,34 +45,35 @@ contract Paymaster__Deposit is BaseTest {
         assertEq(paymaster.getDeposit(), amount);
     }
 
-    function test_WithdrawToAnybodyIfCallerIsAdmin() external {
-        // it withdraw to anybody if caller is admin
+    function test_WithdrawToAnybodyIfCallerIsOwner() external {
+        // it withdraw to anybody if caller is owner
 
         address payable receiver = payable(makeAddr("receiver"));
         uint256 beforeBalance = address(receiver).balance;
 
         paymaster.deposit{ value: 1 ether }();
 
-        // we impersonate the admin and withdraw 1 ether in favor of the receiver
-        vm.prank(admin);
+        // we impersonate the owner and withdraw 1 ether in favor of the receiver
+        vm.prank(owner);
         paymaster.withdrawTo(receiver, 1 ether);
 
         // make sure the receiver received the 1 ether
         assertEq(address(receiver).balance, beforeBalance + 1 ether);
     }
 
-    function test_RevertsIfWithdrawerIsNotAdmin() external {
-        // it reverts if withdrawer is not admin
+    function test_RevertsIfWithdrawerIsNotOwner() external {
+        // it reverts if withdrawer is not owner
 
         paymaster.deposit{ value: 1 ether }();
 
-        // we expect the function to revert if withdrawTo is called by someone else than the admin
+        // we expect the function to revert if withdrawTo is called by someone else than the owner
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(this)));
-        paymaster.withdrawTo(payable(admin), 1 ether);
+        paymaster.withdrawTo(payable(owner), 1 ether);
     }
 }
 
-// TODO: DOCUMENT
+/// @title MockedEntryPointTest
+/// @dev Minimalist implementation of the entrypoint that mocks the deposit and withdraw system
 contract MockedEntryPointTest {
     mapping(address paymaster => uint256 balance) internal paymasterBalances;
 

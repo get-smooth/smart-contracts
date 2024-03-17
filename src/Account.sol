@@ -13,14 +13,15 @@ import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 // @DEV: MONO-SIGNER VERSION
 /**
  * TODO:
- *  - Inherit from eth-infinitism's Account contract
- *  - Manage webauthn signer
- *  - One click scenario (including verify)
+ *  - Manage webauthn multi-signers
  *  - 4337 chore (postOp etc...)
  *  --- Take a look to proxy's versions
- *  --- Take a look to the initialize library to replace the `singleUseLock` modifier
  *  - Document the fact this contract does not use the native solidity storage system
  *  - Switch factory to public?
+ *  - Make entrypoint more flexible? v0.7.0 https://etherscan.io/address/0x0000000071727De22E5E9d8BAf0edAc6f37da032#code
+ *  - Add version to the account and the factory
+ *  - Support of the EIP-1271
+ *  - New nonce serie per entrypoint? In that case, first addFirstSigner
  */
 contract Account is Initializable, BaseAccount {
     // ==============================

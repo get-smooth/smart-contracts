@@ -5,7 +5,7 @@ import { Paymaster } from "src/Paymaster.sol";
 import { BaseScript } from "../Base.s.sol";
 
 /// @title  PaymasterDeposit
-/// @notice Deposit funds for the paymaster
+/// @notice Deposit funds to the paymaster
 contract PaymasterDeposit is BaseScript {
     function run() public payable broadcast {
         address paymasterAddress = vm.envAddress("PAYMASTER");

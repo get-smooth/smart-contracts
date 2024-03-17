@@ -9,5 +9,4 @@ Paymaster__ValidatePaymasterUserOp
 ├── it return failure if incorrect callData
 ├── it return failure if paymasterAndData is 20 bytes
 ├── it return failure if all parameters are null
-├── it does not read the storage
 └── it does not write the storage

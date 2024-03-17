@@ -3,6 +3,7 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { VmSafe } from "forge-std/Vm.sol";
 import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
+import { Ownable } from "@openzeppelin/access/Ownable.sol";
 import { BaseTest } from "test/BaseTest.sol";
 import { Paymaster, UserOperation, Signature } from "src/Paymaster.sol";
 
@@ -17,25 +18,26 @@ struct Arguments {
 
 contract Paymaster__ValidatePaymasterUserOp is BaseTest {
     address private immutable entrypoint = makeAddr("entrypoint");
+    address private immutable admin = makeAddr("admin");
 
     Paymaster private paymaster;
-    VmSafe.Wallet private admin;
+    VmSafe.Wallet private operator;
 
     Arguments private validArguments;
 
     function setUp() external {
-        // generate the wallet for the admin
-        admin = vm.createWallet(123);
+        // generate the wallet for the operator
+        operator = vm.createWallet(123);
 
         // deploy the paymaster contract
-        paymaster = new Paymaster(entrypoint, admin.addr);
+        paymaster = new Paymaster(entrypoint, admin, operator.addr);
 
         // create the signature for the paymaster
         bytes memory paymasterSignature = _signMessage({
             sender: makeAddr("sender"),
             nonce: 1,
             chainId: block.chainid,
-            callData: abi.encodeWithSelector(Paymaster.owner.selector),
+            callData: abi.encodeWithSelector(Ownable.owner.selector),
             paymasterAddress: address(paymaster)
         });
 
@@ -45,7 +47,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
             nonce: 1,
             chainId: block.chainid,
             paymaster: address(paymaster),
-            callData: abi.encodeWithSelector(Paymaster.owner.selector),
+            callData: abi.encodeWithSelector(Ownable.owner.selector),
             paymasterAndData: abi.encodePacked(address(paymaster), paymasterSignature)
         });
     }
@@ -78,7 +80,7 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);
 
         // sign the hash of the message and return the signature
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(admin.privateKey, hash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operator.privateKey, hash);
         signature = abi.encodePacked(r, s, v);
     }
 
@@ -296,24 +298,6 @@ contract Paymaster__ValidatePaymasterUserOp is BaseTest {
 
         // make sure the context is empty
         assertEq(validationData, Signature.State.FAILURE);
-    }
-
-    function test_DoesNotReadTheStorage() external {
-        // it does not read the storage
-
-        // record every state read/write
-        vm.record();
-
-        // call the validate function
-        vm.prank(entrypoint);
-        (, uint256 validationData) = paymaster.validatePaymasterUserOp(_createUserOperation(), bytes32(0), 0);
-
-        // stop recording state changes and get the state diff
-        (bytes32[] memory reads,) = vm.accesses(address(paymaster));
-
-        // check the validationData is correct and no storage has been accessed
-        assertEq(validationData, Signature.State.SUCCESS);
-        assertEq(reads.length, 0);
     }
 
     function test_DoesNotWriteTheStorage() external {

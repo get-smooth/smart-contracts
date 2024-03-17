@@ -1,0 +1,7 @@
+Paymaster__Operator
+├── it allow operator update by owner
+├── it allow operator update by operator
+├── it allow operator to be fetch
+├── it allow setting operator to zero
+└── it revert if update from unauthorized address
+

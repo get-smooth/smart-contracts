@@ -6,63 +6,65 @@ import { UserOperation } from "@eth-infinitism/interfaces/UserOperation.sol";
 import { IEntryPoint } from "@eth-infinitism/interfaces/IEntryPoint.sol";
 import "src/utils/Signature.sol" as Signature;
 
-/// @dev Used to revert when someone try to change the admin of the contract. The admin is immutable
-error OwnershipTransferNotAllowed();
-
-// TODO: - Rewrite a custom implementation of BasePaymaster without using the Ownable dependency
 /// @title  Paymaster
-/// @notice Simple Paymaster contract that sponsors an user operation if the signature is signed by the admin
-/// @dev    Here's some opinionated design decisions we made:
-///         - The admin of the contract is immutable and set at the contract deployment. Each paymaster instance has an
-///           unique admin address.
-///         - The admin is in charge of signing the paymaster signature. He is the one that can sponsor an userOp
-///         - We never access the storage of the contract to avoid stacking in the entrypoint contract
+/// @notice Simple Paymaster contract that sponsors an user operation if the signature is signed by the operator
+///
+///         Here's some important design choices to acknowledge:
+///         - The operator is in charge of signing the paymaster signature. He is the one that can sponsor an userOp
+///         - The operator can be changed by the owner of the contract or the operator itself
+///         - Only the owner is allowed to withdraw the funds deposited in the entrypoint and manage the staking
 ///         - We do not use the maxCost parameter meaning we do not check the maximum cost of the transaction
 ///         - We never return a context from the `_validatePaymasterUserOp` function, meaning the `_postOp` function
 ///           will never be called by the entrypoint
-///         - The signature includes the sender, nonce, chainId, this address and the callData to prevent replay attacks
+///         - The entrypoint is set in the constructor and cannot be changed.
+///         - This contract is not upgradeable
+///         - The signature includes the sender, nonce, chainId, the address of this contract and the callData to prevent
+///           replay attacks
 contract Paymaster is BasePaymaster {
-    address private immutable admin;
+    address public operator;
+    string public constant VERSION = "1.0.0";
 
-    /// @notice Set the immutable admin of the contract and the entrypoint address. The admin is in charge of signing
-    ///         the paymaster signature
-    /// @dev    BasePaymaster inherit from Ownable that's why we need to call the Ownable constructor here
-    ///         to set the admin of the contract in the storage. However, we decided to make the admin immutable
-    ///         to avoid accessing the storage of the contract, that will force us to stack in the entrypoint contract.
-    ///         In order to do that, we override the `owner` and `_transferOwnership` functions from the Ownable
-    ///         contract to read the immutable data instead.
+    error InvalidOperator();
+
+    /// @notice Set the owner, the operator and the address of the entrypoint.
     /// @param entryPoint The address of the entrypoint contract
-    /// @param _admin The address of the admin that will sign the paymaster signature
-    constructor(address entryPoint, address _admin) BasePaymaster(IEntryPoint(entryPoint)) Ownable(_admin) {
-        admin = _admin;
+    /// @param entryPoint The address of the owner. It can withdraw and stake the funds
+    /// @param _operator The operator that will sign the paymaster signature
+    constructor(
+        address entryPoint,
+        address owner,
+        address _operator
+    )
+        BasePaymaster(IEntryPoint(entryPoint))
+        Ownable(owner)
+    {
+        if (_operator == address(0)) {
+            revert InvalidOperator();
+        }
+
+        operator = _operator;
     }
 
-    /// @notice Return the immutable admin of the contract
-    /// @dev    This function is an override of the owner function from the Ownable contract.
-    ///         This contract is developed in a way it must be impossible to change the admin
-    ///         of the contract. The admin is set at the contract deployment and cannot be changed.
-    ///         This is to avoid accessing the storage of the contract, that will force us to stack
-    ///         in the entrypoint contract
-    /// @return The immutable admin of the contract
-    function owner() public view virtual override returns (address) {
-        return admin;
+    /// @notice Modifier to check if the sender is the owner or the operator
+    modifier onlyOwnerOrOperator() {
+        if (msg.sender != owner() && msg.sender != operator) {
+            revert OwnableUnauthorizedAccount(msg.sender);
+        }
+        _;
     }
 
-    /// @notice Revert if someone try to transfer the ownership of the contract
-    function transferOwnership(address) public pure override {
-        revert OwnershipTransferNotAllowed();
-    }
-
-    /// @notice Revert if someone try to renounce the ownership of the contract
-    function renounceOwnership() public pure override {
-        revert OwnershipTransferNotAllowed();
+    /// @notice Change the operator of the paymaster
+    /// @param newOperator The new operator address
+    /// @dev Only the owner or the operator can call this function
+    function transferOperator(address newOperator) external onlyOwnerOrOperator {
+        operator = newOperator;
     }
 
     /// @notice Validates a paymaster user operation and calculates the required token amount for the transaction.
     /// @dev    This function do not use the maxCost parameter meaning we do not check the maximum cost of the
     ///         transaction.
     /// @param  userOp The user operation data.
-    /// @param  {userOpHash} The hash of the user operation data.
+    /// @param  {userOpHash} The hash of the user operation data. Not used in this implementation.
     /// @param  {maxCost} The maximum cost of this transaction (based on maximum gas and gas price from userOp).
     ///         Not used in this implementation.
     /// @return context Value to send to a postOp. Zero length to signify postOp is not required.
@@ -87,7 +89,7 @@ contract Paymaster is BasePaymaster {
         bytes memory message = abi.encode(userOp.sender, userOp.nonce, block.chainid, address(this), userOp.callData);
 
         // try recover the signature and return whether the paymaster accepts or refuses the sponsor
-        validationData = Signature.recover(admin, message, userOp.paymasterAndData[20:])
+        validationData = Signature.recover(operator, message, userOp.paymasterAndData[20:])
             ? Signature.State.SUCCESS
             : Signature.State.FAILURE;
     }

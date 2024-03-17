@@ -8,15 +8,16 @@ import { BaseTest } from "test/BaseTest.sol";
 
 contract Paymaster__PostOp is BaseTest {
     address private immutable admin = makeAddr("admin");
+    address private immutable operator = makeAddr("operator");
     address private immutable entrypoint = makeAddr("entrypoint");
 
     Paymaster private paymaster;
 
     function setUp() external {
-        paymaster = new Paymaster(entrypoint, admin);
+        paymaster = new Paymaster(entrypoint, admin, operator);
     }
 
-    function getRandomPostOpMode(uint256 randomUint) internal pure returns (IPaymaster.PostOpMode) {
+    function _getRandomPostOpMode(uint256 randomUint) internal pure returns (IPaymaster.PostOpMode) {
         // bound the random number to a valid range for the enum
         randomUint = bound(randomUint, 0, 2);
 
@@ -32,7 +33,7 @@ contract Paymaster__PostOp is BaseTest {
         vm.assume(caller != entrypoint);
 
         // get a random postOpMode enum value
-        IPaymaster.PostOpMode postOpMode = getRandomPostOpMode(randomUint);
+        IPaymaster.PostOpMode postOpMode = _getRandomPostOpMode(randomUint);
 
         // prank the caller and expect revert on the next call
         vm.prank(caller);
@@ -45,7 +46,7 @@ contract Paymaster__PostOp is BaseTest {
         // it never reverts
 
         // get a random postOpMode enum value and a random context value
-        IPaymaster.PostOpMode postOpMode = getRandomPostOpMode(actualGasCost);
+        IPaymaster.PostOpMode postOpMode = _getRandomPostOpMode(actualGasCost);
         bytes memory context = abi.encodePacked(context1, context2, context3);
 
         // tell the VM to record all the state changes and all the emitted logs

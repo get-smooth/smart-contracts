@@ -6,7 +6,7 @@ import { BaseScript } from "../Base.s.sol";
 
 /// @title  PaymasterWithdraw
 /// @notice Withdraw funds to an arbitrary address
-/// @dev    Can only be called by the admin of the paymaster
+/// @dev    Can only be called by the owner of the paymaster
 contract PaymasterWithdraw is BaseScript {
     function run() public payable broadcast {
         address paymasterAddress = vm.envAddress("PAYMASTER");

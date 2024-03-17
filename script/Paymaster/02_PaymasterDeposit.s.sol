@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.19 <0.9.0;
 
-import { Paymaster } from "src/Paymaster.sol";
+import { Paymaster } from "src/v1/Paymaster.sol";
 import { BaseScript } from "../Base.s.sol";
 
 /// @title  PaymasterDeposit

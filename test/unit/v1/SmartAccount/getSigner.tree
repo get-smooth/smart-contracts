@@ -1,0 +1,4 @@
+SmartAccount__GetSigner
+├── it returns the stored signer when passing credId
+├── it returns the stored signer when passing credIdHash
+└── it returns the default value when passing an unknown argument

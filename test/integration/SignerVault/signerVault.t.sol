@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
-import { SignerVaultVanillaP256K1 } from "src/SignerVaultVanillaP256K1.sol";
-import { SignerVaultWebAuthnP256R1 } from "src/SignerVaultWebAuthnP256R1.sol";
+import { SignerVaultVanillaP256K1 } from "src/utils/SignerVaultVanillaP256K1.sol";
+import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract SignerVault is BaseTest {

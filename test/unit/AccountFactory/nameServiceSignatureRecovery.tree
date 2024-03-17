@@ -1,9 +1,0 @@
-AccountFactory__RecoverNameServiceSignature
-├── it return true if the signature is valid
-├── it return false if not the correct signer
-├── it return false if not the correct pubKey
-├── it return false if not the correct loginHash
-├── it return false if not the correct credID
-├── it return false if not the correct accountAddresss
-├── it return false if not the correct signature
-└── it return false if not the correct signature length

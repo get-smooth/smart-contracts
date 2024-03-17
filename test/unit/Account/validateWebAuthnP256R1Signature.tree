@@ -1,5 +1,0 @@
-Account__validateWebAuthnP256R1Signature
-├── it return true if the signature recovery is correct
-├── it return false if the webauthn library return false
-├── it return false if the signer is not stored
-└── it revert if the signature is not decodable

@@ -4,7 +4,7 @@ pragma solidity >=0.8.20 <0.9.0;
 import { Test } from "forge-std/Test.sol";
 import { VmSafe } from "forge-std/Vm.sol";
 import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
-import { AccountFactory } from "src/AccountFactory.sol";
+import { AccountFactory } from "src/v1/AccountFactory.sol";
 import "src/utils/Signature.sol" as Signature;
 
 struct ValidCreationParams {

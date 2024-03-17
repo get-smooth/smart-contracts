@@ -1,0 +1,6 @@
+SmartAccount__Constructor
+├── it never reverts
+├── it stores and exposes the webauthn verifier address
+├── it stores the entrypoint address
+├── it stores the deployer address
+└── it disable the initializer

@@ -1,0 +1,9 @@
+SmartAccount__Execute
+├── it call the target with the given data
+├── it call the target with the given data and value
+├── it call the target even without data
+├── it call an EOA to transfer the value
+├── it revert if the value is not enough
+├── it revert if the call is not valid
+├── it revert if the function reverts
+└── it revert if not called by the entrypoint

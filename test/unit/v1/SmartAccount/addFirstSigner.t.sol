@@ -4,6 +4,7 @@ pragma solidity >=0.8.20 <0.9.0;
 import { SmartAccount } from "src/v1/SmartAccount.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import { BaseTest } from "test/BaseTest.sol";
+import "src/utils/Signature.sol" as Signature;
 
 contract SmartAccount__AddFirstSigner is BaseTest {
     SmartAccount private account;
@@ -14,7 +15,7 @@ contract SmartAccount__AddFirstSigner is BaseTest {
     uint256 private pubkeyY = 0x2;
 
     // Duplicate of the event in the Account.sol file
-    event SignerAdded(bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
+    event SignerAdded(bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
 
     function setUp() external {
         // deploy the entrypoint
@@ -92,7 +93,7 @@ contract SmartAccount__AddFirstSigner is BaseTest {
         vm.expectEmit(true, true, true, true, address(account));
 
         // we trigger the exact event we expect to be emitted in the next call
-        emit SignerAdded(credIdHash, fuzzedPubKeyX, fuzzedPubKeyY);
+        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credIdHash, fuzzedPubKeyX, fuzzedPubKeyY);
 
         // burn the fuse by adding the first signer
         vm.prank(factory);

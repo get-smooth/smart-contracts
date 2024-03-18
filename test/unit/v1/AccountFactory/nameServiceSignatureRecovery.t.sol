@@ -32,7 +32,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // it return false if not the correct signer
 
         // deploy a new factory with a different admin
-        vm.assume(alternativeSigner != validCreate.signer);
+        vm.assume(alternativeSigner != validCreate.signer && alternativeSigner != address(0));
         AccountFactoryTestWrapper factory2 = new AccountFactoryTestWrapper(address(0), address(0), alternativeSigner);
 
         // calculate the signature and the future address of the account

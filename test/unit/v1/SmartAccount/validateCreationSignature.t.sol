@@ -259,6 +259,10 @@ contract MockFactory is BaseTest {
 
     mapping(bytes32 usernameHash => address accountAddress) public addresses;
 
+    function owner() public view returns (address) {
+        return admin;
+    }
+
     // reproduce the constructor of the factory with the mocked account implementation
     constructor(address _admin, address entrypoint) {
         // set the address of the expected signer of the signature

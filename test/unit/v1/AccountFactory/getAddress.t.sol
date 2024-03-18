@@ -10,7 +10,7 @@ contract AccountFactory__GetAddress is BaseTest {
     AccountFactory private factory;
 
     function setUp() external {
-        factory = new AccountFactory(address(0), address(0), address(0));
+        factory = new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), makeAddr("owner"));
     }
 
     function test_NeverRevert(bytes32 randomLoginHash) external {
@@ -51,7 +51,7 @@ contract AccountFactory__GetAddress is BaseTest {
         // it return an address different than the original factory
 
         // we deploy a new instance of the factory at a different address but using the same parameters
-        AccountFactory factory2 = new AccountFactory(address(0), address(0), address(0));
+        AccountFactory factory2 = new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), makeAddr("owner"));
         assertNotEq(factory2.getAddress(LOGIN_HASH), factory.getAddress(LOGIN_HASH));
     }
 

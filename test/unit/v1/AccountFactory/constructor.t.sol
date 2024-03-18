@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.20;
 
+import { Ownable } from "@openzeppelin/access/Ownable.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
@@ -11,14 +12,11 @@ contract AccountFactory__Constructor is BaseTest {
         entrypoint = address(new MockEntryPoint());
     }
 
-    function test_NeverRevert() external {
-        try new AccountFactory(entrypoint, address(0), address(0)) {
-            assertTrue(true);
-        } catch Error(string memory) {
-            fail("factory.constructor() reverted");
-        } catch {
-            fail("factory.constructor() reverted");
-        }
+    function test_RevertIfOwner0() external {
+        // we tell the VM to expect a revert with a precise error
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+
+        new AccountFactory(entrypoint, address(0), address(0));
     }
 
     /// @notice The address for an Ethereum contract is deterministically computed from the address of its
@@ -90,7 +88,7 @@ contract AccountFactory__Constructor is BaseTest {
         // it should expose the admin after being deployed
 
         AccountFactory factory = new AccountFactory(entrypoint, makeAddr("verifier"), makeAddr("admin"));
-        assertEq(factory.admin(), makeAddr("admin"));
+        assertEq(factory.owner(), makeAddr("admin"));
     }
 }
 

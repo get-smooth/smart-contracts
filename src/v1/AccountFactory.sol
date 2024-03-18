@@ -2,16 +2,14 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
+import { Ownable } from "@openzeppelin/access/Ownable.sol";
 import "src/utils/Signature.sol" as Signature;
 import { SmartAccount } from "./SmartAccount.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 
-// TODO:    Implement an universal registry and use it to store the value of `admin`
 // FIXME:   createAndInitAccount() Understand the implications of the ban system of the function
 // TODO:    What about storing the credId off-chain for the login scenario ? As we moved from `credId` to `credIdHash`
 //          for the create function, we do not log the credId anymore. Investigate
-// TODO:    Add the address of the factory in the signature?
-// TODO:    make isSignatureLegit public?
 
 /// @title  4337-compliant Account Factory
 /// @notice This contract is a 4337-compliant factory for smart-accounts. It is in charge of deploying an account
@@ -20,8 +18,8 @@ import { Metadata } from "src/v1/Metadata.sol";
 ///         reference. Once the account has been deployed by the factory, the factory is also in charge of setting
 ///         the first signer of the account, leading to a fully-setup account for the user.
 /// @dev    The signature is only used to set the first-signer to the account. It is a EIP-191 message
-///         signed by the admin. The message is the keccak256 hash of the login of the account.
-contract AccountFactory {
+///         signed by the owner. The message is the keccak256 hash of the login of the account.
+contract AccountFactory is Ownable {
     // ==============================
     // ========= METADATA ===========
     // ==============================
@@ -33,7 +31,6 @@ contract AccountFactory {
     // ==============================
 
     address payable public immutable accountImplementation;
-    address public immutable admin;
 
     event AccountCreated(
         bytes32 usernameHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
@@ -48,16 +45,11 @@ contract AccountFactory {
     /// @param  entryPoint The unique address of the entrypoint (EIP-4337 related)
     /// @param  webAuthnVerifier The address of the crypto library that will be used by
     ///         the account to verify the WebAuthn signature of the signer(s)
-    /// @param  _admin The address used to verify the signature
-    ///         This address is stored in the storage of this contract that validate future signatures
+    /// @param  owner The address used to verify the signature. It is the owner of the factory.
     /// @dev    The account deployed here is expected to be proxied later, its own storage won't be used.
     ///         All the arguments passed to the constructor function are used to set immutable variables.
-    ///         As a valid signature from the admin is required to set the first signer of the account,
-    ///         there is no need to make the account inoperable. No one will be able to use it.
-    constructor(address entryPoint, address webAuthnVerifier, address _admin) {
-        // set the address of the expected signer of the signature
-        admin = _admin;
-
+    ///         The account deployed is expected to be bricked by the `initialize` function.
+    constructor(address entryPoint, address webAuthnVerifier, address owner) Ownable(owner) {
         // deploy the implementation of the account
         SmartAccount account = new SmartAccount(entryPoint, webAuthnVerifier);
 
@@ -70,7 +62,7 @@ contract AccountFactory {
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  usernameHash The keccak256 hash of the login of the account
     /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
-    /// @param  signature Signature made off-chain. Its recovery must match the admin.
+    /// @param  signature Signature made off-chain. Its recovery must match the owner.
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
     function _isSignatureLegit(
@@ -84,13 +76,13 @@ contract AccountFactory {
         internal
         returns (bool)
     {
-        // recreate the message signed by the admin
+        // recreate the message signed by the owner
         bytes memory message = abi.encode(
             Signature.Type.CREATION, usernameHash, pubKeyX, pubKeyY, credIdHash, accountAddress, block.chainid
         );
 
         // try to recover the address and return the result
-        return Signature.recover(admin, message, signature);
+        return Signature.recover(owner(), message, signature);
     }
 
     /// @notice This is the one-step scenario. This function either deploys an account and sets its first signer
@@ -99,7 +91,7 @@ contract AccountFactory {
     /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
     /// @param  usernameHash The keccak256 hash of the login of the account
     /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
-    /// @param  signature Signature made off-chain. Its recovery must match the admin.
+    /// @param  signature Signature made off-chain. Its recovery must match the owner.
     ///         The usernameHash is expected to be the hash used by the recover function.
     /// @return The address of the account (either deployed or not)
     function createAndInitAccount(

@@ -210,7 +210,7 @@ contract SmartAccount is Initializable, BaseAccount {
             abi.encode(Signature.Type.CREATION, usernameHash, pubX, pubY, credIdHash, address(this), block.chainid);
 
         // 6. fetch the expected signer from the factory contract
-        address expectedSigner = AccountFactory(factory).admin();
+        address expectedSigner = AccountFactory(factory).owner();
 
         // 7. Check the signature is valid and revert if it is not
         // NOTE: The signature prefix, added manually to identify the signature, is removed before the recovering process

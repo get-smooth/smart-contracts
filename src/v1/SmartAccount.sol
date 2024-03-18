@@ -51,7 +51,7 @@ contract SmartAccount is Initializable, BaseAccount {
 
     /// @notice Emitted every time a signer is added to the account
     /// @dev The credIdHash is indexed to allow off-chain services to track account with same signer authorized
-    event SignerAdded(bytes32 indexed credIdHash, uint256 pubkeyX, uint256 pubkeyY);
+    event SignerAdded(bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 pubkeyX, uint256 pubkeyY);
 
     // ==============================
     // ========== ERRORS ============
@@ -122,7 +122,7 @@ contract SmartAccount is Initializable, BaseAccount {
 
         // 2. add account's first signer and emit the signer addition event
         SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
-        emit SignerAdded(credIdHash, pubkeyX, pubkeyY);
+        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
     }
 
     /// @notice Return a signer stored in the account using its credIdHash. When storing a signer, the credId

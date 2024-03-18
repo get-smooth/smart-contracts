@@ -1,0 +1,5 @@
+SmartAccount__RemoveWebAuthnP256R1Signer
+├── it can only be called by itself
+├── it remove an existing signer
+├── it do not check if the signer exists
+└── it emit the signer removal event with the old pubkey

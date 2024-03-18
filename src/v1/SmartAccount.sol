@@ -53,6 +53,12 @@ contract SmartAccount is Initializable, BaseAccount {
     /// @dev The credIdHash is indexed to allow off-chain services to track account with same signer authorized
     event SignerAdded(bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 pubkeyX, uint256 pubkeyY);
 
+    /// @notice Log the removal of a signer from the account with the previous public key
+    /// @dev The credIdHash is indexed to allow off-chain services to track account with same signer authorized
+    event SignerRemoved(
+        bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY
+    );
+
     // ==============================
     // ========== ERRORS ============
     // ==============================
@@ -122,6 +128,19 @@ contract SmartAccount is Initializable, BaseAccount {
     // solhint-disable-next-line no-empty-blocks
     receive() external payable { }
 
+    /// @notice Remove an existing Webauthn p256r1.
+    /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected
+    /// @param  credIdHash The hash of the credential ID associated to the signer
+    function removeWebAuthnP256R1Signer(bytes32 credIdHash) external onlySelf {
+        // 1. get the current public key stored
+        (uint256 pubkeyX, uint256 pubkeyY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
+
+        // 2. remove the signer from the vault
+        SignerVaultWebAuthnP256R1.remove(credIdHash);
+
+        // 3. emit the event with the removed signer
+        emit SignerRemoved(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
+    }
 
     /// @notice Set a new Webauthn p256r1 new signer and emit the expected event. This function
     ///         can not override an existing signer, use `remnoveWebAuthnP256R1Signer` for this

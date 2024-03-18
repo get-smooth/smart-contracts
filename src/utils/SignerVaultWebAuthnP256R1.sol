@@ -10,6 +10,8 @@ import { StorageSlotRegistry } from "src/utils/StorageSlotRegistry.sol";
 library SignerVaultWebAuthnP256R1 {
     /// @dev    Used by `tryGet` to revert if there is no signer
     error SignerNotFound(bytes credId);
+    /// @dev    Throws if we try to override a signer that already exists
+    error SignerOverrideNotAllowed(bytes32 credIdHash);
 
     /// @dev    The constant string identifier used to calculate the root slot.
     ///         The root slot is used as the starting point for derivating the storage slot for each signer.
@@ -46,7 +48,14 @@ library SignerVaultWebAuthnP256R1 {
     function set(bytes32 credIdHash, uint256 pubKeyX, uint256 pubKeyY) internal {
         bytes32 slot = getSignerStartingSlot(credIdHash);
 
-        // store the signer's data in the vault
+        // 1. read the current value of the slot and revert if it's not empty
+        bytes32 currentValue;
+        assembly ("memory-safe") {
+            currentValue := sload(slot)
+        }
+        if (currentValue != 0) revert SignerOverrideNotAllowed(credIdHash);
+
+        // 2. store the signer in the vault
         assembly ("memory-safe") {
             sstore(slot, credIdHash)
             sstore(add(slot, 1), pubKeyX)

@@ -60,6 +60,7 @@ contract SmartAccount is Initializable, BaseAccount {
     /// @notice This error is thrown if the factory tries to add the first signer when the nonce is not 0x00
     error InvalidSignerAddition();
     error NotTheFactory();
+    error NotItself();
     /// @notice This error is thrown if arguments passed to the `executeBatch` function are not of the same length
     /// @dev    `values` can be of length 0 if no value is passed to the calls
     error IncorrectExecutionBatchParameters();
@@ -88,12 +89,8 @@ contract SmartAccount is Initializable, BaseAccount {
     function initialize() external reinitializer(1) { }
 
     // ==============================
-    // ======== FUNCTIONS ===========
+    // ========= MODIFIER ===========
     // ==============================
-
-    /// @notice Allow the contract to receive native tokens
-    // solhint-disable-next-line no-empty-blocks
-    receive() external payable { }
 
     /// @notice This modifier ensure the caller is the factory that deployed this contract
     modifier onlyFactory() {
@@ -107,12 +104,49 @@ contract SmartAccount is Initializable, BaseAccount {
         _;
     }
 
+    /// @notice This modifier ensure the caller is the contract itself. The only way
+    ///         to call the functions flagged by this modifier is by being rooted by the
+    ///         `execute` or `executeBatch` functions. Those functions can only be called
+    ///         by the entrypoint contract, meaning the whole workflow defined in the EIP-4337
+    ///         must be respected.
+    modifier onlySelf() {
+        if (msg.sender != address(this)) revert NotItself();
+        _;
+    }
+
+    // ==============================
+    // ======== FUNCTIONS ===========
+    // ==============================
+
+    /// @notice Allow the contract to receive native tokens
+    // solhint-disable-next-line no-empty-blocks
+    receive() external payable { }
+
+
+    /// @notice Set a new Webauthn p256r1 new signer and emit the expected event. This function
+    ///         can not override an existing signer, use `remnoveWebAuthnP256R1Signer` for this
+    function _addWebAuthnSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) internal {
+        // 1. Set the new signer in the vault if the signer does not already exist
+        SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
+
+        // 2. emit the event with the added signer
+        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
+    }
+
+    /// @notice Add a Webauthn p256r1 new signer to the account
+    /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected
+    /// @param  pubkeyX The X coordinate of the signer's public key.
+    /// @param  pubkeyY The Y coordinate of the signer's public key.
+    /// @param  credIdHash The hash of the credential ID associated to the signer
+    function addWebAuthnP256R1Signer(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external onlySelf {
+        _addWebAuthnSigner(pubkeyX, pubkeyY, credIdHash);
+    }
+
     /// @notice Add the first signer to the account. This function is only call once by the factory
     ///         during the deployment of the account. All the future signers must be added using the
-    ///         `addSigner` function.
-    /// @dev    This function is expected to add a signer generated using the WebAuthn protocol on the
-    ///         secp256r1 curve. Adding another type of signer as the first signer is not supported yet.
-    ///         This function can only be called once when the nonce of the account is 0x00.
+    ///         `addWebAuthnP256R1Signer` function.
+    /// @dev    This function adds a signer generated using the WebAuthn protocol on the
+    ///         secp256r1 curve. This function can only be called once when the nonce of the account is 0x00.
     /// @param  pubkeyX The X coordinate of the signer's public key.
     /// @param  pubkeyY The Y coordinate of the signer's public key.
     /// @param  credIdHash The hash of the credential ID associated to the signer
@@ -121,8 +155,7 @@ contract SmartAccount is Initializable, BaseAccount {
         if (getNonce() != 0) revert InvalidSignerAddition();
 
         // 2. add account's first signer and emit the signer addition event
-        SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
-        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
+        _addWebAuthnSigner(pubkeyX, pubkeyY, credIdHash);
     }
 
     /// @notice Return a signer stored in the account using its credIdHash. When storing a signer, the credId

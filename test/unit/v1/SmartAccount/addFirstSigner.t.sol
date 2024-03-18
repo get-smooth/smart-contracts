@@ -14,7 +14,7 @@ contract SmartAccount__AddFirstSigner is BaseTest {
     uint256 private pubkeyX = 0x1;
     uint256 private pubkeyY = 0x2;
 
-    // Duplicate of the event in the Account.sol file
+    // Duplicate of the event in the SmartAccount.sol file
     event SignerAdded(bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
 
     function setUp() external {

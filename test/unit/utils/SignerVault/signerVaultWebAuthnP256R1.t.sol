@@ -111,7 +111,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertNotEq(startingSlot1, startingSlot2);
     }
 
-    function test_ShouldBePossibleToOverrideExistingSigner(
+    function test_ShouldNotBePossibleToOverrideExistingSigner(
         bytes32 clientIdHash,
         uint256 pubkeyX,
         uint256 pubkeyY
@@ -126,7 +126,10 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         // store the signer in the vault
         implementation.set(clientIdHash, pubkeyX, pubkeyY);
 
-        // store the signer in the vault
+        // try to update the same signer in the vault -- should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(SignerVaultWebAuthnP256R1.SignerOverrideNotAllowed.selector, clientIdHash)
+        );
         implementation.set(clientIdHash, 1, 2);
 
         // calculate the starting slot where the signer will be stored
@@ -134,8 +137,8 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
 
         // ensure the slots where the signer will be stored are empty
         assertEq(loadSS(startingSlot, SIGNER.CLIENT_ID_HASH), clientIdHash);
-        assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_X), uint256(1));
-        assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), uint256(2));
+        assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_X), pubkeyX);
+        assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), pubkeyY);
     }
 
     function test_ReturnTheStoredSignerGivenAClientId(

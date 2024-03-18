@@ -1,7 +1,7 @@
 SignerVault__WebAuthnP256R1
 ├── it always store a signer to the same storage slots
 ├── it does not store two signers to the same storage slots
-├── it should be possible to override existing signer
+├── it should not be possible to override existing signer
 ├── it return the stored signer given a client id
 ├── it return an empty signer if not found given a client id
 ├── it reverts if no signer found when using safe

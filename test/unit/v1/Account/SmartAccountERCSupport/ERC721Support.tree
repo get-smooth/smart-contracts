@@ -1,0 +1,8 @@
+SmartAccountERCSupport__ERC721
+├── it can mint ERC721 tokens
+├── it can safe mint ERC721 tokens
+├── it can safe mint ERC721 tokens with data
+├── it can transfer ERC721 tokens
+├── it can approve ERC721 token
+├── it can approve all ERC721 tokens
+└── it can receive ERC721 tokens

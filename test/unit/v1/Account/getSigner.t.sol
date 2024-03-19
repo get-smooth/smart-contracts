@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
-import { SmartAccount } from "src/v1/SmartAccount.sol";
+import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest.sol";
 

@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { BaseTest } from "test/BaseTest.sol";
-import { SmartAccount, UserOperation } from "src/v1/SmartAccount.sol";
+import { SmartAccount, UserOperation } from "src/v1/Account/SmartAccount.sol";
 import { WebAuthn256r1Wrapper } from "script/WebAuthn256r1/WebAuthn256r1Wrapper.sol";
 import "src/utils/Signature.sol" as Signature;
 

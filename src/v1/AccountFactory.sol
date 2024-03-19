@@ -4,7 +4,7 @@ pragma solidity >=0.8.20 <0.9.0;
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 import { Ownable } from "@openzeppelin/access/Ownable.sol";
 import "src/utils/Signature.sol" as Signature;
-import { SmartAccount } from "./SmartAccount.sol";
+import { SmartAccount } from "./Account/SmartAccount.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 
 // FIXME:   createAndInitAccount() Understand the implications of the ban system of the function

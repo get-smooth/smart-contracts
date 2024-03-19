@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
-import { SmartAccount } from "src/v1/SmartAccount.sol";
+import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
 contract SmartAccount__Constructor is BaseTest {

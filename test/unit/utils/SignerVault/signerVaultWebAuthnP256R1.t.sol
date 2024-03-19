@@ -33,7 +33,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         pure
         returns (uint256, uint256)
     {
-        vm.assume(clientIdHash != keccak256(""));
+        vm.assume(clientIdHash != bytes32(0));
         pubkeyX = bound(pubkeyX, 1, type(uint256).max);
         pubkeyY = bound(pubkeyY, 1, type(uint256).max);
         return (pubkeyX, pubkeyY);

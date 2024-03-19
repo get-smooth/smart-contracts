@@ -1,0 +1,5 @@
+SmartAccountERCSupport__ERC20
+├── it can receive ERC20 tokens
+├── it can approve ERC20 tokens
+├── it can transfer ERC20 tokens
+└── it can transferFrom ERC20 tokens

@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { BaseTest } from "test/BaseTest.sol";
-import { SmartAccount } from "src/v1/SmartAccount.sol";
+import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { ERC1967Proxy } from "src/v1/AccountFactory.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import "src/utils/Signature.sol" as Signature;

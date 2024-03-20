@@ -11,6 +11,7 @@ import "src/utils/Signature.sol" as Signature;
 import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 import { SmartAccountERCSupport } from "src/v1/Account/SmartAccountERCSupport.sol";
+import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
 
 // @DEV: MONO-SIGNER VERSION
 /**
@@ -25,7 +26,7 @@ import { SmartAccountERCSupport } from "src/v1/Account/SmartAccountERCSupport.so
  *  - Support of the EIP-1271
  *  - New nonce serie per entrypoint? In that case, first addFirstSigner
  */
-contract SmartAccount is Initializable, BaseAccount, SmartAccountERCSupport {
+contract SmartAccount is Initializable, BaseAccount, SmartAccountERCSupport, SmartAccountEIP1271 {
     // ==============================
     // ========= METADATA ===========
     // ==============================
@@ -128,6 +129,12 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountERCSupport {
     /// @notice Allow the contract to receive native tokens
     // solhint-disable-next-line no-empty-blocks
     receive() external payable { }
+
+    /// @notice Used internally to get the webauthn verifier
+    /// @return The 256r1 webauthn verifier
+    function webauthn256R1Verifier() internal view override returns (IWebAuthn256r1) {
+        return IWebAuthn256r1(webAuthnVerifier);
+    }
 
     /// @notice Remove an existing Webauthn p256r1.
     /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected

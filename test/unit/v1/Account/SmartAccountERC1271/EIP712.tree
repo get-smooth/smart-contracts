@@ -1,0 +1,7 @@
+SmartAccountERC1271__EIP712
+├── it can validate EIP712 signature
+├── it return failure if not correct type
+├── it return failure if signer unknown
+├── it revert if signature not decodable
+├── it return failure if hash incorrect
+└── it return failure if signature incorrect

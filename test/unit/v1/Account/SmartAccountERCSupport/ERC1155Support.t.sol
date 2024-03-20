@@ -5,7 +5,7 @@ import { ERC1155 } from "@openzeppelin/token/ERC1155/ERC1155.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
-contract SmartAccountERCSupport__ERC1155 is BaseTest {
+contract SmartAccountTokensSupport__ERC1155 is BaseTest {
     address internal entrypoint;
     SmartAccount internal account;
     DumbERC1155 internal erc1155;

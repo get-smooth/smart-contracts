@@ -1,4 +1,4 @@
-SmartAccountERCSupport__ERC721
+SmartAccountTokensSupport__ERC721
 ├── it can mint ERC721 tokens
 ├── it can safe mint ERC721 tokens
 ├── it can safe mint ERC721 tokens with data

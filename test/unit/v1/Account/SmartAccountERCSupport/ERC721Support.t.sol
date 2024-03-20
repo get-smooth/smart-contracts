@@ -3,10 +3,10 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { MockERC721 } from "forge-std/StdUtils.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
-import { ERC721Support } from "src/v1/Account/SmartAccountERCSupport.sol";
+import { ERC721Support } from "src/v1/Account/SmartAccountTokensSupport.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
-contract SmartAccountERCSupport__ERC721 is BaseTest {
+contract SmartAccountTokensSupport__ERC721 is BaseTest {
     address internal entrypoint;
     SmartAccount internal account;
     DumbERC721 internal erc721;

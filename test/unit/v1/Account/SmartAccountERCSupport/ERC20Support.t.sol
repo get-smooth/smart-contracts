@@ -5,7 +5,7 @@ import { MockERC20 } from "forge-std/StdUtils.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { BaseTest } from "test/BaseTest.sol";
 
-contract SmartAccountERCSupport__ERC20 is BaseTest {
+contract SmartAccountTokensSupport__ERC20 is BaseTest {
     address internal entrypoint;
     SmartAccount internal account;
     DumbERC20 internal erc20;

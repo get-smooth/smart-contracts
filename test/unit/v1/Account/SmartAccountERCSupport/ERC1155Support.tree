@@ -1,4 +1,4 @@
-SmartAccountERCSupport__ERC1155
+SmartAccountTokensSupport__ERC1155
 ├── it can receive ERC1155 tokens
 ├── it can approve all ERC1155 tokens
 ├── it can transferfrom ERC20 tokens

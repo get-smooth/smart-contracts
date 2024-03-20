@@ -10,7 +10,7 @@ import { AccountFactory } from "src/v1/AccountFactory.sol";
 import "src/utils/Signature.sol" as Signature;
 import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 import { Metadata } from "src/v1/Metadata.sol";
-import { SmartAccountERCSupport } from "src/v1/Account/SmartAccountERCSupport.sol";
+import { SmartAccountTokensSupport } from "src/v1/Account/SmartAccountTokensSupport.sol";
 import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
 
 // @DEV: MONO-SIGNER VERSION
@@ -26,7 +26,7 @@ import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
  *  - Support of the EIP-1271
  *  - New nonce serie per entrypoint? In that case, first addFirstSigner
  */
-contract SmartAccount is Initializable, BaseAccount, SmartAccountERCSupport, SmartAccountEIP1271 {
+contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, SmartAccountEIP1271 {
     // ==============================
     // ========= METADATA ===========
     // ==============================

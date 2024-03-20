@@ -94,7 +94,7 @@ contract ERC165Support is IERC165 {
     }
 }
 
-/// @title SmartAccountERCSupport
+/// @title SmartAccountTokensSupport
 /// @dev Inherit the SmartAccount contract with this contract tokens transfer
 // solhint-disable-next-line no-empty-blocks
-contract SmartAccountERCSupport is ERC721Support, ERC165Support, ERC1155Support { }
+contract SmartAccountTokensSupport is ERC721Support, ERC165Support, ERC1155Support { }

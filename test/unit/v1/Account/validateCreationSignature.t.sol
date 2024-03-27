@@ -1,66 +1,41 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
-import { ERC1967Proxy } from "src/v1/AccountFactory.sol";
+import { AccountFactory, ERC1967Proxy } from "src/v1/AccountFactory.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import "src/utils/Signature.sol" as Signature;
 
 contract SmartAccount__ValidateCreationSignature is BaseTest {
-    WrapperAccount internal account;
+    SmartAccountHarness internal account;
     MockFactory internal factory;
     MockEntryPoint internal entrypoint;
-    address internal admin;
 
-    // deploy the mocked entrypoint, the mocked factory, the account and set the admin
-    function setUp() external {
-        admin = validCreate.signer;
+    bytes32 internal usernameHash = keccak256("qdqdqd");
 
+    // deploy the mocked entrypoint, the mocked factory, the account
+    function setUp() external setUpCreateFixture {
         // deploy a mock of the entrypoint
         entrypoint = new MockEntryPoint();
 
         // deploy a mock of the factory that will deploy the account base implementation
-        factory = new MockFactory(admin, address(entrypoint));
+        factory = new MockFactory(SMOOTH_SIGNER.addr, address(entrypoint));
 
         // deploy a valid instance of the account implementation and set a valid signer
-        account = factory.mockDeployAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.usernameHash, validCreate.credIdHash
-        );
+        account = factory.mockDeployAccount(usernameHash, createFixtures.response.authData);
     }
 
-    // utilitary function to get a valid initcode
-    function _getValidInitCode() internal view returns (bytes memory) {
-        return abi.encodePacked(
+    // utilitary function that calculates a valid initCode and the signature
+    function calculateInitCodeAndSignature() internal view returns (bytes memory initCode, bytes memory signature) {
+        signature = craftDeploymentSignature(usernameHash, createFixtures.response.authData, address(account));
+
+        initCode = abi.encodePacked(
             address(factory),
             abi.encodeWithSelector(
-                MockFactory.mockDeployAccount.selector,
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                validCreate.signature
+                AccountFactory.createAndInitAccount.selector, usernameHash, createFixtures.response.authData, signature
             )
         );
-    }
-
-    function _getValidInitCode(bytes memory signature) internal view returns (bytes memory) {
-        return abi.encodePacked(
-            address(factory),
-            abi.encodeWithSelector(
-                MockFactory.mockDeployAccount.selector,
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                signature
-            )
-        );
-    }
-
-    // utilitary function to slice a bytes array
-    function _sliceBytes(bytes calldata b, uint256 endIndex) external pure returns (bytes memory) {
-        return b[:endIndex];
     }
 
     function test_FailsIfTheNonceIsNot0(uint256 randomNonce) external {
@@ -69,45 +44,33 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         // bound the nonce to a invalid range
         randomNonce = bound(randomNonce, 1, type(uint256).max);
 
-        // get a valid initcode
-        bytes memory initCode = _getValidInitCode();
+        // get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = calculateInitCodeAndSignature();
 
         // mock the call to the entrypoint to return the random nonce
         vm.mockCall(address(entrypoint), abi.encodeWithSelector(MockEntryPoint.getNonce.selector), abi.encode(1));
 
         // assert that the signature validation fails if the nonce is not equal to zero
-        assertEq(account.validateCreationSignature(validCreate.signature, initCode), Signature.State.FAILURE);
+        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
-    function test_FailsIfTheInitCodeIsNotLongEnough(uint256 bytesLength) external {
-        // it fails if the initcode is not long enough
-
-        // bound the length of the initCode to a invalid range
-        bytesLength = bound(bytesLength, 0, 151);
-
-        // create a truncated version of the valid initCode by calling an utilitary function in a different context
-        bytes memory initCode = this._sliceBytes(_getValidInitCode(), bytesLength);
-
-        // assert that the signature validation fails if the nonce is not equal to zero
-        assertEq(account.validateCreationSignature(validCreate.signature, initCode), Signature.State.FAILURE);
-    }
-
-    function test_FailsIfTheInitCodeIsNotCorrectlyConstructed() external {
+    function test_RevertsIfTheInitCodeIsNotCorrectlyConstructed() external {
         // it fails if the initcode is not correctly constructured
 
+        // 1. get valid signature
+        (, bytes memory signature) = calculateInitCodeAndSignature();
+
+        // 2. construct invalid initcode (authData/usernameHash inverted)
         bytes memory invalidInitCode = abi.encodePacked(
             address(factory),
             abi.encodeWithSelector(
-                MockFactory.mockDeployAccount.selector,
-                validCreate.pubKeyY,
-                validCreate.pubKeyX, // X and Y inverted
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                validCreate.signature
+                AccountFactory.createAndInitAccount.selector, createFixtures.response.authData, usernameHash, signature
             )
         );
 
-        assertEq(account.validateCreationSignature(validCreate.signature, invalidInitCode), Signature.State.FAILURE);
+        // 3. check the signature validation is failure
+        vm.expectRevert();
+        account.exposed_validateCreationSignature(signature, invalidInitCode);
     }
 
     function test_FailsIfTheUseropFactoryIsNotCorrect(address incorrectFactory) external {
@@ -115,124 +78,137 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
 
         vm.assume(incorrectFactory != address(factory));
 
-        bytes memory initCodeWithIncorrectFactory = abi.encodePacked(
-            address(incorrectFactory),
+        // 1. get valid signature
+        (, bytes memory signature) = calculateInitCodeAndSignature();
+
+        // 2. construct invalid initcode (incorrect factory address)
+        bytes memory invalidInitCode = abi.encodePacked(
+            address(incorrectFactory), // incorrect factory address
             abi.encodeWithSelector(
-                MockFactory.mockDeployAccount.selector,
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                validCreate.signature
+                AccountFactory.createAndInitAccount.selector, usernameHash, createFixtures.response.authData, signature
             )
         );
 
-        assertEq(
-            account.validateCreationSignature(validCreate.signature, initCodeWithIncorrectFactory),
-            Signature.State.FAILURE
-        );
+        // 3. check the signature validation is failure
+        assertEq(account.exposed_validateCreationSignature(signature, invalidInitCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfTheAdminOfTheFactoryIsNotCorrect(address incorrectSigner) external {
         // it fails if the admin of the factory is not correct
-        vm.assume(incorrectSigner != admin);
+        vm.assume(incorrectSigner != SMOOTH_SIGNER.addr);
 
-        // mock the call to the factory to expected signer (second argument is the selector of the admin)
-        // @dev: no way to access the selector of admin directly since it is a public state variable
-        vm.mockCall(address(factory), hex"f851a440", abi.encode(incorrectSigner));
+        // 1. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = calculateInitCodeAndSignature();
 
-        assertEq(account.validateCreationSignature(validCreate.signature, _getValidInitCode()), Signature.State.FAILURE);
+        // 2. mock the call that fetch factory's admin. The idea of the test is to set a different
+        // admin in the factory that the one used to sign the signature. The call is expected to revert
+        // as the signer doesn't correspond to the expected one.
+        vm.mockCall(address(factory), abi.encodeWithSelector(MockFactory.owner.selector), abi.encode(incorrectSigner));
+
+        // 3. check the signature validation is failure
+        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfThePassedSignatureIsNotCorrect(string memory name) external {
         // it fails if the passed signature is not correct
 
-        // create an invalid signature with a random signer
+        // 1. create an invalid signature with a random signer
         (, uint256 signerSK) = makeAddrAndKey(name);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerSK, keccak256("Signed by qdqd"));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerSK, keccak256("Signed by someone else"));
         bytes memory invalidSignature = abi.encodePacked(r, s, v);
 
-        assertEq(account.validateCreationSignature(invalidSignature, _getValidInitCode()), Signature.State.FAILURE);
+        // 2. get valid initcode and signature
+        (bytes memory initCode,) = calculateInitCodeAndSignature();
+
+        // 3. check the signature validation is failure
+        assertEq(account.exposed_validateCreationSignature(invalidSignature, initCode), Signature.State.FAILURE);
     }
 
-    function test_NeverReverts(bytes calldata signature, bytes calldata initCode) external {
-        // it never reverts
+    function test_FailsIfSignatureTypeMissing() external {
+        // it fails if the passed signature is not correct
 
-        try account.validateCreationSignature(signature, initCode) {
-            assertTrue(true);
-        } catch Error(string memory) {
-            fail("account.constructor() reverted");
-        } catch {
-            fail("account.constructor() reverted");
-        }
+        // 1. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = calculateInitCodeAndSignature();
+
+        // 2. remove the signature type from the signature
+        bytes memory invalidSignature = truncBytes(signature, 1, signature.length);
+
+        // 3. check the signature validation is failure
+        assertEq(account.exposed_validateCreationSignature(invalidSignature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfTheCredIdDoesNotMatchTheCredIdStored(bytes32 incorrectCredIdHash) external {
         // it fails if the credId does not match the credId stored
 
-        // make sure the fuzzed values do not match the real ones
-        vm.assume(incorrectCredIdHash != validCreate.credIdHash);
+        // 1. make sure the fuzzed values do not match the real ones
+        vm.assume(incorrectCredIdHash != keccak256(createFixtures.signer.credId));
 
-        // get the starting slot used to store the signer sequentially
-        bytes32 credIdStorageSlot = SignerVaultWebAuthnP256R1.getSignerStartingSlot(validCreate.credIdHash);
-
-        // replace the stored value of the valid credIdHash with the incorrect value
+        // 2. replace the stored value of the valid credIdHash with the incorrect value
+        bytes32 credIdStorageSlot =
+            SignerVaultWebAuthnP256R1.getSignerStartingSlot(keccak256(createFixtures.signer.credId));
         vm.store(address(account), credIdStorageSlot, incorrectCredIdHash);
 
-        assertEq(account.validateCreationSignature(validCreate.signature, _getValidInitCode()), Signature.State.FAILURE);
+        // 3. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = calculateInitCodeAndSignature();
+
+        // 4. check the signature validation is failure
+        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfThePubKeyXDoesNotMatchThePubKeyXStored(uint256 incorrectPubKeyX) external {
         // it fails if the pubKeyX does not match the pubKeyX stored
 
-        // make sure the fuzzed values do not match the real ones
-        vm.assume(incorrectPubKeyX != validCreate.pubKeyX);
+        // 1. make sure the fuzzed values do not match the real ones
+        vm.assume(incorrectPubKeyX != createFixtures.signer.pubX);
 
-        // get the starting slot used to store the signer sequentially
-        bytes32 pubKeyXStorageSlot =
-            bytes32(uint256(SignerVaultWebAuthnP256R1.getSignerStartingSlot(validCreate.credIdHash)) + 1);
-
-        // replace the stored value of the valid credIdHash with the incorrect value
+        // 2. replace the stored value of the valid credIdHash with the incorrect value
+        bytes32 pubKeyXStorageSlot = bytes32(
+            uint256(SignerVaultWebAuthnP256R1.getSignerStartingSlot(keccak256(createFixtures.signer.credId))) + 1
+        );
         vm.store(address(account), pubKeyXStorageSlot, bytes32(incorrectPubKeyX));
 
-        assertEq(account.validateCreationSignature(validCreate.signature, _getValidInitCode()), Signature.State.FAILURE);
+        // 3. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = calculateInitCodeAndSignature();
+
+        // 4. check the signature validation is failure
+        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfThePubKeyYDoesNotMatchThePubKeyYStored(uint256 incorrectPubKeyY) external {
         // it fails if the pubKeyY does not match the pubKeyY stored
 
-        // make sure the fuzzed values do not match the real ones
-        vm.assume(incorrectPubKeyY != validCreate.pubKeyY);
+        // 1. make sure the fuzzed values do not match the real ones
+        vm.assume(incorrectPubKeyY != createFixtures.signer.pubY);
 
-        // get the starting slot used to store the signer sequentially
-        bytes32 pubKeyYStorageSlot =
-            bytes32(uint256(SignerVaultWebAuthnP256R1.getSignerStartingSlot(validCreate.credIdHash)) + 2);
+        // 2. replace the stored value of the valid credIdHash with the incorrect value
+        bytes32 pubKeyXStorageSlot = bytes32(
+            uint256(SignerVaultWebAuthnP256R1.getSignerStartingSlot(keccak256(createFixtures.signer.credId))) + 2
+        );
+        vm.store(address(account), pubKeyXStorageSlot, bytes32(incorrectPubKeyY));
 
-        // replace the stored value of the valid credIdHash with the incorrect value
-        vm.store(address(account), pubKeyYStorageSlot, bytes32(incorrectPubKeyY));
+        // 3. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = calculateInitCodeAndSignature();
 
-        assertEq(account.validateCreationSignature(validCreate.signature, _getValidInitCode()), Signature.State.FAILURE);
+        // 4. check the signature validation is failure
+        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
-    // FIXME: TODO:
-    function skip_test_SucceedIfTheSignatureRecoveryIsCorrect() external {
+    function test_SucceedIfTheSignatureRecoveryIsCorrect() external {
         // it succeed if the signature recovery is correct
 
-        bytes memory createSignature = _craftCreationSignature(address(factory));
+        // 1. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = calculateInitCodeAndSignature();
 
-        // assert that the signature validation fails if the nonce is not equal to zero
-        assertEq(
-            account.validateCreationSignature(createSignature, _getValidInitCode(createSignature)),
-            Signature.State.SUCCESS
-        );
+        // 2. check the signature validation is successful
+        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.SUCCESS);
     }
 }
 
-contract WrapperAccount is SmartAccount {
+contract SmartAccountHarness is SmartAccount {
     constructor(address _entryPoint, address _webAuthnVerifier) SmartAccount(_entryPoint, _webAuthnVerifier) { }
 
     // test only, expose the internal `_validateCreationSignature` method
-    function validateCreationSignature(
+    function exposed_validateCreationSignature(
         bytes calldata signature,
         bytes calldata initCode
     )
@@ -269,7 +245,7 @@ contract MockFactory is BaseTest {
         admin = _admin;
 
         // deploy the implementation of the account
-        WrapperAccount account = new WrapperAccount(entrypoint, makeAddr("verifier"));
+        SmartAccountHarness account = new SmartAccountHarness(entrypoint, makeAddr("verifier"));
 
         // set the address of the implementation deployed
         accountImplementation = payable(address(account));
@@ -277,28 +253,26 @@ contract MockFactory is BaseTest {
 
     // shortcut the real deployment/setup process for testing purposes
     function mockDeployAccount(
-        uint256 pubKeyX,
-        uint256 pubKeyY,
-        bytes32 loginHash,
-        bytes32 credIdHash
+        bytes32 usernameHash,
+        bytes calldata authenticatorData
     )
         external
-        returns (WrapperAccount)
+        returns (SmartAccountHarness)
     {
         // deploy the proxy for the user. During the deployment, the initialize function in the implementation contract
         // is called using the `delegatecall` opcode
-        WrapperAccount account = WrapperAccount(
+        SmartAccountHarness account = SmartAccountHarness(
             payable(
-                new ERC1967Proxy{ salt: loginHash }(
+                new ERC1967Proxy{ salt: usernameHash }(
                     accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
                 )
             )
         );
 
         // set the first signer of the account using the parameters given
-        account.addFirstSigner(pubKeyX, pubKeyY, credIdHash);
+        account.addFirstSigner(authenticatorData);
 
-        addresses[loginHash] = address(account);
+        addresses[usernameHash] = address(account);
 
         return account;
     }

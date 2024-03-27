@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import "src/utils/Signature.sol" as Signature;
 
 contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
@@ -17,7 +17,7 @@ contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
     // Duplicate of the event in the SmartAccount.sol file
     event SignerRemoved(bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY);
 
-    function setUp() external {
+    function setUp() external setUpCreateFixture {
         // deploy the entrypoint
         entrypoint = address(new MockEntryPoint());
 
@@ -28,7 +28,7 @@ contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
 
         // set the first signer
         vm.prank(factory);
-        account.addFirstSigner(pubkeyX, pubkeyY, credIdHash);
+        account.addFirstSigner(createFixtures.response.authData);
     }
 
     function test_CanOnlyBeCalledByItself(address caller) external {
@@ -48,21 +48,24 @@ contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
     function test_RemoveAnExistingSigner() external {
         // it remove an existing signer
 
-        // 1. we check the signer exists
-        (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
-        assertEq(storedCredIdHash, credIdHash);
-        assertEq(storedPubkeyX, pubkeyX);
-        assertEq(storedPubkeyY, pubkeyY);
+        // 1. calculate the credIdHash of the stored signer
+        bytes32 _credIdHash = keccak256(createFixtures.signer.credId);
 
-        // 2. Add a new signer to the account. The only way to call the function is to call it from the account
+        // 1. we check the signer exists
+        (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(_credIdHash);
+        assertEq(storedCredIdHash, _credIdHash);
+        assertEq(storedPubkeyX, createFixtures.signer.pubX);
+        assertEq(storedPubkeyY, createFixtures.signer.pubY);
+
+        // 2. Remove the signer from the account. The only way to call the function is to call it from the account
         //    itself. The only way to do that is by calling the `execute` function with the entrypoint contract.
         vm.prank(entrypoint);
         account.execute(
-            address(account), 0, abi.encodeWithSelector(SmartAccount.removeWebAuthnP256R1Signer.selector, credIdHash)
+            address(account), 0, abi.encodeWithSelector(SmartAccount.removeWebAuthnP256R1Signer.selector, _credIdHash)
         );
 
         // 3. we expect the signer to be removed
-        (storedCredIdHash, storedPubkeyX, storedPubkeyY) = account.getSigner(credIdHash);
+        (storedCredIdHash, storedPubkeyX, storedPubkeyY) = account.getSigner(_credIdHash);
         assertEq(storedCredIdHash, bytes32(0));
         assertEq(storedPubkeyX, 0);
         assertEq(storedPubkeyY, 0);
@@ -103,11 +106,20 @@ contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
 
         // 2. we tell the VM to expect an event
         vm.expectEmit(true, true, true, true, address(account));
-        emit SignerRemoved(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
+        emit SignerRemoved(
+            Signature.Type.WEBAUTHN_P256R1,
+            keccak256(createFixtures.signer.credId),
+            createFixtures.signer.pubX,
+            createFixtures.signer.pubY
+        );
 
         // 3. we call the function that adds the new signer
         account.execute(
-            address(account), 0, abi.encodeWithSelector(SmartAccount.removeWebAuthnP256R1Signer.selector, credIdHash)
+            address(account),
+            0,
+            abi.encodeWithSelector(
+                SmartAccount.removeWebAuthnP256R1Signer.selector, keccak256(createFixtures.signer.credId)
+            )
         );
     }
 }

@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { Paymaster } from "src/v1/Paymaster.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { Ownable } from "@openzeppelin/access/Ownable.sol";
 
 contract Paymaster__Operator is BaseTest {

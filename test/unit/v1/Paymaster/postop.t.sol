@@ -4,7 +4,7 @@ pragma solidity >=0.8.20 <0.9.0;
 import { IPaymaster } from "@eth-infinitism/interfaces/IPaymaster.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Paymaster } from "src/v1/Paymaster.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract Paymaster__PostOp is BaseTest {
     address private immutable admin = makeAddr("admin");

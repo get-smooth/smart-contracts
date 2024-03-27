@@ -4,13 +4,14 @@ pragma solidity >=0.8.20 <0.9.0;
 import { WebAuthn256r1Wrapper } from "script/WebAuthn256r1/WebAuthn256r1Wrapper.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { EIP1271_VALIDATION_SUCCESS, EIP1271_VALIDATION_FAILURE } from "src/v1/Account/SmartAccountEIP1271.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 struct ValidData {
     uint256 pubX;
     uint256 pubY;
     bytes signature;
     bytes32 message;
+    bytes creationAuthData;
 }
 
 contract SmartAccountERC1271__EIP712 is BaseTest {
@@ -31,23 +32,35 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
         vm.prank(factory);
         account = new SmartAccount(address(entrypoint), address(webauthn));
 
-        // 4. set the valid variables
-        data.pubX = 0xab731bacd51a82abd186f009a33b52cd3cdbb52ad4b083f8582289b740c3ecf1;
-        data.pubY = 0xba2315660d301f692a762634b79d8c95d6604727787adfa64d17ee630b66afc5;
-        data.signature = hex"010000000000000000000000000000000000000000000000000000000000000000"
-            hex"000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000"
-            hex"00000000000000000000000000000000000120a56040fc3340115374884d1b603c866f49109558d3c86ea5ea"
-            hex"098979eb54b64520680fb45145a72cba76f4b9753bde29974e161395677f14a0a15f18aa997f4e35ea369a49"
-            hex"a3cdddebc026e502324612596a2be266e480605620839d7cefae440000000000000000000000000000000000"
-            hex"00000000000000000000000000002549960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba83"
-            hex"1d97631d00000000000000000000000000000000000000000000000000000000000000000000000000000000"
-            hex"00000000000000000000000000000000000000000000f37b2274797065223a22776562617574686e2e676574"
-            hex"222c226368616c6c656e6765223a224f7977316f78377668536d46386c495f4c6b2d796b4e5664364b445845"
-            hex"70493144505935536f4977624249222c226f726967696e223a22687474703a2f2f6c6f63616c686f73743a33"
-            hex"303030222c2263726f73734f726967696e223a66616c73652c226f746865725f6b6579735f63616e5f62655f"
-            hex"61646465645f68657265223a22646f206e6f7420636f6d7061726520636c69656e74446174614a534f4e2061"
-            hex"6761696e737420612074656d706c6174652e205365652068747470733a2f2f676f6f2e676c2f796162506578"
-            hex"227d00000000000000000000000000";
+        // 4. set the signer data for the test
+        // This signer has been generated for the needs of this test file. It is a valid signer.
+        // The authData here is the authData generated during the creation of the signer.
+        data.pubX = 0x6a91f4596b653f97f5c8d13d459be52d35285ee0add61ba5a650df8c45919b25;
+        data.pubY = 0x193b85d5270e4995299c9c30af13af4277111cc92c1054da407c623ee69276cd;
+        data.creationAuthData =
+            hex"49960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba831d97635d00000000fbfc3007154e4ecc8c0b"
+            hex"6e020557d7bd0014d0dd31e6291a9162090617691b47ac069a0793fea50102032620012158206a91f4596b653f97f5"
+            hex"c8d13d459be52d35285ee0add61ba5a650df8c45919b25225820193b85d5270e4995299c9c30af13af4277111cc92c"
+            hex"1054da407c623ee69276cd";
+
+        // 5. set the signature data for the test
+        // This signature has been generated for the needs of this test file. It is a valid signature for the signer
+        // above. The message here is the hash of the data signed by the signer. It corresponds to the hash calculated
+        // during the 712 signature flow using the 712 data (domain/type..) listed below.
+        data.signature =
+            hex"0100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            hex"00000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000"
+            hex"01205c73f9c19ada2ca3439b6c5eddb70ba1d10b195eadfc22fec16b9bc371b767fb400cc3f92936caf663811c1407"
+            hex"ef5471fcece0a020149fa72ac9e8562429e92dc52d483b3e33463d71594a66c1f68a2f92542f29f1f40c3f01470777"
+            hex"1714d716000000000000000000000000000000000000000000000000000000000000002549960de5880e8c68743417"
+            hex"0f6476605b8fe4aeb9a28632c7995cf3ba831d97631d00000000000000000000000000000000000000000000000000"
+            hex"00000000000000000000000000000000000000000000000000000000000000000000000000f37b2274797065223a22"
+            hex"776562617574686e2e676574222c226368616c6c656e6765223a224f7977316f78377668536d46386c495f4c6b2d79"
+            hex"6b4e5664364b44584570493144505935536f4977624249222c226f726967696e223a22687474703a2f2f6c6f63616c"
+            hex"686f73743a33303030222c2263726f73734f726967696e223a66616c73652c226f746865725f6b6579735f63616e5f"
+            hex"62655f61646465645f68657265223a22646f206e6f7420636f6d7061726520636c69656e74446174614a534f4e2061"
+            hex"6761696e737420612074656d706c6174652e205365652068747470733a2f2f676f6f2e676c2f796162506578227d00"
+            hex"000000000000000000000000";
         data.message = 0xd08956aa42529c201cbeaae40635483d9687ed986304eb34946e5be326ecd5f3;
     }
 
@@ -100,7 +113,7 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
 
         // 4. set first signer and verify it has been set
         vm.prank(factory);
-        account.addFirstSigner(data.pubX, data.pubY, credIdHash);
+        account.addFirstSigner(data.creationAuthData);
         (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
         assertEq(storedCredIdHash, credIdHash);
         assertEq(storedPubkeyX, data.pubX);
@@ -108,11 +121,7 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
 
         // 5. verify the signature using the signature and the hash
         bytes4 selector = account.isValidSignature(hash, data.signature);
-        assertEq(selector, bytes4(EIP1271_VALIDATION_SUCCESS));
-    }
-
-    function _modifiySignaturePrefix(bytes calldata signature, uint8 prefix) external pure returns (bytes memory) {
-        return abi.encodePacked(prefix, signature[1:]);
+        assertEq(selector, EIP1271_VALIDATION_SUCCESS);
     }
 
     function test_ReturnFailureIfNotCorrectType() external {
@@ -130,15 +139,15 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
 
         // 4. set first signer and verify it has been set
         vm.prank(factory);
-        account.addFirstSigner(data.pubX, data.pubY, credIdHash);
+        account.addFirstSigner(data.creationAuthData);
         (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
         assertEq(storedCredIdHash, credIdHash);
         assertEq(storedPubkeyX, data.pubX);
         assertEq(storedPubkeyY, data.pubY);
 
-        // 5. modify the prefix of the signature
+        // 5. set an invalid prefix to the signature
         bytes memory incorrectSignature =
-            SmartAccountERC1271__EIP712(address(this))._modifiySignaturePrefix(data.signature, 0x02);
+            abi.encodePacked(bytes1(0x02), truncBytes(data.signature, 1, data.signature.length));
 
         // 6. verify the signature using the signature and the hash
         // -- it should fail because the signature doesn't have the correct prefix
@@ -177,14 +186,14 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
 
         // 4. set first signer and verify it has been set
         vm.prank(factory);
-        account.addFirstSigner(data.pubX, data.pubY, credIdHash);
+        account.addFirstSigner(data.creationAuthData);
         (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
         assertEq(storedCredIdHash, credIdHash);
         assertEq(storedPubkeyX, data.pubX);
         assertEq(storedPubkeyY, data.pubY);
 
         // 5. cut the signature to make it invalid
-        bytes memory invalidSignature = _truncBytes(data.signature, 0, data.signature.length - 32);
+        bytes memory invalidSignature = truncBytes(data.signature, 0, data.signature.length - 32);
 
         // 6. verify the signature using the signature and the hash
         // -- it should revert as the signature is not decodable
@@ -210,7 +219,7 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
 
         // 6. set first signer and verify it has been set
         vm.prank(factory);
-        account.addFirstSigner(data.pubX, data.pubY, credIdHash);
+        account.addFirstSigner(data.creationAuthData);
         (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
         assertEq(storedCredIdHash, credIdHash);
         assertEq(storedPubkeyX, data.pubX);
@@ -236,7 +245,7 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
 
         // 4. set first signer and verify it has been set
         vm.prank(factory);
-        account.addFirstSigner(data.pubX, data.pubY, credIdHash);
+        account.addFirstSigner(data.creationAuthData);
         (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
         assertEq(storedCredIdHash, credIdHash);
         assertEq(storedPubkeyX, data.pubX);

@@ -3,7 +3,7 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { MockERC20 } from "forge-std/StdUtils.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract SmartAccountTokensSupport__ERC20 is BaseTest {
     address internal entrypoint;

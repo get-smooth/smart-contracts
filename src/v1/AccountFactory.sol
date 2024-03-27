@@ -6,6 +6,7 @@ import { Ownable } from "@openzeppelin/access/Ownable.sol";
 import "src/utils/Signature.sol" as Signature;
 import { SmartAccount } from "./Account/SmartAccount.sol";
 import { Metadata } from "src/v1/Metadata.sol";
+import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 
 // FIXME:   createAndInitAccount() Understand the implications of the ban system of the function
 
@@ -97,40 +98,56 @@ contract AccountFactory is Ownable {
         external
         returns (address)
     {
-        // 1. get the address of the account if it exists
-        address accountAddress = getAddress(usernameHash);
+        // 1. calculate the salt that will be used to deploy the account
+        bytes32 salt = calculateSalt(authenticatorData);
 
-        // 2. check if the account is already deployed and return prematurely if it is
+        // 2. get the address of the account if it exists
+        address accountAddress = getAddress(salt);
+
+        // 3. check if the account is already deployed and return prematurely if it is
         if (accountAddress.code.length > 0) return accountAddress;
 
-        // 3. check if the signature is valid
+        // 4. check if the signature is valid
         if (_isSignatureLegit(usernameHash, accountAddress, authenticatorData, signature) == false) {
             revert InvalidSignature(usernameHash, signature);
         }
 
-        // 4. deploy the proxy for the user. During the deployment, the initialize function in the implementation
+        // 5. deploy the proxy for the user. During the deployment, the initialize function in the implementation
         // is called using the `delegatecall` opcode
         SmartAccount account = SmartAccount(
             payable(
-                new ERC1967Proxy{ salt: usernameHash }(
+                new ERC1967Proxy{ salt: salt }(
                     accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
                 )
             )
         );
 
-        // 5. set the initial signer of the account defined in the authenticatorData
+        // 6. set the initial signer of the account defined in the authenticatorData
         account.addFirstSigner(authenticatorData);
 
-        // 6. emit the event and return the address of the deployed account
+        // 7. emit the event and return the address of the deployed account
         emit AccountCreated(usernameHash, address(account));
         return address(account);
     }
 
-    /// @notice This utility function returns the address of the account that would be deployed
+    /// @notice This function calculates the salt used to deploy the account
+    /// @dev The salt is calculated using the credIdHash, the pubkeyX and the pubkeyY extracted from the
+    ///      authenticatorData
+    /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    function calculateSalt(bytes calldata authenticatorData) internal pure returns (bytes32) {
+        // 1. extract the signer from the authenticatorData
+        (, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) =
+            SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
+
+        // 2. encode the signer and hash the result to get the salt
+        return keccak256(abi.encodePacked(credIdHash, pubkeyX, pubkeyY));
+    }
+
+    /// @notice This utility function returns the address of the account that would be deployed using the salt
     /// @dev    This is the under the hood formula used by the CREATE2 opcode
-    /// @param  usernameHash The keccak256 hash of the login of the account
+    /// @param  salt The salt used to deploy the account
     /// @return The address of the account that would be deployed
-    function getAddress(bytes32 usernameHash) public view returns (address) {
+    function getAddress(bytes32 salt) internal view returns (address) {
         return address(
             uint160(
                 uint256(
@@ -138,7 +155,7 @@ contract AccountFactory is Ownable {
                         abi.encodePacked(
                             bytes1(0xff), // init code hash prefix
                             address(this), // deployer address
-                            usernameHash, // the salt used to deploy the contract
+                            salt, // `keccak256(abi.encodePacked(credIdHash, pubX, pubY))`
                             keccak256( // the init code hash
                                 abi.encodePacked(
                                     // creation code of the contract deployed
@@ -155,6 +172,15 @@ contract AccountFactory is Ownable {
             )
         );
     }
+
+    /// @notice This utility function returns the address of the account that would be deployed using the authData
+    /// @dev    The salt is calculated using the signer extracted from the authenticatorData
+    /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    /// @return The address of the account that would be deployed
+    function getAddress(bytes calldata authenticatorData) external view returns (address) {
+        bytes32 salt = calculateSalt(authenticatorData);
+        return getAddress(salt);
+    }
 }
 
 // NOTE:
@@ -165,12 +191,12 @@ contract AccountFactory is Ownable {
 // - CREATE2 is used to deploy the proxy for our users. The formula of this deterministic computation
 //   depends on these parameters:
 //   - the address of the factory
-//   - the usernameHash
+//   - the salt (`keccak256(abi.encodePacked(credIdHash, pubX, pubY))`)
 //   - the implementation of the ERC1967Proxy (included in the init code hash)
 //   - the arguments passed to the constructor of the ERC1967Proxy (included in the init code hash):
 //      - the address of the implementation of the account
 //      - the signature selector of the initialize function present in the account implementation (first 4-bytes)
-//      - the usernameHash
+//      - the salt (`keccak256(abi.encodePacked(credIdHash, pubX, pubY))`)
 //
 // - Once set, it's not possible to change the account implementation later.
 // - Once deployed by the constructor, it's not possible to change the instance of the account implementation.

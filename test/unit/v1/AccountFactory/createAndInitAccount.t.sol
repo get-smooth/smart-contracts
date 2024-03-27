@@ -25,7 +25,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     function test_UseADeterministicDeploymentProcess() external {
         // predict where the account linked to a specific hash will be deployed
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // check the address of the account doesn't have any code before the deployment
         assertEq(keccak256(accountAddress.code), keccak256(""));
@@ -43,7 +43,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // it should return the existing account address
 
         // predict where the account linked to a specific hash will be deployed
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
         bytes memory signature =
@@ -61,7 +61,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // it should deploy a new account if none exists
 
         // predict where the account linked to a specific hash will be deployed
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
         bytes memory signature =
@@ -88,7 +88,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     function test_CallInitialize() external {
         // predict where the account linked to a specific hash will be deployed
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
         bytes memory signature =
@@ -103,7 +103,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     function test_CallTheProxyAddFirstSignerFunction() external {
         // predict where the account linked to a specific hash will be deployed
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
         bytes memory signature =
@@ -111,7 +111,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // we tell the VM to expect *one* call to the addFirstSigner function with the loginHash as parameter
         vm.expectCall(
-            factory.getAddress(USERNAME_HASH),
+            factory.getAddress(createFixtures.response.authData),
             abi.encodeCall(SmartAccount.addFirstSigner, (createFixtures.response.authData)),
             1
         );
@@ -122,7 +122,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     function test_TriggerAnEventOnDeployment() external {
         // predict where the account linked to a specific hash will be deployed
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
         bytes memory signature =

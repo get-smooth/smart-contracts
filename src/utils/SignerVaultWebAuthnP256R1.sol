@@ -205,4 +205,55 @@ library SignerVaultWebAuthnP256R1 {
     {
         return verifier.verify(authenticatorData, clientData, clientChallenge, r, s, qx, qy);
     }
+
+    // TODO: Need more tests for this function
+    /// @notice Extract the signer from the authenticatorData
+    /// @dev    This function is free to be called (!!)
+    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    /// @return credId The credential ID, uniquely identifying the signer.
+    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function extractSignerFromAuthData(bytes calldata authenticatorData)
+        internal
+        pure
+        returns (bytes memory credId, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        // The authenticatorData is composed of:
+        // - 32 bytes for the rpIdHash --NOT_USED--
+        // - 1 bytes for the flags --NOT_USED--
+        // - 4 bytes for the signCount --NOT_USED--
+        // - N bytes for the attestedCredentialData
+        // - M bytes for the extensions --NOT_USED_OPTIONAL--
+        //
+        // The `attestedCredentialData` is composed of:
+        // - 16 bytes for the aaguid --NOT_USED--
+        // - 2 bytes for the credentialIdLength (CL)
+        // - CL bytes for the credentialId
+        // - 77 bytes for the credentialPublicKey (for p256r1 curve only)
+        //
+        // The `credentialPublicKey` is encoded in the CTAP2 canonical CBOR encoding form.
+        // For the p256r1 curve, the value is composed of:
+        // - 10 bytes for the prefix 0xA5010203262001215820 that defines the type, the signature and the curve...
+        // - 32 bytes for the x coordinate
+        // - 3 bytes for the constant 0x225820
+        // - 32 bytes for the y coordinate
+        //
+        // https://www.w3.org/TR/webauthn-2/#sctn-authenticator-data
+        // https://www.w3.org/TR/webauthn-2/#sctn-attested-credential-data
+
+        // 1. extract the credId from the authData and hash it
+        uint16 credIdLength = uint16(bytes2(authenticatorData[53:55]));
+        credId = authenticatorData[55:(55 + credIdLength)];
+        credIdHash = keccak256(credId);
+
+        // 2. extract the public key from the authData
+        uint256 pubKeyCOSEOffset = 55 + credIdLength;
+        uint256 pubKeySeparator = 3;
+        uint256 pubKeyXOffset = pubKeyCOSEOffset + 10;
+        uint256 pubKeyYOffset = pubKeyXOffset + pubKeySeparator + 32;
+
+        pubkeyX = uint256(bytes32(authenticatorData[pubKeyXOffset:(pubKeyXOffset + 32)]));
+        pubkeyY = uint256(bytes32(authenticatorData[pubKeyYOffset:(pubKeyYOffset + 32)]));
+    }
 }

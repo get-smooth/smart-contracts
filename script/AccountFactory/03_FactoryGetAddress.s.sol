@@ -13,9 +13,9 @@ contract FactoryGetAddress is BaseScript {
         AccountFactory factory = AccountFactory(factoryAddress);
 
         // arguments to pass to the `createAndInit` function
-        bytes32 usernameHash = vm.envBytes32("USERNAME_HASH");
+        bytes memory authData = vm.envBytes("AUTH_DATA");
 
         // check the account is not already deployed
-        accountAddress = factory.getAddress(usernameHash);
+        accountAddress = factory.getAddress(authData);
     }
 }

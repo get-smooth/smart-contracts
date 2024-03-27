@@ -20,10 +20,13 @@ contract FactoryCreateAndInitAccount is BaseScript {
         bytes memory signature = vm.envBytes("SIGNATURE");
 
         // check the account is not already deployed
-        accountAddress = factory.getAddress(usernameHash);
+        accountAddress = factory.getAddress(authData);
         require(accountAddress.code.length == 0, "Account already exists");
 
         // deploy and init the account
-        factory.createAndInitAccount(usernameHash, authData, signature);
+        address deployedAddress = factory.createAndInitAccount(usernameHash, authData, signature);
+
+        // ensure the account has been deployed at the correct address
+        require(deployedAddress == accountAddress, "Invalid account address");
     }
 }

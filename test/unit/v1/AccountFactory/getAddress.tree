@@ -1,8 +1,6 @@
 AccountFactory__GetAddress
-├── it never revert
+├── it revert if the authData is too short
 ├── given a random login hash
-│   └── it return a valid address
-├── given the hash of an empty string
 │   └── it return a valid address
 ├── given a predetermined hash
 │   └── it return the precomputed address

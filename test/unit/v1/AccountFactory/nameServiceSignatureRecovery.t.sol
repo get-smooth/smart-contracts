@@ -16,7 +16,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // it return true if the signature is valid
 
         // 1. calculate the future address of the account
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // 2. generate the valid signature
         bytes memory signature =
@@ -31,7 +31,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // it return false if not the correct signer
 
         // 1. calculate the future address of the account
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // 2. generate the valid signature
         bytes memory signature =
@@ -50,7 +50,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // it return false if not the correct pubKey
 
         // 1. calculate the future address of the account
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // 2. generate the valid signature
         bytes memory signature =
@@ -59,13 +59,13 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         assertFalse(factory.exposed_isSignatureLegit(USERNAME_HASH, accountAddress, fakeAuthData, signature));
     }
 
-    function test_ReturnFalseIfNotTheCorrectLoginHash(bytes32 incorrectLoginHash) external {
+    function test_ReturnFalseIfNotTheCorrectUserNameHash(bytes32 incorrectUserNameHash) external {
         // it return false if not the correct loginHash
 
-        vm.assume(incorrectLoginHash != USERNAME_HASH);
+        vm.assume(incorrectUserNameHash != USERNAME_HASH);
 
         // 1. calculate the future address of the account
-        address accountAddress = factory.getAddress(incorrectLoginHash);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // 2. generate the valid signature
         bytes memory signature =
@@ -73,7 +73,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.exposed_isSignatureLegit(
-                incorrectLoginHash, accountAddress, createFixtures.response.authData, signature
+                incorrectUserNameHash, accountAddress, createFixtures.response.authData, signature
             )
         );
     }
@@ -82,7 +82,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // it return false if not the correct AccountAddress
 
         // 1. make sure the fuzzed address is not correct
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
         vm.assume(accountAddress != incorrectAddr);
 
         // 2. generate the valid signature
@@ -98,7 +98,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // it return false if not the correct signature
 
         // 1. calculate the future address of the account
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         assertFalse(
             factory.exposed_isSignatureLegit(
@@ -116,7 +116,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         bytes memory signature67Bytes = abi.encodePacked(r, s, hex"aabbcc");
 
         // calculate the signature and the future address of the account
-        address accountAddress = factory.getAddress(USERNAME_HASH);
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         assertFalse(
             factory.exposed_isSignatureLegit(

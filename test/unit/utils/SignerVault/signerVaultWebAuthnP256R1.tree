@@ -13,4 +13,5 @@ SignerVault__WebAuthnP256R1
 ├── it return the stored pubkey associated to a client id hash
 ├── it return true if successful verification
 ├── it return false if unsuccessful verification
+├── it return the expected signer from authData
 └── it always use the same root

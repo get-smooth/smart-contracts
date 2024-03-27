@@ -13,7 +13,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
     // copy here the event definition from the contract
     // @dev: once we bump to 0.8.21, import the event from the contract
-    event AccountCreated(bytes32 usernameHash, address account);
+    event AccountCreated(address account, bytes authenticatorData);
 
     function setUp() external setUpCreateFixture {
         // deploy the mocked mockedEntrypoint
@@ -131,7 +131,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // we tell the VM to expect an event
         vm.expectEmit(true, true, true, true, address(factory));
         // we trigger the exact event we expect to be emitted in the next call
-        emit AccountCreated(USERNAME_HASH, accountAddress);
+        emit AccountCreated(accountAddress, createFixtures.response.authData);
 
         // we call the function that is supposed to trigger the call
         factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);

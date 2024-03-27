@@ -15,17 +15,15 @@ contract FactoryCreateAndInitAccount is BaseScript {
         AccountFactory factory = AccountFactory(factoryAddress);
 
         // arguments to pass to the `createAndInit` function
-        uint256 pubKeyX = vm.envUint("PUBKEY_X");
-        uint256 pubKeyY = vm.envUint("PUBKEY_Y");
-        bytes32 loginHash = vm.envBytes32("LOGIN_HASH");
-        bytes32 credIdHash = vm.envBytes32("CREDID_HASH");
+        bytes32 usernameHash = vm.envBytes32("USERNAME_HASH");
+        bytes memory authData = vm.envBytes("AUTH_DATA");
         bytes memory signature = vm.envBytes("SIGNATURE");
 
         // check the account is not already deployed
-        accountAddress = factory.getAddress(loginHash);
+        accountAddress = factory.getAddress(usernameHash);
         require(accountAddress.code.length == 0, "Account already exists");
 
         // deploy and init the account
-        factory.createAndInitAccount(pubKeyX, pubKeyY, loginHash, credIdHash, signature);
+        factory.createAndInitAccount(usernameHash, authData, signature);
     }
 }

@@ -3,7 +3,7 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { Ownable } from "@eth-infinitism/core/BasePaymaster.sol";
 import { Paymaster } from "src/v1/Paymaster.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract Paymaster__Deposit is BaseTest {
     address private owner = makeAddr("owner");

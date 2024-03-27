@@ -5,7 +5,7 @@ import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseScript } from "../Base.s.sol";
 
 /// @title  FactoryGetAddress
-/// @notice Compute the address of the account based on the loginHash
+/// @notice Compute the address of the account based on the usernameHash
 contract FactoryGetAddress is BaseScript {
     function run() public broadcast returns (address accountAddress) {
         // address of the factory we wanna use
@@ -13,9 +13,9 @@ contract FactoryGetAddress is BaseScript {
         AccountFactory factory = AccountFactory(factoryAddress);
 
         // arguments to pass to the `createAndInit` function
-        bytes32 loginHash = vm.envBytes32("LOGIN_HASH");
+        bytes32 usernameHash = vm.envBytes32("USERNAME_HASH");
 
         // check the account is not already deployed
-        accountAddress = factory.getAddress(loginHash);
+        accountAddress = factory.getAddress(usernameHash);
     }
 }

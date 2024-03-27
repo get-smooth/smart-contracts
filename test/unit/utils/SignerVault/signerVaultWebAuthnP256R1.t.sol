@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 
 contract SignerVault__WebAuthnP256R1 is BaseTest {

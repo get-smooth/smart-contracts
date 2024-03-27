@@ -1,173 +1,108 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
-import { AccountFactoryTestWrapper } from "test/unit/v1/AccountFactory/AccountFactoryTestWrapper.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { AccountFactory } from "src/v1/AccountFactory.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__RecoverNameServiceSignature is BaseTest {
-    AccountFactoryTestWrapper internal factory;
+    AccountFactoryHarness internal factory;
+    bytes32 internal constant USERNAME_HASH = keccak256("mario");
 
-    function setUp() external {
-        factory = new AccountFactoryTestWrapper(address(0), address(0), validCreate.signer);
+    function setUp() external setUpCreateFixture {
+        factory = new AccountFactoryHarness(makeAddr("entrypoint"), makeAddr("verifier"), SMOOTH_SIGNER.addr);
     }
 
     function test_ReturnTrueIfTheSignatureIsValid() external {
         // it return true if the signature is valid
-        bytes memory signature = _craftCreationSignature(address(factory));
-        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+
+        // 1. calculate the future address of the account
+        address accountAddress = factory.getAddress(USERNAME_HASH);
+
+        // 2. generate the valid signature
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
 
         assertTrue(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                signature
-            )
+            factory.exposed_isSignatureLegit(USERNAME_HASH, accountAddress, createFixtures.response.authData, signature)
         );
     }
 
-    function test_ReturnFalseIfNotTheCorrectSigner(address alternativeSigner) external {
+    function test_ReturnFalseIfNotTheCorrectSigner() external {
         // it return false if not the correct signer
 
-        // deploy a new factory with a different admin
-        vm.assume(alternativeSigner != validCreate.signer && alternativeSigner != address(0));
-        AccountFactoryTestWrapper factory2 = new AccountFactoryTestWrapper(address(0), address(0), alternativeSigner);
+        // 1. calculate the future address of the account
+        address accountAddress = factory.getAddress(USERNAME_HASH);
 
-        // calculate the signature and the future address of the account
-        bytes memory signature = _craftCreationSignature(address(factory2));
-        address accountAddresss = factory2.getAddress(validCreate.usernameHash);
+        // 2. generate the valid signature
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+
+        // 3. transfer ownership to someone else -- that invalidate all the previous signature
+        vm.prank(SMOOTH_SIGNER.addr);
+        factory.transferOwnership(address(12));
 
         assertFalse(
-            factory2.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                signature
-            )
+            factory.exposed_isSignatureLegit(USERNAME_HASH, accountAddress, createFixtures.response.authData, signature)
         );
     }
 
-    function test_ReturnFalseIfNotTheCorrectPubKey(uint256 incorrectPubX, uint256 incorrectPubY) external {
+    function test_ReturnFalseIfNotTheCorrectAuthData(bytes calldata fakeAuthData) external {
         // it return false if not the correct pubKey
 
-        vm.assume(incorrectPubX != validCreate.pubKeyX);
-        vm.assume(incorrectPubY != validCreate.pubKeyY);
+        // 1. calculate the future address of the account
+        address accountAddress = factory.getAddress(USERNAME_HASH);
 
-        // calculate the signature and the future address of the account
-        bytes memory signature = _craftCreationSignature(address(factory));
-        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+        // 2. generate the valid signature
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
 
-        assertFalse(
-            factory.isSignatureLegit(
-                incorrectPubX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                signature
-            )
-        );
-
-        assertFalse(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                incorrectPubY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                signature
-            )
-        );
+        assertFalse(factory.exposed_isSignatureLegit(USERNAME_HASH, accountAddress, fakeAuthData, signature));
     }
 
     function test_ReturnFalseIfNotTheCorrectLoginHash(bytes32 incorrectLoginHash) external {
         // it return false if not the correct loginHash
 
-        vm.assume(incorrectLoginHash != validCreate.usernameHash);
+        vm.assume(incorrectLoginHash != USERNAME_HASH);
 
-        // calculate the signature and the future address of the account
-        bytes memory signature = _craftCreationSignature(address(factory));
-        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+        // 1. calculate the future address of the account
+        address accountAddress = factory.getAddress(incorrectLoginHash);
+
+        // 2. generate the valid signature
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
 
         assertFalse(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                incorrectLoginHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                signature
+            factory.exposed_isSignatureLegit(
+                incorrectLoginHash, accountAddress, createFixtures.response.authData, signature
             )
         );
     }
 
-    function test_ReturnFalseIfNotTheCorrectCredID(bytes32 incorrectCredIdHash) external {
-        // it return false if not the correct credID
-
-        vm.assume(incorrectCredIdHash != validCreate.credIdHash);
-
-        // calculate the signature and the future address of the account
-        bytes memory signature = _craftCreationSignature(address(factory));
-        address accountAddresss = factory.getAddress(validCreate.usernameHash);
-
-        assertFalse(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                incorrectCredIdHash,
-                accountAddresss,
-                signature
-            )
-        );
-    }
-
-    function test_ReturnFalseIfNotTheCorrectAccountAddress(address incorrectAddress) external {
+    function test_ReturnFalseIfNotTheCorrectAccountAddress(address incorrectAddr) external {
         // it return false if not the correct AccountAddress
 
-        // calculate the signature and the future address of the account
-        bytes memory signature = _craftCreationSignature(address(factory));
-        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+        // 1. make sure the fuzzed address is not correct
+        address accountAddress = factory.getAddress(USERNAME_HASH);
+        vm.assume(accountAddress != incorrectAddr);
 
-        vm.assume(accountAddresss != incorrectAddress);
+        // 2. generate the valid signature
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
 
         assertFalse(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                incorrectAddress,
-                signature
-            )
+            factory.exposed_isSignatureLegit(USERNAME_HASH, incorrectAddr, createFixtures.response.authData, signature)
         );
     }
 
-    function test_ReturnFalseIfNotTheCorrectSignature(bytes32 randomHash) external {
+    function test_ReturnFalseIfNotTheCorrectSignature(bytes32 hash) external {
         // it return false if not the correct signature
 
-        // calculate the signature and the future address of the account
-        address accountAddresss = factory.getAddress(validCreate.usernameHash);
-
-        // generate a random private key
-        uint256 signerPrivateKey = vm.createWallet(123).privateKey;
-
-        // generate a random signature
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, randomHash);
-        bytes memory incorrectSignature = abi.encodePacked(r, s, v);
+        // 1. calculate the future address of the account
+        address accountAddress = factory.getAddress(USERNAME_HASH);
 
         assertFalse(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                incorrectSignature
+            factory.exposed_isSignatureLegit(
+                USERNAME_HASH, accountAddress, createFixtures.response.authData, abi.encodePacked(hash, hash)
             )
         );
     }
@@ -175,32 +110,50 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     function test_ReturnFalseIfNotTheCorrectSignatureLength(bytes32 r, bytes32 s) external {
         // it return false if not the correct signature length
 
-        // NOTE: A valid signature is 65 bytes long
+        // NOTE: A valid ecdsa signature is 65 bytes long. We add a 1 byte type to it meaning
+        //       the signature is 66 bytes long. We test for 64 and 66 bytes long signatures
         bytes memory signature64Bytes = abi.encodePacked(r, s);
-        bytes memory signature66Bytes = abi.encodePacked(r, s, hex"aabb");
+        bytes memory signature67Bytes = abi.encodePacked(r, s, hex"aabbcc");
 
         // calculate the signature and the future address of the account
-        address accountAddresss = factory.getAddress(validCreate.usernameHash);
+        address accountAddress = factory.getAddress(USERNAME_HASH);
 
         assertFalse(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                signature64Bytes
+            factory.exposed_isSignatureLegit(
+                USERNAME_HASH, accountAddress, createFixtures.response.authData, signature64Bytes
             )
         );
         assertFalse(
-            factory.isSignatureLegit(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                accountAddresss,
-                signature66Bytes
+            factory.exposed_isSignatureLegit(
+                USERNAME_HASH, accountAddress, createFixtures.response.authData, signature67Bytes
             )
         );
+    }
+}
+
+/// @title Wrapper of the AccountFactory contract that exposes internal methods
+/// @notice This contract is only intended to be used for testing purposes
+/// @dev Keep in mind this wrapper adds extra cost to the gas consumption, only use it for
+/// testing internal methods
+contract AccountFactoryHarness is AccountFactory {
+    constructor(
+        address entryPoint,
+        address webAuthnVerifier,
+        address admin
+    )
+        AccountFactory(entryPoint, webAuthnVerifier, admin)
+    { }
+
+    function exposed_isSignatureLegit(
+        bytes32 usernameHash,
+        address accountAddress,
+        bytes calldata authenticatorData,
+        bytes calldata signature
+    )
+        external
+        view
+        returns (bool)
+    {
+        return _isSignatureLegit(usernameHash, accountAddress, authenticatorData, signature);
     }
 }

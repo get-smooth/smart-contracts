@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import "src/utils/Signature.sol" as Signature;
 import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
 import { VmSafe } from "forge-std/Vm.sol";

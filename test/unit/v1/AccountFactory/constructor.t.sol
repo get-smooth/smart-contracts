@@ -3,7 +3,7 @@ pragma solidity >=0.8.20;
 
 import { Ownable } from "@openzeppelin/access/Ownable.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__Constructor is BaseTest {
     address private entrypoint;

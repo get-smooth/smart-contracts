@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { MockTarget } from "test/unit/v1/Account/execute.t.sol";
 
 contract SmartAccount__ExecuteBatch is BaseTest {

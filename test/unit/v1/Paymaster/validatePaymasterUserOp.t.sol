@@ -4,7 +4,7 @@ pragma solidity >=0.8.20 <0.9.0;
 import { VmSafe } from "forge-std/Vm.sol";
 import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
 import { Ownable } from "@openzeppelin/access/Ownable.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { Paymaster, UserOperation, Signature } from "src/v1/Paymaster.sol";
 
 struct Arguments {

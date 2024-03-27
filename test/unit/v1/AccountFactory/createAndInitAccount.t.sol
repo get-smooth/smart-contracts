@@ -3,157 +3,138 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__CreateAndInitAccount is BaseTest {
     AccountFactory private factory;
     address private mockedEntrypoint;
 
+    bytes32 private constant USERNAME_HASH = keccak256("miyamoto");
+
     // copy here the event definition from the contract
     // @dev: once we bump to 0.8.21, import the event from the contract
-    event AccountCreated(
-        bytes32 loginHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
-    );
+    event AccountCreated(bytes32 usernameHash, address account);
 
-    function setUp() external {
+    function setUp() external setUpCreateFixture {
         // deploy the mocked mockedEntrypoint
         mockedEntrypoint = address(new MockEntryPoint());
 
         // deploy the factory
-        factory = new AccountFactory(mockedEntrypoint, makeAddr("verifier"), validCreate.signer);
+        factory = new AccountFactory(mockedEntrypoint, makeAddr("verifier"), SMOOTH_SIGNER.addr);
     }
 
     function test_UseADeterministicDeploymentProcess() external {
         // predict where the account linked to a specific hash will be deployed
-        address predictedAddress = factory.getAddress(validCreate.usernameHash);
+        address accountAddress = factory.getAddress(USERNAME_HASH);
 
         // check the address of the account doesn't have any code before the deployment
-        assertEq(keccak256(predictedAddress.code), keccak256(""));
+        assertEq(keccak256(accountAddress.code), keccak256(""));
 
-        // deploy the account contract using the same hash
-        factory.createAndInitAccount(
-            validCreate.pubKeyX,
-            validCreate.pubKeyY,
-            validCreate.usernameHash,
-            validCreate.credIdHash,
-            _craftCreationSignature(address(factory))
-        );
+        // // deploy the account contract using the same hash
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
 
         // make sure the account contract has been deployed
-        assertNotEq(keccak256(predictedAddress.code), keccak256(""));
+        assertNotEq(keccak256(accountAddress.code), keccak256(""));
     }
 
     function test_ReturnExistingAccountAddressGivenAHashAlreadyUsed() external {
         // it should return the existing account address
 
+        // predict where the account linked to a specific hash will be deployed
+        address accountAddress = factory.getAddress(USERNAME_HASH);
+
+        // // deploy the account contract using the same hash
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+
         // make sure the second attempt of creation return the already deployed address
         // without reverting or something else
         assertEq(
-            factory.createAndInitAccount(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                _craftCreationSignature(address(factory))
-            ),
-            factory.createAndInitAccount(
-                validCreate.pubKeyX,
-                validCreate.pubKeyY,
-                validCreate.usernameHash,
-                validCreate.credIdHash,
-                _craftCreationSignature(address(factory))
-            )
+            factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature),
+            factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature)
         );
     }
 
     function test_DeployANewAccountIfNoneExistsGivenANewHash() external {
         // it should deploy a new account if none exists
 
+        // predict where the account linked to a specific hash will be deployed
+        address accountAddress = factory.getAddress(USERNAME_HASH);
+
+        // // deploy the account contract using the same hash
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+
         // deploy a valid proxy account using the constants predefined
-        address proxy1 = factory.createAndInitAccount(
-            validCreate.pubKeyX,
-            validCreate.pubKeyY,
-            validCreate.usernameHash,
-            validCreate.credIdHash,
-            _craftCreationSignature(address(factory))
-        );
+        address proxy1 = factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
 
         assertNotEq(keccak256(proxy1.code), keccak256(""));
     }
 
-    function test_RevertWithAnIncorrectValidSignature() external {
+    function test_RevertWithAnIncorrectValidSignature(bytes32 hash) external {
         // it should revert
-
-        // this signature is a valid ECDSA signature but it as been created using a non authorized private key
-        bytes memory invalidSignature = hex"0f7d6c13539049272786a4084a723d9147d85eed579f1a5f7cb743"
-            hex"0d92ef48af08b662fec5e9741b995bc55a24c1449255bf39187a817a097cd7e369212ff8cf1c";
+        bytes memory invalidSignature = abi.encodePacked(hash, hash);
 
         // we tell the VM to expect a revert with a precise error
         vm.expectRevert(
-            abi.encodeWithSelector(AccountFactory.InvalidSignature.selector, validCreate.usernameHash, invalidSignature)
+            abi.encodeWithSelector(AccountFactory.InvalidSignature.selector, USERNAME_HASH, invalidSignature)
         );
 
         // we call the function with the invalid signature to trigger the error
-        factory.createAndInitAccount(
-            validCreate.pubKeyX, validCreate.pubKeyY, validCreate.usernameHash, validCreate.credIdHash, invalidSignature
-        );
+        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, invalidSignature);
     }
 
     function test_CallInitialize() external {
+        // predict where the account linked to a specific hash will be deployed
+        address accountAddress = factory.getAddress(USERNAME_HASH);
+
+        // // deploy the account contract using the same hash
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+
         // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
         vm.expectCall(factory.accountImplementation(), abi.encodeWithSelector(SmartAccount.initialize.selector), 1);
 
         // we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(
-            validCreate.pubKeyX,
-            validCreate.pubKeyY,
-            validCreate.usernameHash,
-            validCreate.credIdHash,
-            _craftCreationSignature(address(factory))
-        );
+        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
     }
 
     function test_CallTheProxyAddFirstSignerFunction() external {
+        // predict where the account linked to a specific hash will be deployed
+        address accountAddress = factory.getAddress(USERNAME_HASH);
+
+        // // deploy the account contract using the same hash
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+
         // we tell the VM to expect *one* call to the addFirstSigner function with the loginHash as parameter
         vm.expectCall(
-            factory.getAddress(validCreate.usernameHash),
-            abi.encodeCall(
-                SmartAccount.addFirstSigner, (validCreate.pubKeyX, validCreate.pubKeyY, validCreate.credIdHash)
-            ),
+            factory.getAddress(USERNAME_HASH),
+            abi.encodeCall(SmartAccount.addFirstSigner, (createFixtures.response.authData)),
             1
         );
 
         // we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(
-            validCreate.pubKeyX,
-            validCreate.pubKeyY,
-            validCreate.usernameHash,
-            validCreate.credIdHash,
-            _craftCreationSignature(address(factory))
-        );
+        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
     }
 
     function test_TriggerAnEventOnDeployment() external {
+        // predict where the account linked to a specific hash will be deployed
+        address accountAddress = factory.getAddress(USERNAME_HASH);
+
+        // // deploy the account contract using the same hash
+        bytes memory signature =
+            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+
         // we tell the VM to expect an event
         vm.expectEmit(true, true, true, true, address(factory));
         // we trigger the exact event we expect to be emitted in the next call
-        emit AccountCreated(
-            validCreate.usernameHash,
-            factory.getAddress(validCreate.usernameHash),
-            validCreate.credIdHash,
-            validCreate.pubKeyX,
-            validCreate.pubKeyY
-        );
+        emit AccountCreated(USERNAME_HASH, accountAddress);
 
-        // we call the function that is supposed to trigger the event
-        // if the exact event is not triggered, the test will fail
-        factory.createAndInitAccount(
-            validCreate.pubKeyX,
-            validCreate.pubKeyY,
-            validCreate.usernameHash,
-            validCreate.credIdHash,
-            _craftCreationSignature(address(factory))
-        );
+        // we call the function that is supposed to trigger the call
+        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
     }
 }
 

@@ -3,7 +3,7 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract SmartAccount__Constructor is BaseTest {
     function test_NeverReverts() external {
@@ -23,8 +23,10 @@ contract SmartAccount__Constructor is BaseTest {
         assertEq(account.webAuthnVerifier(), webAuthnVerifier);
     }
 
-    function test_StoresTheEntrypointAddress(address entrypoint) external assumeNoPrecompile(entrypoint) {
+    function test_StoresTheEntrypointAddress(address entrypoint) external {
         // it should expose the entrypoint address
+
+        assumeNotPrecompile(entrypoint);
 
         SmartAccountTestWrapper account = new SmartAccountTestWrapper(entrypoint, address(0));
         assertEq(account.exposedEntryPoint(), entrypoint);

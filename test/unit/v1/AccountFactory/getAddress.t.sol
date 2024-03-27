@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { AccountFactory } from "src/v1/AccountFactory.sol";
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
     bytes32 private constant LOGIN_HASH = keccak256("qdqd");

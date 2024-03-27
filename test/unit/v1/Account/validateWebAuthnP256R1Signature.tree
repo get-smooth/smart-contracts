@@ -2,4 +2,5 @@ SmartAccount__validateWebAuthnP256R1Signature
 ├── it return true if the signature recovery is correct
 ├── it return false if the webauthn library return false
 ├── it return false if the signer is not stored
+├── it return true even if the nonce is not correct
 └── it revert if the signature is not decodable

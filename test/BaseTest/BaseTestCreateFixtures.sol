@@ -65,11 +65,20 @@ contract BaseTestCreateFixtures is Test {
     ///         of the data and use them in your tests. Those getter function will be excluded from the gas metering
     ///         using the `noGasMetering` modifier.
     ///         The data are loaded inside blocks to avoid stack too deep error.
-    /// @param  id The id of the fixture to load
-    function loadCreateFixture(uint256 id) internal noGasMetering {
+    /// @param  seed The seed to use to load the fixture. This number will be bounded to the number of fixtures
+    function loadCreateFixture(uint256 seed) internal noGasMetering {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/test/fixtures/fixtures.create.json");
         string memory json = vm.readFile(path);
+
+        uint256 id;
+
+        // if the seed provided is not 0, bound the provided seed to the number of fixtures
+        if (seed != 0) {
+            uint256 nbOfCreateFixtures = json.readUint(".length");
+            id = seed % nbOfCreateFixtures;
+        }
+
         string memory fixturesId = string.concat(".data[", vm.toString(id), "]");
 
         FixturesUser memory user;

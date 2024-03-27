@@ -2,7 +2,7 @@ AccountFactory__RecoverNameServiceSignature
 ├── it return true if the signature is valid
 ├── it return false if not the correct signer
 ├── it return false if not the correct pubKey
-├── it return false if not the correct loginHash
+├── it return false if not the correct userNameHash
 ├── it return false if not the correct credID
 ├── it return false if not the correct accountAddress
 ├── it return false if not the correct signature

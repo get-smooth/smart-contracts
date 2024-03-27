@@ -6,45 +6,38 @@ import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
     bytes32 private constant LOGIN_HASH = keccak256("qdqd");
-    address private constant EXPECTED_LOGIN_HASH_ADDRESS = 0x1D7C6D55303d641F01d34cF74a3Df2cD35FCC6de;
     AccountFactory private factory;
 
-    function setUp() external {
+    function setUp() external setUpCreateFixture {
         factory = new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), makeAddr("owner"));
     }
 
-    function test_NeverRevert(bytes32 randomLoginHash) external {
-        // it never revert
+    function test_RevertIfTheAuthDataIsTooShort(bytes32 incorrectAuthData) external {
+        // it revert if the authData is too short
 
-        try factory.getAddress(randomLoginHash) {
-            assertTrue(true);
-        } catch Error(string memory) {
-            fail("factory.getAddress() reverted");
-        } catch {
-            fail("factory.getAddress() reverted");
-        }
+        vm.expectRevert();
+        factory.getAddress(abi.encodePacked(incorrectAuthData));
     }
 
-    function test_GivenARandomLoginHash(bytes32 randomLoginHash) external {
+    function test_GivenARandomLoginHash(bytes32 randomWord) external {
         // it return a valid address
 
-        address computedAddress = factory.getAddress(randomLoginHash);
-        assertNotEq(computedAddress, address(0));
-    }
+        // 1. create a false authData by replacing the last 3 32-words of the correct authData with random data
+        truncBytes(createFixtures.response.authData, 0, createFixtures.response.authData.length - 32 * 3);
+        bytes memory fakeAuthData = abi.encodePacked(
+            createFixtures.response.authData, randomWord, keccak256(abi.encodePacked(randomWord)), vm.unixTime()
+        );
 
-    function test_GivenTheHashOfAnEmptyString() external {
-        // it return a valid address
-
-        address computedAddress = factory.getAddress(keccak256(""));
+        // 2. compute the address using the fake authData and make sure it's not the zero address
+        address computedAddress = factory.getAddress(fakeAuthData);
         assertNotEq(computedAddress, address(0));
-        assertNotEq(computedAddress, EXPECTED_LOGIN_HASH_ADDRESS);
     }
 
     function test_GivenAPredeterminedHash() external {
         // it return the precomputed address
 
-        address computedAddress = factory.getAddress(LOGIN_HASH);
-        assertEq(computedAddress, EXPECTED_LOGIN_HASH_ADDRESS);
+        address computedAddress = factory.getAddress(createFixtures.response.authData);
+        assertEq(computedAddress, 0x4fe92c9DD6A88d39386AC9259b033d523Bcc530B);
     }
 
     function test_WhenTheFactoryIsDeployedAtADifferentAddress() external {
@@ -52,17 +45,19 @@ contract AccountFactory__GetAddress is BaseTest {
 
         // we deploy a new instance of the factory at a different address but using the same parameters
         AccountFactory factory2 = new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), makeAddr("owner"));
-        assertNotEq(factory2.getAddress(LOGIN_HASH), factory.getAddress(LOGIN_HASH));
+        assertNotEq(
+            factory2.getAddress(createFixtures.response.authData), factory.getAddress(createFixtures.response.authData)
+        );
     }
 
     function test_WhenTheNonceOfTheFactoryChanges() external {
         // it has no impact on the address computed
 
-        address computedAddress1 = factory.getAddress(LOGIN_HASH);
+        address computedAddress1 = factory.getAddress(createFixtures.response.authData);
         // we artifically upgrade the nonce of the factory
         vm.setNonce(address(factory), 1234);
         // then recompute the address using the same login hash
-        address computedAddress2 = factory.getAddress(LOGIN_HASH);
+        address computedAddress2 = factory.getAddress(createFixtures.response.authData);
         assertEq(computedAddress1, computedAddress2);
     }
 }

@@ -7,13 +7,13 @@ import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.s
 
 contract SignerVault__WebAuthnP256R1 is BaseTest {
     VerifierMock internal verifierMock;
-    SignerVaultWebAuthnP256R1TestWrapper internal implementation;
+    SignerVaultWebAuthnP256R1Harness internal implementation;
 
     function setUp() external {
         verifierMock = new VerifierMock();
 
         // deploy a contract that exposes all the internal functions of the library
-        implementation = new SignerVaultWebAuthnP256R1TestWrapper(address(verifierMock));
+        implementation = new SignerVaultWebAuthnP256R1Harness(address(verifierMock));
     }
 
     // user-defined value used to make the tests clearer
@@ -65,7 +65,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         (pubkeyX, pubkeyY) = _safeBound(clientIdHash, pubkeyX, pubkeyY);
 
         // calculate the starting slot where the signer will be stored
-        bytes32 startingSlot = implementation.getSignerStartingSlot(clientIdHash);
+        bytes32 startingSlot = implementation.exposed_getSignerStartingSlot(clientIdHash);
 
         // ensure the slots where the signer will be stored are empty
         assertEq(loadSSxU(startingSlot, SIGNER.CLIENT_ID_HASH), 0);
@@ -73,7 +73,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), 0);
 
         // store the signer
-        implementation.set(clientIdHash, pubkeyX, pubkeyY);
+        implementation.exposed_set(clientIdHash, pubkeyX, pubkeyY);
 
         // ensure the slots where the signer is expected to be stored now contain the signer's data
         assertEq(loadSS(startingSlot, SIGNER.CLIENT_ID_HASH), clientIdHash);
@@ -86,7 +86,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         vm.store(address(implementation), bytes32(uint256(startingSlot) + 2), bytes32(0));
 
         // store the signer again
-        implementation.set(clientIdHash, pubkeyX, pubkeyY);
+        implementation.exposed_set(clientIdHash, pubkeyX, pubkeyY);
 
         // ensure the slots where the signer is expected to be stored contain the signer's data again
         assertEq(loadSS(startingSlot, SIGNER.CLIENT_ID_HASH), clientIdHash);
@@ -102,10 +102,10 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         vm.assume(clientIdHash1 != clientIdHash2);
 
         // calculate the starting slot where the first signer will be stored
-        bytes32 startingSlot1 = implementation.getSignerStartingSlot(clientIdHash1);
+        bytes32 startingSlot1 = implementation.exposed_getSignerStartingSlot(clientIdHash1);
 
         // calculate the starting slot where the second signer will be stored
-        bytes32 startingSlot2 = implementation.getSignerStartingSlot(clientIdHash2);
+        bytes32 startingSlot2 = implementation.exposed_getSignerStartingSlot(clientIdHash2);
 
         // ensure both starting slots are different
         assertNotEq(startingSlot1, startingSlot2);
@@ -124,16 +124,16 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         (pubkeyX, pubkeyY) = _safeBound(clientIdHash, pubkeyX, pubkeyY);
 
         // store the signer in the vault
-        implementation.set(clientIdHash, pubkeyX, pubkeyY);
+        implementation.exposed_set(clientIdHash, pubkeyX, pubkeyY);
 
         // try to update the same signer in the vault -- should revert
         vm.expectRevert(
             abi.encodeWithSelector(SignerVaultWebAuthnP256R1.SignerOverrideNotAllowed.selector, clientIdHash)
         );
-        implementation.set(clientIdHash, 1, 2);
+        implementation.exposed_set(clientIdHash, 1, 2);
 
         // calculate the starting slot where the signer will be stored
-        bytes32 startingSlot = implementation.getSignerStartingSlot(clientIdHash);
+        bytes32 startingSlot = implementation.exposed_getSignerStartingSlot(clientIdHash);
 
         // ensure the slots where the signer will be stored are empty
         assertEq(loadSS(startingSlot, SIGNER.CLIENT_ID_HASH), clientIdHash);
@@ -158,23 +158,23 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         bytes32 clientIdHash = keccak256(clientId);
 
         // store the signer in the vaul
-        implementation.set(clientIdHash, pubkeyX, pubkeyY);
+        implementation.exposed_set(clientIdHash, pubkeyX, pubkeyY);
 
         // retrieve the signer for the given client id
-        (bytes32 cliendIdHashStored, uint256 pubKeyXStored, uint256 pubKeyYStored) = implementation.get(clientId);
+        (bytes32 cliendIdHashStored, uint256 pubXStored, uint256 pubYStored) = implementation.exposed_get(clientId);
         assertEq(cliendIdHashStored, clientIdHash);
-        assertEq(pubKeyXStored, pubkeyX);
-        assertEq(pubKeyYStored, pubkeyY);
+        assertEq(pubXStored, pubkeyX);
+        assertEq(pubYStored, pubkeyY);
     }
 
     function test_ReturnAnEmptySignerIfNotFoundGivenAClientId(bytes calldata clientId) external {
         // it should return an empty signer if not found given a client id
 
         // retrieve the signer for the given client id
-        (bytes32 cliendIdHashStored, uint256 pubKeyXStored, uint256 pubKeyYStored) = implementation.get(clientId);
+        (bytes32 cliendIdHashStored, uint256 pubXStored, uint256 pubYStored) = implementation.exposed_get(clientId);
         assertEq(cliendIdHashStored, bytes32(0));
-        assertEq(pubKeyXStored, 0);
-        assertEq(pubKeyYStored, 0);
+        assertEq(pubXStored, 0);
+        assertEq(pubYStored, 0);
     }
 
     function test_RevertsIfNoSignerFoundWhenUsingSafe(bytes calldata clientId) external {
@@ -184,7 +184,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         vm.expectRevert(abi.encodeWithSelector(SignerVaultWebAuthnP256R1.SignerNotFound.selector, clientId));
 
         // try to retrieve a non-existing signer using the safe method
-        implementation.tryGet(clientId);
+        implementation.exposed_tryGet(clientId);
     }
 
     function test_ReturnTrueIfSignerExistsGivenAClientIdHash(
@@ -200,17 +200,17 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         (pubkeyX, pubkeyY) = _safeBound(clientIdHash, pubkeyX, pubkeyY);
 
         // store the signer in the vault
-        implementation.set(clientIdHash, pubkeyX, pubkeyY);
+        implementation.exposed_set(clientIdHash, pubkeyX, pubkeyY);
 
         // ensure the signer exists
-        assertTrue(implementation.has(clientIdHash));
+        assertTrue(implementation.exposed_has(clientIdHash));
     }
 
     function test_ReturnFalseIfNoSignerExistsGivenAClientIdHash(bytes32 clientIdHash) external {
         // it should return false if no signer exists given a client id hash
 
         // ensure the signer exists
-        assertFalse(implementation.has(clientIdHash));
+        assertFalse(implementation.exposed_has(clientIdHash));
     }
 
     function test_ReturnTrueIfSignerExistsGivenAClientId(
@@ -227,17 +227,17 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         pubkeyY = bound(pubkeyY, 2, type(uint256).max);
 
         // store the signer in the vault
-        implementation.set(keccak256(clientId), pubkeyX, pubkeyY);
+        implementation.exposed_set(keccak256(clientId), pubkeyX, pubkeyY);
 
         // ensure the signer exists
-        assertTrue(implementation.has(clientId));
+        assertTrue(implementation.exposed_has(clientId));
     }
 
     function test_ReturnFalseIfNoSignerExistsGivenAClientId(bytes calldata clientId) external {
         // it should return false if no signer exists given a client id
 
         // ensure the signer exists
-        assertFalse(implementation.has(clientId));
+        assertFalse(implementation.exposed_has(clientId));
     }
 
     function test_RemovesAStoredSignerBasedOnAClientIdHash(
@@ -253,10 +253,10 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         (pubkeyX, pubkeyY) = _safeBound(clientIdHash, pubkeyX, pubkeyY);
 
         // calculate the starting slot where the signer will be stored
-        bytes32 startingSlot = implementation.getSignerStartingSlot(clientIdHash);
+        bytes32 startingSlot = implementation.exposed_getSignerStartingSlot(clientIdHash);
 
         // store the signer
-        implementation.set(clientIdHash, pubkeyX, pubkeyY);
+        implementation.exposed_set(clientIdHash, pubkeyX, pubkeyY);
 
         // ensure the signer exists
         assertEq(loadSS(startingSlot, SIGNER.CLIENT_ID_HASH), clientIdHash);
@@ -264,7 +264,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), pubkeyY);
 
         // remove the signer
-        implementation.remove(clientIdHash);
+        implementation.exposed_remove(clientIdHash);
 
         // ensure the signer has been removed
         assertEq(loadSS(startingSlot, SIGNER.CLIENT_ID_HASH), bytes32(0));
@@ -285,10 +285,10 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         (pubkeyX, pubkeyY) = _safeBound(clientIdHash, pubkeyX, pubkeyY);
 
         // store the signer in the vault
-        implementation.set(clientIdHash, pubkeyX, pubkeyY);
+        implementation.exposed_set(clientIdHash, pubkeyX, pubkeyY);
 
         // retrieve the pubkey associated to the client id hash
-        (uint256 pkX, uint256 pkY) = implementation.pubkey(clientIdHash);
+        (uint256 pkX, uint256 pkY) = implementation.exposed_pubkey(clientIdHash);
 
         // ensure the pubkey is the one we expect
         assertEq(pkX, pubkeyX);
@@ -324,7 +324,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
 
         // it should return true if verify correct webauthn payload
         assertTrue(
-            implementation.verify(
+            implementation.exposed_verify(
                 // authenticatorData
                 authenticatorData,
                 // clientData
@@ -373,7 +373,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
 
         // it should return true if verify correct webauthn payload
         assertFalse(
-            implementation.verify(
+            implementation.exposed_verify(
                 // authenticatorData
                 authenticatorData,
                 // clientData
@@ -392,16 +392,35 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         );
     }
 
+    /// forge-config: default.fuzz.runs = 50
+    /// forge-config: ci.fuzz.runs = 100
+    function test_ReturnTheExpectedSignerFromAuthData(uint256 seed) external {
+        // it return the expected signer from authData
+
+        // 1. load a random valid create fixture for this test
+        loadCreateFixture(seed);
+
+        // 2. extract the signer from the authData
+        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            implementation.exposed_extractSignerFromAuthData(createFixtures.response.authData);
+
+        // 3. ensure the signer is the one we expect
+        assertEq(credId, createFixtures.signer.credId);
+        assertEq(credIdHash, keccak256(createFixtures.signer.credId));
+        assertEq(pubX, createFixtures.signer.pubX);
+        assertEq(pubY, createFixtures.signer.pubY);
+    }
+
     /// @dev The root value must never change. Never.
-    function test_AlwaysUseTheSameRoot() external {
+    function test_AlwaysUseTheSameexposed_root() external {
         // it should always use the same root
 
-        assertEq(implementation.root(), 0x766490bc3db2290d3ce2c7c2b394a53399f99517ba4974536d11869c06dc8900);
+        assertEq(implementation.exposed_root(), 0x766490bc3db2290d3ce2c7c2b394a53399f99517ba4974536d11869c06dc8900);
     }
 }
 
 contract VerifierMock {
-    function verify(
+    function exposed_verify(
         bytes1,
         bytes calldata,
         bytes calldata,
@@ -422,26 +441,26 @@ contract VerifierMock {
 
 /// @notice this contract is a wrapper around the SignerVaultWebAuthnP256R1 library
 /// @dev wrapper must be placed after the test contracts for bulloak to work
-contract SignerVaultWebAuthnP256R1TestWrapper {
+contract SignerVaultWebAuthnP256R1Harness {
     address internal immutable verifier;
 
     constructor(address _verifier) {
         verifier = _verifier;
     }
 
-    function root() external pure returns (bytes32) {
+    function exposed_root() external pure returns (bytes32) {
         return SignerVaultWebAuthnP256R1.ROOT;
     }
 
-    function getSignerStartingSlot(bytes32 clientIdHash) external pure returns (bytes32) {
+    function exposed_getSignerStartingSlot(bytes32 clientIdHash) external pure returns (bytes32) {
         return SignerVaultWebAuthnP256R1.getSignerStartingSlot(clientIdHash);
     }
 
-    function set(bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY) external {
+    function exposed_set(bytes32 clientIdHash, uint256 pubkeyX, uint256 pubkeyY) external {
         SignerVaultWebAuthnP256R1.set(clientIdHash, pubkeyX, pubkeyY);
     }
 
-    function get(bytes calldata clientId)
+    function exposed_get(bytes calldata clientId)
         external
         view
         returns (bytes32 clientIdHash, uint256 pubKeyX, uint256 pubKeyY)
@@ -449,7 +468,7 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
         return SignerVaultWebAuthnP256R1.get(clientId);
     }
 
-    function tryGet(bytes calldata clientId)
+    function exposed_tryGet(bytes calldata clientId)
         external
         view
         returns (bytes32 clientIdHash, uint256 pubKeyX, uint256 pubKeyY)
@@ -457,23 +476,23 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
         return SignerVaultWebAuthnP256R1.tryGet(clientId);
     }
 
-    function has(bytes32 clientIdHash) external view returns (bool) {
+    function exposed_has(bytes32 clientIdHash) external view returns (bool) {
         return SignerVaultWebAuthnP256R1.has(clientIdHash);
     }
 
-    function has(bytes memory clientId) external view returns (bool) {
+    function exposed_has(bytes memory clientId) external view returns (bool) {
         return SignerVaultWebAuthnP256R1.has(clientId);
     }
 
-    function pubkey(bytes32 clientIdHash) external view returns (uint256 pubkeyX, uint256 pubkeyY) {
+    function exposed_pubkey(bytes32 clientIdHash) external view returns (uint256 pubkeyX, uint256 pubkeyY) {
         return SignerVaultWebAuthnP256R1.pubkey(clientIdHash);
     }
 
-    function remove(bytes32 clientIdHash) external {
+    function exposed_remove(bytes32 clientIdHash) external {
         SignerVaultWebAuthnP256R1.remove(clientIdHash);
     }
 
-    function verify(
+    function exposed_verify(
         bytes calldata authenticatorData,
         bytes calldata clientData,
         bytes calldata clientChallenge,
@@ -488,5 +507,13 @@ contract SignerVaultWebAuthnP256R1TestWrapper {
         return SignerVaultWebAuthnP256R1.verify(
             IWebAuthn256r1(verifier), authenticatorData, clientData, clientChallenge, r, s, qx, qy
         );
+    }
+
+    function exposed_extractSignerFromAuthData(bytes calldata authData)
+        external
+        pure
+        returns (bytes memory credId, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        return SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authData);
     }
 }

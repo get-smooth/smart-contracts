@@ -33,7 +33,7 @@ contract AccountFactory is Ownable {
 
     address payable public immutable accountImplementation;
 
-    event AccountCreated(bytes32 usernameHash, address account);
+    event AccountCreated(address account, bytes authenticatorData);
 
     error InvalidSignature(bytes32 usernameHash, bytes signature);
 
@@ -126,7 +126,7 @@ contract AccountFactory is Ownable {
         account.addFirstSigner(authenticatorData);
 
         // 7. emit the event and return the address of the deployed account
-        emit AccountCreated(usernameHash, address(account));
+        emit AccountCreated(address(account), authenticatorData);
         return address(account);
     }
 

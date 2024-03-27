@@ -8,8 +8,6 @@ import { SmartAccount } from "./Account/SmartAccount.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 
 // FIXME:   createAndInitAccount() Understand the implications of the ban system of the function
-// TODO:    What about storing the credId off-chain for the login scenario ? As we moved from `credId` to `credIdHash`
-//          for the create function, we do not log the credId anymore. Investigate
 
 /// @title  4337-compliant Account Factory
 /// @notice This contract is a 4337-compliant factory for smart-accounts. It is in charge of deploying an account
@@ -19,6 +17,8 @@ import { Metadata } from "src/v1/Metadata.sol";
 ///         the first signer of the account, leading to a fully-setup account for the user.
 /// @dev    The signature is only used to set the first-signer to the account. It is a EIP-191 message
 ///         signed by the owner. The message is the keccak256 hash of the login of the account.
+///         As the address of the account is already dependant of the address of the factory, we do not need to
+///         include it in the signature.
 contract AccountFactory is Ownable {
     // ==============================
     // ========= METADATA ===========
@@ -32,12 +32,11 @@ contract AccountFactory is Ownable {
 
     address payable public immutable accountImplementation;
 
-    event AccountCreated(
-        bytes32 usernameHash, address account, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
-    );
+    event AccountCreated(bytes32 usernameHash, address account);
 
     error InvalidSignature(bytes32 usernameHash, bytes signature);
 
+    // TODO: Accept the address of the implementation of the account as a parameter instead of deploying it
     /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
     ///         implementation will be used as the implementation reference for all the proxies deployed by this
     ///         factory. To make sure the instance deployed cannot be used, we brick it by calling the `initialize`
@@ -50,55 +49,49 @@ contract AccountFactory is Ownable {
     ///         All the arguments passed to the constructor function are used to set immutable variables.
     ///         The account deployed is expected to be bricked by the `initialize` function.
     constructor(address entryPoint, address webAuthnVerifier, address owner) Ownable(owner) {
-        // deploy the implementation of the account
+        // 1. deploy the implementation of the account
         SmartAccount account = new SmartAccount(entryPoint, webAuthnVerifier);
 
-        // set the address of the implementation deployed
+        // 2. set the address of the implementation deployed
         accountImplementation = payable(address(account));
     }
 
-    /// @notice This function check if the signature is signed by the correct entity
-    /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
-    /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
+    /// @notice This function checks if the signature is signed by the operator (owner)
     /// @param  usernameHash The keccak256 hash of the login of the account
-    /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
-    /// @param  signature Signature made off-chain. Its recovery must match the owner.
+    /// @param  accountAddress The address of the account that would be deployed
+    /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    /// @param  signature Signature made off-chain by made the operator of the factory (owner). It gates the use of the
+    ///         factory.
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
     function _isSignatureLegit(
-        uint256 pubKeyX,
-        uint256 pubKeyY,
         bytes32 usernameHash,
-        bytes32 credIdHash,
         address accountAddress,
+        bytes calldata authenticatorData,
         bytes calldata signature
     )
         internal
+        view
         returns (bool)
     {
-        // recreate the message signed by the owner
-        bytes memory message = abi.encode(
-            Signature.Type.CREATION, usernameHash, pubKeyX, pubKeyY, credIdHash, accountAddress, block.chainid
-        );
+        // 1. Recreate the message signed by the operator (owner)
+        bytes memory message =
+            abi.encode(Signature.Type.CREATION, usernameHash, authenticatorData, accountAddress, block.chainid);
 
-        // try to recover the address and return the result
-        return Signature.recover(owner(), message, signature);
+        // 2. Try to recover the address and return if the signature is legit
+        return Signature.recover(owner(), message, signature[1:]);
     }
 
-    /// @notice This is the one-step scenario. This function either deploys an account and sets its first signer
-    ///         or returns the address of an existing account based on the parameter given
-    /// @param  pubKeyX The X coordinate of the public key of the first signer. We use the r1 curve here
-    /// @param  pubKeyY The Y coordinate of the public key of the first signer. We use the r1 curve here
-    /// @param  usernameHash The keccak256 hash of the login of the account
-    /// @param  credIdHash The hash of the WebAuthn credential ID of the signer. Check the specification
-    /// @param  signature Signature made off-chain. Its recovery must match the owner.
-    ///         The usernameHash is expected to be the hash used by the recover function.
-    /// @return The address of the account (either deployed or not)
+    /// @notice This function either deploys an account and sets its first signer or returns the address of an existing
+    ///         account based on the parameter given
+    /// @param  usernameHash The keccak256 hash of the login of the account.
+    /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    /// @param  signature Signature made off-chain by made the operator of the factory (owner). It gates the use of the
+    ///         factory.
+    /// @return The address of the existing account (either deployed by this fucntion or not)
     function createAndInitAccount(
-        uint256 pubKeyX,
-        uint256 pubKeyY,
         bytes32 usernameHash,
-        bytes32 credIdHash,
+        bytes calldata authenticatorData,
         bytes calldata signature
     )
         external
@@ -111,7 +104,7 @@ contract AccountFactory is Ownable {
         if (accountAddress.code.length > 0) return accountAddress;
 
         // 3. check if the signature is valid
-        if (_isSignatureLegit(pubKeyX, pubKeyY, usernameHash, credIdHash, accountAddress, signature) == false) {
+        if (_isSignatureLegit(usernameHash, accountAddress, authenticatorData, signature) == false) {
             revert InvalidSignature(usernameHash, signature);
         }
 
@@ -125,11 +118,11 @@ contract AccountFactory is Ownable {
             )
         );
 
-        // 5. set the initial signer of the account using the parameters given
-        account.addFirstSigner(pubKeyX, pubKeyY, credIdHash);
+        // 5. set the initial signer of the account defined in the authenticatorData
+        account.addFirstSigner(authenticatorData);
 
         // 6. emit the event and return the address of the deployed account
-        emit AccountCreated(usernameHash, address(account), credIdHash, pubKeyX, pubKeyY);
+        emit AccountCreated(usernameHash, address(account));
         return address(account);
     }
 

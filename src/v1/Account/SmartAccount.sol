@@ -5,26 +5,21 @@ import { IEntryPoint } from "@eth-infinitism/interfaces/IEntryPoint.sol";
 import { UserOperation } from "@eth-infinitism/interfaces/UserOperation.sol";
 import { BaseAccount } from "@eth-infinitism/core/BaseAccount.sol";
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
+import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
+import { UV_FLAG_MASK } from "@webauthn/utils.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
 import "src/utils/Signature.sol" as Signature;
-import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 import { SmartAccountTokensSupport } from "src/v1/Account/SmartAccountTokensSupport.sol";
 import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
 
-// @DEV: MONO-SIGNER VERSION
 /**
  * TODO:
- *  - Manage webauthn multi-signers
- *  - 4337 chore (postOp etc...)
- *  --- Take a look to proxy's versions
- *  - Document the fact this contract does not use the native solidity storage system
+ *  - Take a look to proxy's versions
  *  - Switch factory to public?
  *  - Make entrypoint more flexible? v0.7.0 https://etherscan.io/address/0x0000000071727De22E5E9d8BAf0edAc6f37da032#code
- *  - Add version to the account and the factory
- *  - Support of the EIP-1271
- *  - New nonce serie per entrypoint? In that case, first addFirstSigner
+ *  --- New nonce serie per entrypoint? In that case, first addFirstSigner
  */
 contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, SmartAccountEIP1271 {
     // ==============================
@@ -53,7 +48,10 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
 
     /// @notice Emitted every time a signer is added to the account
     /// @dev The credIdHash is indexed to allow off-chain services to track account with same signer authorized
-    event SignerAdded(bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 pubkeyX, uint256 pubkeyY);
+    ///      The credId is emitted for off-chain UX purpose
+    event SignerAdded(
+        bytes1 indexed signatureType, bytes credId, bytes32 indexed credIdHash, uint256 pubkeyX, uint256 pubkeyY
+    );
 
     /// @notice Log the removal of a signer from the account with the previous public key
     /// @dev The credIdHash is indexed to allow off-chain services to track account with same signer authorized
@@ -66,6 +64,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     // ==============================
 
     /// @notice This error is thrown if the factory tries to add the first signer when the nonce is not 0x00
+    error InvalidFirstSignerAddition();
     error InvalidSignerAddition();
     error NotTheFactory();
     error NotItself();
@@ -94,6 +93,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     }
 
     /// @notice Called once during the creation of the instance. Initialize the contract with the version 1.
+    // solhint-disable-next-line no-empty-blocks
     function initialize() external reinitializer(1) { }
 
     // ==============================
@@ -150,23 +150,87 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         emit SignerRemoved(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
     }
 
+    /// @notice Extract the signer from the authenticatorData
+    /// @dev    This function is free to be called (!!)
+    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    /// @return credId The credential ID, uniquely identifying the signer.
+    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function extractSignerFromAuthData(bytes calldata authenticatorData)
+        public
+        pure
+        returns (bytes memory credId, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        // The authenticatorData is composed of:
+        // - 32 bytes for the rpIdHash --NOT_USED--
+        // - 1 bytes for the flags --NOT_USED--
+        // - 4 bytes for the signCount --NOT_USED--
+        // - N bytes for the attestedCredentialData
+        // - M bytes for the extensions --NOT_USED_OPTIONAL--
+        //
+        // The `attestedCredentialData` is composed of:
+        // - 16 bytes for the aaguid --NOT_USED--
+        // - 2 bytes for the credentialIdLength (CL)
+        // - CL bytes for the credentialId
+        // - 77 bytes for the credentialPublicKey (for p256r1 curve only)
+        //
+        // The `credentialPublicKey` is encoded in the CTAP2 canonical CBOR encoding form.
+        // For the p256r1 curve, the value is composed of:
+        // - 10 bytes for the prefix 0xA5010203262001215820 that defines the type, the signature and the curve...
+        // - 32 bytes for the x coordinate
+        // - 3 bytes for the constant 0x225820
+        // - 32 bytes for the y coordinate
+        //
+        // https://www.w3.org/TR/webauthn-2/#sctn-authenticator-data
+        // https://www.w3.org/TR/webauthn-2/#sctn-attested-credential-data
+
+        // 1. extract the credId from the authData and hash it
+        uint16 credIdLength = uint16(bytes2(authenticatorData[53:55]));
+        credId = authenticatorData[55:(55 + credIdLength)];
+        credIdHash = keccak256(credId);
+
+        // 2. extract the public key from the authData
+        uint256 pubKeyCOSEOffset = 55 + credIdLength;
+        uint256 pubKeySeparator = 3;
+        uint256 pubKeyXOffset = pubKeyCOSEOffset + 10;
+        uint256 pubKeyYOffset = pubKeyXOffset + pubKeySeparator + 32;
+
+        pubkeyX = uint256(bytes32(authenticatorData[pubKeyXOffset:(pubKeyXOffset + 32)]));
+        pubkeyY = uint256(bytes32(authenticatorData[pubKeyYOffset:(pubKeyYOffset + 32)]));
+    }
+
     /// @notice Set a new Webauthn p256r1 new signer and emit the expected event. This function
     ///         can not override an existing signer, use `remnoveWebAuthnP256R1Signer` for this
-    function _addWebAuthnSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) internal {
-        // 1. Set the new signer in the vault if the signer does not already exist
+    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    function _addWebAuthnSigner(bytes calldata authenticatorData)
+        internal
+        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        // 0. verify the UV is set in the authenticatorData
+        if ((authenticatorData[32] & UV_FLAG_MASK) == 0) revert InvalidSignerAddition();
+
+        // 1. extract the signer from the authenticatorData
+        // @DEV: WHY CANNOT WE USE `bytes memory` in the tuple without specify other fucking types?
+        bytes memory credId;
+        (credId, credIdHash, pubkeyX, pubkeyY) = extractSignerFromAuthData(authenticatorData);
+
+        // 2. Set the new signer in the vault if the signer does not already exist
         SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
 
-        // 2. emit the event with the added signer
-        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
+        // 3. emit the event with the added signer
+        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credId, credIdHash, pubkeyX, pubkeyY);
     }
 
     /// @notice Add a Webauthn p256r1 new signer to the account
-    /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected
-    /// @param  pubkeyX The X coordinate of the signer's public key.
-    /// @param  pubkeyY The Y coordinate of the signer's public key.
-    /// @param  credIdHash The hash of the credential ID associated to the signer
-    function addWebAuthnP256R1Signer(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external onlySelf {
-        _addWebAuthnSigner(pubkeyX, pubkeyY, credIdHash);
+    /// @dev   This function can only be called by the account itself. The whole 4337 workflow must be respected
+    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    function addWebAuthnP256R1Signer(bytes calldata authenticatorData)
+        external
+        onlySelf
+        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        return _addWebAuthnSigner(authenticatorData);
     }
 
     /// @notice Add the first signer to the account. This function is only call once by the factory
@@ -174,20 +238,18 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     ///         `addWebAuthnP256R1Signer` function.
     /// @dev    This function adds a signer generated using the WebAuthn protocol on the
     ///         secp256r1 curve. This function can only be called once when the nonce of the account is 0x00.
-    /// @param  pubkeyX The X coordinate of the signer's public key.
-    /// @param  pubkeyY The Y coordinate of the signer's public key.
-    /// @param  credIdHash The hash of the credential ID associated to the signer
-    function addFirstSigner(uint256 pubkeyX, uint256 pubkeyY, bytes32 credIdHash) external onlyFactory {
+    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    function addFirstSigner(bytes calldata authenticatorData) external onlyFactory {
         // 1. check that the nonce is 0x00. The value of the first key is checked here
-        if (getNonce() != 0) revert InvalidSignerAddition();
+        if (getNonce() != 0) revert InvalidFirstSignerAddition();
 
         // 2. add account's first signer and emit the signer addition event
-        _addWebAuthnSigner(pubkeyX, pubkeyY, credIdHash);
+        _addWebAuthnSigner(authenticatorData);
     }
 
     /// @notice Return a signer stored in the account using its credIdHash. When storing a signer, the credId
-    ///         is hashed using keccak256 because its length is unpredictable. This function allows to
-    ///         retrieve a signer using its credIdHash.
+    ///         is hashed using keccak256 because its length is unpredictable.
+    /// @dev    This function is free to be called (!!)
     /// @param  _credIdHash The hash of the credential ID, uniquely identifying the signer.
     /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
     /// @return pubkeyX The X coordinate of the signer's public key.
@@ -200,27 +262,13 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(_credIdHash);
     }
 
-    /// @notice Return a signer stored in the account using the raw version of the credId
-    ///         (without hashing it).
-    /// @dev    This function hashes the credId internally adding an extra cost to the call
-    /// @param  credId The credential ID, uniquely identifying the signer.
-    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
-    /// @return pubkeyX The X coordinate of the signer's public key.
-    /// @return pubkeyY The Y coordinate of the signer's public key.
-    function getSigner(bytes memory credId)
-        external
-        view
-        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
-    {
-        (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(credId);
-    }
-
     /// @notice The validation of the creation signature
     /// @dev This creation signature is the signature that can only be used once during account creation (nonce == 0).
     ///      This signature is different from the ones the account will use for validation for the rest of its lifetime.
     ///      This signature is not a webauthn signature made on p256r1 but a traditional EIP-191 signature made on
-    ///      p256k1 and signed by the owner of the factory to prove the account has been authorized for deployment
-    ///      (== the username is available to be picked)
+    ///      p256k1 and signed by the operator (owner) of the factory to prove the account has been authorized for
+    ///     deployment. The use of the account factory is gated by this signature.
+    /// @param signature The signature field presents in the userOp.
     /// @param initCode The initCode field presents in the userOp. It has been used to create the account
     /// @return 0 if the signature is valid, 1 otherwise
     function _validateCreationSignature(
@@ -234,66 +282,53 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         // 1. check that the nonce is 0x00. The value of the first key is checked here
         if (getNonce() != 0) return Signature.State.FAILURE;
 
-        // 2. ensure the initCode is at least 152-bytes long
-        if (initCode.length < 152) return Signature.State.FAILURE;
+        // 2. get the address of the factory and check it is the expected one
+        address accountFactory = address(bytes20(initCode[:20]));
+        if (accountFactory != factory) return Signature.State.FAILURE;
 
-        // 3. get the data that composes the message from the initcode bytes (except the selector)
-        // The initCode is composed of:
-        //  - 20 bytes for the address of the factory used to deploy this account
-        //  - 4 bytes for the selector of the factory function called  --NOT_USED--
-        //  - 32 bytes for the X coordinate of the public key
-        //  - 32 bytes for the Y coordinate of the public key
-        //  - 32 bytes for the usernameHash
-        //  - 32 bytes for the credIdHash
-        //  - X bytes for the signature --NOT_USED--
-        //
-        // Using bytes slicing instead of `abi.decode` works because all the simple types have been packed
-        // at the beginning of the signature function that is called by the initCode. It would be necessary
-        // to use `abi.decode` if we were interested of retrieving the signature (the last parameter of the factory's
-        // function) because it is a dynamic type (1 word is used to store the address where the length is stored, 1
-        // word is used to store the length and then the data is stored in the next words).
-        // This technique is more gas efficient than using `abi.decode` because the signature is not copied in memory by
-        // the compiler
-        //
-        // Note that any change in the factory's function signature will break the signature validation of this account!
-        address userOpFactory = address(bytes20(initCode[:20]));
-        uint256 pubX = uint256(bytes32(initCode[24:56]));
-        uint256 pubY = uint256(bytes32(initCode[56:88]));
-        bytes32 usernameHash = bytes32(initCode[88:120]);
-        bytes32 credIdHash = bytes32(initCode[120:152]);
+        // 3. decode the rest of the initCode (skip the first 4 bytes -- function selector)
+        (bytes32 usernameHash, bytes memory authenticatorData,) = abi.decode(initCode[24:], (bytes32, bytes, bytes));
 
-        // 4. check the factory is the same than the one stored here
-        if (userOpFactory != factory) return Signature.State.FAILURE;
+        // 4. extract the signer from the authenticatorData
+        // TODO: once tested, rework this shit by using a more efficient way
+        (, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            SmartAccount(payable(address(this))).extractSignerFromAuthData(authenticatorData);
 
         // 5. recreate the message and try to recover the signer
         bytes memory message =
-            abi.encode(Signature.Type.CREATION, usernameHash, pubX, pubY, credIdHash, address(this), block.chainid);
+            abi.encode(Signature.Type.CREATION, usernameHash, authenticatorData, address(this), block.chainid);
 
         // 6. fetch the expected signer from the factory contract
         address expectedSigner = AccountFactory(factory).owner();
 
         // 7. Check the signature is valid and revert if it is not
-        // NOTE: The signature prefix, added manually to identify the signature, is removed before the recovering process
+        // NOTE: The signature prefix, added manually to identify the signature, is removed before the recovery process
         if (Signature.recover(expectedSigner, message, signature[1:]) == false) return Signature.State.FAILURE;
 
-        // 8. Check the signer is the same than the one stored by the factory during the account creation process
+        // 8. Ensure the signer is allowed. This is the signer added by the factory during the deployment process.
         // solhint-disable-next-line var-name-mixedcase
-        (bytes32 $credIdHash, uint256 $pubkeyX, uint256 $pubkeyY) = SignerVaultWebAuthnP256R1.get(credIdHash);
-        if ($credIdHash != credIdHash || $pubkeyX != pubX || $pubkeyY != pubY) return Signature.State.FAILURE;
+        (bytes32 storedCredIdHash, uint256 storedPubX, uint256 storedPubY) = SignerVaultWebAuthnP256R1.get(credIdHash);
+        if (storedCredIdHash != credIdHash || storedPubX != pubX || storedPubY != pubY) return Signature.State.FAILURE;
 
         return Signature.State.SUCCESS;
     }
 
+    /// @notice Validate a WebAuthn p256r1 signature
+    /// @dev    Except for the deployment signature (nonce == 0), all the intent of the user to interact with the
+    //          account must be signed using the WebAuthn protocol on the secp256r1 curve. This function validates
+    //          the signature. The expected challenge is constructed on-chain using the data from the userOp and
+    //          the environment (entrypoint address, chainid, this contract address)...
+    /// @param userOp The user operation to validate
     function _validateWebAuthnP256R1Signature(UserOperation calldata userOp) internal returns (uint256) {
         // 1. decode the signature
-        (, bytes memory authData, bytes memory clientData, uint256 r, uint256 s, bytes32 credIdHash) =
+        ( /*identifier*/ , bytes memory authData, bytes memory clientData, uint256 r, uint256 s, bytes32 credIdHash) =
             abi.decode(userOp.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
 
         // 2. retrieve the public key of the signer
         (uint256 pubkeyX, uint256 pubkeyY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
         if (pubkeyX == 0 && pubkeyY == 0) return Signature.State.FAILURE;
 
-        // 3. reconstruct the challenge
+        // 3. reconstruct the challenge signed by the user. This challenge is passed to the authenticator
         bytes memory packedData = abi.encode(address(this), userOp.nonce, userOp.callData, userOp.paymasterAndData);
         bytes memory encodedPackedData = abi.encode(keccak256(packedData), entryPointAddress, block.chainid);
         bytes32 challenge = keccak256(encodedPackedData);
@@ -307,14 +342,14 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         return Signature.State.SUCCESS;
     }
 
-    /// @notice Validate the userOp signature
-    /// @dev We do not return any time-range, only the signature validation
-    /// @param userOp validate the userOp.signature field
-    /// @param * convenient field: the hash of the request, to check the signature against
+    /// @notice Validate the signature field presents in the userOp
+    /// @dev We do not return any time-range data, only the signature validation
+    /// @param userOp The user operation to validate
+    /// @param * The hash of the userOp
     /// @return validationData signature and time-range of this operation.
     ///         - 20 bytes: sigAuthorizer - 0 for valid signature, 1 to mark signature failure
-    ///         - 06 bytes: validUntil - last timestamp this operation is valid. 0 for "indefinite"
-    ///         - 06 bytes: validAfter - first timestamp this operation is valid
+    ///         - 06 bytes: validUntil - last timestamp this operation is valid. 0 for "indefinite" (UNUSED)
+    ///         - 06 bytes: validAfter - first timestamp this operation is valid (UNUSED)
     function _validateSignature(
         UserOperation calldata userOp,
         bytes32 // userOpHash

@@ -136,6 +136,12 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         return factory;
     }
 
+    /// @notice Return the webauthn verifier used by this contract
+    /// @return The address of the webauthn verifier
+    function getWebauthnVerifier() external view returns (address) {
+        return webAuthnVerifier;
+    }
+
     /// @notice Used internally to get the webauthn verifier
     /// @return The 256r1 webauthn verifier
     function webauthn256R1Verifier() internal view override returns (IWebAuthn256r1) {

@@ -252,7 +252,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         if (accountFactory != factory) return Signature.State.FAILURE;
 
         // 3. decode the rest of the initCode (skip the first 4 bytes -- function selector)
-        (bytes32 usernameHash, bytes memory authenticatorData,) = abi.decode(initCode[24:], (bytes32, bytes, bytes));
+        (bytes memory authenticatorData,) = abi.decode(initCode[24:], (bytes, bytes));
 
         // 4. extract the signer from the authenticatorData
         // TODO: once tested, rework this shit by using a more efficient way
@@ -260,8 +260,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
             SmartAccount(payable(address(this))).extractSignerFromAuthData(authenticatorData);
 
         // 5. recreate the message and try to recover the signer
-        bytes memory message =
-            abi.encode(Signature.Type.CREATION, usernameHash, authenticatorData, address(this), block.chainid);
+        bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, address(this), block.chainid);
 
         // 6. fetch the expected signer from the factory contract
         address expectedSigner = AccountFactory(factory).owner();

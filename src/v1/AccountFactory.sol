@@ -35,7 +35,7 @@ contract AccountFactory is Ownable {
 
     event AccountCreated(address account, bytes authenticatorData);
 
-    error InvalidSignature(bytes32 usernameHash, bytes signature);
+    error InvalidSignature(address accountAddress, bytes authenticatorData, bytes signature);
 
     // TODO: Accept the address of the implementation of the account as a parameter instead of deploying it
     /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
@@ -58,7 +58,6 @@ contract AccountFactory is Ownable {
     }
 
     /// @notice This function checks if the signature is signed by the operator (owner)
-    /// @param  usernameHash The keccak256 hash of the login of the account
     /// @param  accountAddress The address of the account that would be deployed
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     /// @param  signature Signature made off-chain by made the operator of the factory (owner). It gates the use of the
@@ -66,7 +65,6 @@ contract AccountFactory is Ownable {
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
     function _isSignatureLegit(
-        bytes32 usernameHash,
         address accountAddress,
         bytes calldata authenticatorData,
         bytes calldata signature
@@ -76,8 +74,7 @@ contract AccountFactory is Ownable {
         returns (bool)
     {
         // 1. Recreate the message signed by the operator (owner)
-        bytes memory message =
-            abi.encode(Signature.Type.CREATION, usernameHash, authenticatorData, accountAddress, block.chainid);
+        bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, accountAddress, block.chainid);
 
         // 2. Try to recover the address and return if the signature is legit
         return Signature.recover(owner(), message, signature[1:]);
@@ -85,13 +82,11 @@ contract AccountFactory is Ownable {
 
     /// @notice This function either deploys an account and sets its first signer or returns the address of an existing
     ///         account based on the parameter given
-    /// @param  usernameHash The keccak256 hash of the login of the account.
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     /// @param  signature Signature made off-chain by made the operator of the factory (owner). It gates the use of the
     ///         factory.
     /// @return The address of the existing account (either deployed by this fucntion or not)
     function createAndInitAccount(
-        bytes32 usernameHash,
         bytes calldata authenticatorData,
         bytes calldata signature
     )
@@ -108,8 +103,8 @@ contract AccountFactory is Ownable {
         if (accountAddress.code.length > 0) return accountAddress;
 
         // 4. check if the signature is valid
-        if (_isSignatureLegit(usernameHash, accountAddress, authenticatorData, signature) == false) {
-            revert InvalidSignature(usernameHash, signature);
+        if (_isSignatureLegit(accountAddress, authenticatorData, signature) == false) {
+            revert InvalidSignature(accountAddress, authenticatorData, signature);
         }
 
         // 5. deploy the proxy for the user. During the deployment, the initialize function in the implementation

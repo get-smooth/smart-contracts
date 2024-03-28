@@ -6,7 +6,6 @@ import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     AccountFactoryHarness internal factory;
-    bytes32 internal constant USERNAME_HASH = keccak256("mario");
 
     function setUp() external setUpCreateFixture {
         factory = new AccountFactoryHarness(makeAddr("entrypoint"), makeAddr("verifier"), SMOOTH_SIGNER.addr);
@@ -19,12 +18,9 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // 2. generate the valid signature
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        assertTrue(
-            factory.exposed_isSignatureLegit(USERNAME_HASH, accountAddress, createFixtures.response.authData, signature)
-        );
+        assertTrue(factory.exposed_isSignatureLegit(accountAddress, createFixtures.response.authData, signature));
     }
 
     function test_ReturnFalseIfNotTheCorrectSigner() external {
@@ -34,16 +30,13 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // 2. generate the valid signature
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // 3. transfer ownership to someone else -- that invalidate all the previous signature
         vm.prank(SMOOTH_SIGNER.addr);
         factory.transferOwnership(address(12));
 
-        assertFalse(
-            factory.exposed_isSignatureLegit(USERNAME_HASH, accountAddress, createFixtures.response.authData, signature)
-        );
+        assertFalse(factory.exposed_isSignatureLegit(accountAddress, createFixtures.response.authData, signature));
     }
 
     function test_ReturnFalseIfNotTheCorrectAuthData(bytes calldata fakeAuthData) external {
@@ -53,29 +46,9 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // 2. generate the valid signature
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        assertFalse(factory.exposed_isSignatureLegit(USERNAME_HASH, accountAddress, fakeAuthData, signature));
-    }
-
-    function test_ReturnFalseIfNotTheCorrectUserNameHash(bytes32 incorrectUserNameHash) external {
-        // it return false if not the correct loginHash
-
-        vm.assume(incorrectUserNameHash != USERNAME_HASH);
-
-        // 1. calculate the future address of the account
-        address accountAddress = factory.getAddress(createFixtures.response.authData);
-
-        // 2. generate the valid signature
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
-
-        assertFalse(
-            factory.exposed_isSignatureLegit(
-                incorrectUserNameHash, accountAddress, createFixtures.response.authData, signature
-            )
-        );
+        assertFalse(factory.exposed_isSignatureLegit(accountAddress, fakeAuthData, signature));
     }
 
     function test_ReturnFalseIfNotTheCorrectAccountAddress(address incorrectAddr) external {
@@ -86,12 +59,9 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         vm.assume(accountAddress != incorrectAddr);
 
         // 2. generate the valid signature
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        assertFalse(
-            factory.exposed_isSignatureLegit(USERNAME_HASH, incorrectAddr, createFixtures.response.authData, signature)
-        );
+        assertFalse(factory.exposed_isSignatureLegit(incorrectAddr, createFixtures.response.authData, signature));
     }
 
     function test_ReturnFalseIfNotTheCorrectSignature(bytes32 hash) external {
@@ -102,7 +72,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.exposed_isSignatureLegit(
-                USERNAME_HASH, accountAddress, createFixtures.response.authData, abi.encodePacked(hash, hash)
+                accountAddress, createFixtures.response.authData, abi.encodePacked(hash, hash)
             )
         );
     }
@@ -116,18 +86,10 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         bytes memory signature67Bytes = abi.encodePacked(r, s, hex"aabbcc");
 
         // calculate the signature and the future address of the account
-        address accountAddress = factory.getAddress(createFixtures.response.authData);
+        address accountAddr = factory.getAddress(createFixtures.response.authData);
 
-        assertFalse(
-            factory.exposed_isSignatureLegit(
-                USERNAME_HASH, accountAddress, createFixtures.response.authData, signature64Bytes
-            )
-        );
-        assertFalse(
-            factory.exposed_isSignatureLegit(
-                USERNAME_HASH, accountAddress, createFixtures.response.authData, signature67Bytes
-            )
-        );
+        assertFalse(factory.exposed_isSignatureLegit(accountAddr, createFixtures.response.authData, signature64Bytes));
+        assertFalse(factory.exposed_isSignatureLegit(accountAddr, createFixtures.response.authData, signature67Bytes));
     }
 }
 
@@ -145,7 +107,6 @@ contract AccountFactoryHarness is AccountFactory {
     { }
 
     function exposed_isSignatureLegit(
-        bytes32 usernameHash,
         address accountAddress,
         bytes calldata authenticatorData,
         bytes calldata signature
@@ -154,6 +115,6 @@ contract AccountFactoryHarness is AccountFactory {
         view
         returns (bool)
     {
-        return _isSignatureLegit(usernameHash, accountAddress, authenticatorData, signature);
+        return _isSignatureLegit(accountAddress, authenticatorData, signature);
     }
 }

@@ -9,8 +9,6 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
     AccountFactory private factory;
     address private mockedEntrypoint;
 
-    bytes32 private constant USERNAME_HASH = keccak256("miyamoto");
-
     // copy here the event definition from the contract
     // @dev: once we bump to 0.8.21, import the event from the contract
     event AccountCreated(address account, bytes authenticatorData);
@@ -31,9 +29,8 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         assertEq(keccak256(accountAddress.code), keccak256(""));
 
         // // deploy the account contract using the same hash
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
-        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
+        factory.createAndInitAccount(createFixtures.response.authData, signature);
 
         // make sure the account contract has been deployed
         assertNotEq(keccak256(accountAddress.code), keccak256(""));
@@ -46,14 +43,13 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // make sure the second attempt of creation return the already deployed address
         // without reverting or something else
         assertEq(
-            factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature),
-            factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature)
+            factory.createAndInitAccount(createFixtures.response.authData, signature),
+            factory.createAndInitAccount(createFixtures.response.authData, signature)
         );
     }
 
@@ -64,26 +60,31 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // deploy a valid proxy account using the constants predefined
-        address proxy1 = factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
+        address proxy1 = factory.createAndInitAccount(createFixtures.response.authData, signature);
 
         assertNotEq(keccak256(proxy1.code), keccak256(""));
     }
 
     function test_RevertWithAnIncorrectValidSignature(bytes32 hash) external {
-        // it should revert
-        bytes memory invalidSignature = abi.encodePacked(hash, hash);
+        // 1. construct a stupid signature
+        bytes memory invalidSignature = abi.encodePacked(hash, vm.unixTime());
 
-        // we tell the VM to expect a revert with a precise error
+        // 2. we tell the VM to expect a revert with a precise error
+        address accountAddress = factory.getAddress(createFixtures.response.authData);
         vm.expectRevert(
-            abi.encodeWithSelector(AccountFactory.InvalidSignature.selector, USERNAME_HASH, invalidSignature)
+            abi.encodeWithSelector(
+                AccountFactory.InvalidSignature.selector,
+                accountAddress,
+                createFixtures.response.authData,
+                invalidSignature
+            )
         );
 
         // we call the function with the invalid signature to trigger the error
-        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, invalidSignature);
+        factory.createAndInitAccount(createFixtures.response.authData, invalidSignature);
     }
 
     function test_CallInitialize() external {
@@ -91,14 +92,13 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        // we tell the VM to expect *one* call to the initialize function with the loginHash as parameter
+        // we tell the VM to expect *one* call to the initialize function without any parameter
         vm.expectCall(factory.accountImplementation(), abi.encodeWithSelector(SmartAccount.initialize.selector), 1);
 
         // we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
+        factory.createAndInitAccount(createFixtures.response.authData, signature);
     }
 
     function test_CallTheProxyAddFirstSignerFunction() external {
@@ -106,10 +106,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        // we tell the VM to expect *one* call to the addFirstSigner function with the loginHash as parameter
+        // we tell the VM to expect *one* call to the addFirstSigner function with the authData as parameter
         vm.expectCall(
             factory.getAddress(createFixtures.response.authData),
             abi.encodeCall(SmartAccount.addFirstSigner, (createFixtures.response.authData)),
@@ -117,7 +116,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         );
 
         // we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
+        factory.createAndInitAccount(createFixtures.response.authData, signature);
     }
 
     function test_TriggerAnEventOnDeployment() external {
@@ -125,8 +124,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
         // // deploy the account contract using the same hash
-        bytes memory signature =
-            craftDeploymentSignature(USERNAME_HASH, createFixtures.response.authData, accountAddress);
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // we tell the VM to expect an event
         vm.expectEmit(true, true, true, true, address(factory));
@@ -134,7 +132,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         emit AccountCreated(accountAddress, createFixtures.response.authData);
 
         // we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(USERNAME_HASH, createFixtures.response.authData, signature);
+        factory.createAndInitAccount(createFixtures.response.authData, signature);
     }
 }
 

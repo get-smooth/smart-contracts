@@ -28,8 +28,8 @@ contract SmartAccount__Constructor is BaseTest {
 
         assumeNotPrecompile(entrypoint);
 
-        SmartAccountTestWrapper account = new SmartAccountTestWrapper(entrypoint, address(0));
-        assertEq(account.exposedEntryPoint(), entrypoint);
+        SmartAccount account = new SmartAccount(entrypoint, address(0));
+        assertEq(address(account.entryPoint()), entrypoint);
     }
 
     // @DEV: constant used by the `Initializable` library
@@ -39,7 +39,7 @@ contract SmartAccount__Constructor is BaseTest {
         // it disable the initializer
 
         // deploy the account
-        SmartAccountTestWrapper account = new SmartAccountTestWrapper(makeAddr("entrypoint"), makeAddr("verifier"));
+        SmartAccount account = new SmartAccount(makeAddr("entrypoint"), makeAddr("verifier"));
 
         // make sure the version is set to the max value possible
         bytes32 value = vm.load(address(account), INITIALIZABLE_STORAGE);
@@ -48,18 +48,5 @@ contract SmartAccount__Constructor is BaseTest {
         // make sure the initializer is not callable
         vm.expectRevert(Initializable.InvalidInitialization.selector);
         account.initialize();
-    }
-}
-
-/// @dev Test contract that expose the factory address of the account
-contract SmartAccountTestWrapper is SmartAccount {
-    constructor(address entryPoint, address webAuthnVerifier) SmartAccount(entryPoint, webAuthnVerifier) { }
-
-    function exposedFactory() external view returns (address) {
-        return factory;
-    }
-
-    function exposedEntryPoint() external view returns (address) {
-        return address(entryPoint());
     }
 }

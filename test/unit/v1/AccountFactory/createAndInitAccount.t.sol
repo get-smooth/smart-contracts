@@ -148,7 +148,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         address accountDeployed = factory.createAndInitAccount(createFixtures.response.authData, signature);
 
         // 4. we check the factory address has been set in the proxy storage
-        assertEq(SmartAccount(payable(accountDeployed)).getFactory(), address(factory));
+        assertEq(SmartAccount(payable(accountDeployed)).factory(), address(factory));
     }
 }
 

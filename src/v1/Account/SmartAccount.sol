@@ -17,7 +17,6 @@ import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
 /**
  * TODO:
  *  - Take a look to proxy's versions
- *  - Switch factory to public?
  *  - Make entrypoint more flexible? v0.7.0 https://etherscan.io/address/0x0000000071727De22E5E9d8BAf0edAc6f37da032#code
  *  --- New nonce serie per entrypoint? In that case, first addFirstSigner
  */
@@ -32,10 +31,10 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     // ========= CONSTANTS ==========
     // ==============================
 
-    address public immutable webAuthnVerifier;
+    address public immutable webAuthnVerifierAddress;
     /// @notice This variable is exposed by the `entryPoint` method
     address internal immutable entryPointAddress;
-    address internal factory;
+    address internal factoryAddress;
 
     /// @notice Return the entrypoint used by this implementation
     function entryPoint() public view override returns (IEntryPoint) {
@@ -76,12 +75,12 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     // ======= CONSTRUCTION =========
     // ==============================
 
-    /// @dev    Do not store any state in this function as the contract will be proxified, only immutable variables
+    /// @dev   Do not store any state in this function as the contract will be proxified, only immutable variables
     /// @param _entryPoint The address of the 4337 entrypoint used by this implementation
     /// @param _webAuthnVerifier The address of the webauthn library used for verify the webauthn signature
     constructor(address _entryPoint, address _webAuthnVerifier) {
         entryPointAddress = _entryPoint;
-        webAuthnVerifier = _webAuthnVerifier;
+        webAuthnVerifierAddress = _webAuthnVerifier;
 
         // prevent the implementation contract from being used directly
         _disableInitializers();
@@ -92,7 +91,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     function initialize() external reinitializer(1) {
         // Address of the factory that initialize the proxy that points to this implementation
         // Only the factory will have the ability to set the first signer when nonce==0
-        factory = msg.sender;
+        factoryAddress = msg.sender;
     }
 
     // ==============================
@@ -101,7 +100,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
 
     /// @notice This modifier ensure the caller is the factory that deployed this contract
     modifier onlyFactory() {
-        if (msg.sender != factory) revert NotTheFactory();
+        if (msg.sender != factoryAddress) revert NotTheFactory();
         _;
     }
 
@@ -131,20 +130,20 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
 
     /// @notice Return the factory that initialized this contract
     /// @return The address of the factory
-    function getFactory() external view returns (address) {
-        return factory;
+    function factory() external view returns (address) {
+        return factoryAddress;
     }
 
     /// @notice Return the webauthn verifier used by this contract
     /// @return The address of the webauthn verifier
-    function getWebauthnVerifier() external view returns (address) {
-        return webAuthnVerifier;
+    function webAuthnVerifier() external view returns (address) {
+        return webAuthnVerifierAddress;
     }
 
     /// @notice Used internally to get the webauthn verifier
     /// @return The 256r1 webauthn verifier
     function webauthn256R1Verifier() internal view override returns (IWebAuthn256r1) {
-        return IWebAuthn256r1(webAuthnVerifier);
+        return IWebAuthn256r1(webAuthnVerifierAddress);
     }
 
     /// @notice Remove an existing Webauthn p256r1.
@@ -260,7 +259,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
 
         // 2. get the address of the factory and check it is the expected one
         address accountFactory = address(bytes20(initCode[:20]));
-        if (accountFactory != factory) return Signature.State.FAILURE;
+        if (accountFactory != factoryAddress) return Signature.State.FAILURE;
 
         // 3. decode the rest of the initCode (skip the first 4 bytes -- function selector)
         (bytes memory authenticatorData,) = abi.decode(initCode[24:], (bytes, bytes));
@@ -274,7 +273,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, address(this), block.chainid);
 
         // 6. fetch the expected signer from the factory contract
-        address expectedSigner = AccountFactory(factory).owner();
+        address expectedSigner = AccountFactory(factoryAddress).owner();
 
         // 7. Check the signature is valid and revert if it is not
         // NOTE: The signature prefix, added manually to identify the signature, is removed before the recovery process
@@ -309,7 +308,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         bytes32 challenge = keccak256(encodedPackedData);
 
         // 3. verify the signature
-        bool isSignatureValid = IWebAuthn256r1(webAuthnVerifier).verify(
+        bool isSignatureValid = IWebAuthn256r1(webAuthnVerifierAddress).verify(
             authData, clientData, abi.encodePacked(challenge), r, s, pubkeyX, pubkeyY
         );
         if (isSignatureValid == false) return Signature.State.FAILURE;

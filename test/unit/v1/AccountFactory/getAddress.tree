@@ -6,5 +6,6 @@ AccountFactory__GetAddress
 │   └── it return the precomputed address
 ├── when the factory is deployed at a different address
 │   └── it return an address different than the original factory
+├── it calculate same address using both methods
 └── when the nonce of the factory changes
     └── it has no impact on the address computed

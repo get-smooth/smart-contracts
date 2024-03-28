@@ -5,10 +5,10 @@ import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
-    AccountFactory private factory;
+    AccountFactoryHarness private factory;
 
     function setUp() external setUpCreateFixture {
-        factory = new AccountFactory(makeAddr("owner"), makeAddr("account"));
+        factory = new AccountFactoryHarness(makeAddr("owner"), makeAddr("account"));
     }
 
     function test_RevertIfTheAuthDataIsTooShort(bytes32 incorrectAuthData) external {
@@ -58,5 +58,25 @@ contract AccountFactory__GetAddress is BaseTest {
         // then recompute the address using the same authenticator data
         address computedAddress2 = factory.getAddress(createFixtures.response.authData);
         assertEq(computedAddress1, computedAddress2);
+    }
+
+    function test_CalculateSameAddressUsingBothMethods() external {
+        // it calculate same address using both methods
+
+        bytes32 salt = factory.exposed_calculateSalt(createFixtures.response.authData);
+
+        assertEq(factory.getAddress(createFixtures.response.authData), factory.exposed_getAddress(salt));
+    }
+}
+
+contract AccountFactoryHarness is AccountFactory {
+    constructor(address owner, address accountImplementation) AccountFactory(owner, accountImplementation) { }
+
+    function exposed_calculateSalt(bytes calldata authenticatorData) external pure returns (bytes32) {
+        return calculateSalt(authenticatorData);
+    }
+
+    function exposed_getAddress(bytes32 salt) external view returns (address) {
+        return getAddress(salt);
     }
 }

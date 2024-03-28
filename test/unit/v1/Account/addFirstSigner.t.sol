@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.20 <0.9.0;
 
+import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
+import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import "src/utils/Signature.sol" as Signature;
@@ -11,22 +13,28 @@ contract SmartAccount__AddFirstSigner is BaseTest {
     address private factory;
     address private entrypoint;
 
-    uint256 private pubkeyX = 0x1;
-    uint256 private pubkeyY = 0x2;
-
     // Duplicate of the event in the SmartAccount.sol file
     event SignerAdded(
         bytes1 indexed signatureType, bytes credId, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
     );
 
     function setUp() external setUpCreateFixture {
-        // deploy the entrypoint
+        // 1. deploy the implementation of the account
         entrypoint = address(new MockEntryPoint());
+        SmartAccount accountImplementation = new SmartAccount(entrypoint, makeAddr("verifier"));
 
-        // deploy the account using the "factory"
-        factory = makeAddr("factory");
+        // 2. deploy the factory
+        factory = address(new AccountFactory(SMOOTH_SIGNER.addr, address(account)));
+
+        // 3. deploy the proxy that targets the implementation and initialize it with the factory
         vm.prank(factory);
-        account = new SmartAccount(entrypoint, makeAddr("verifier"));
+        account = SmartAccount(
+            payable(
+                new ERC1967Proxy{ salt: keccak256("a_new_salt") }(
+                    address(accountImplementation), abi.encodeWithSelector(SmartAccount.initialize.selector)
+                )
+            )
+        );
     }
 
     function test_RevertsIfTheNonceIsNot0(uint256 randomNonce) external {
@@ -35,9 +43,7 @@ contract SmartAccount__AddFirstSigner is BaseTest {
         randomNonce = bound(randomNonce, 1, type(uint256).max);
 
         // mock the call to the entrypoint to return the random nonce
-        vm.mockCall(
-            address(entrypoint), abi.encodeWithSelector(MockEntryPoint.getNonce.selector), abi.encode(randomNonce)
-        );
+        vm.mockCall(entrypoint, abi.encodeWithSelector(MockEntryPoint.getNonce.selector), abi.encode(randomNonce));
 
         // expect an error for the next call of `addFirstSigner`
         vm.expectRevert(SmartAccount.InvalidFirstSignerAddition.selector);

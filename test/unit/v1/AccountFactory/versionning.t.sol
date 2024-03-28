@@ -9,7 +9,7 @@ contract AccountFactory__Versionning is BaseTest {
     AccountFactory private factory;
 
     function setUp() external {
-        factory = new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), makeAddr("owner"));
+        factory = new AccountFactory(makeAddr("owner"), makeAddr("account"));
     }
 
     function test_AllowVersionFetching() external {

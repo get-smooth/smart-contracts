@@ -23,8 +23,9 @@ abstract contract SmartAccountEIP1271 {
         (, bytes memory authData, bytes memory clientData, uint256 r, uint256 s, bytes32 credIdHash) =
             abi.decode(signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
 
-        // 4. retrieve the public key of the signer
-        (uint256 pubX, uint256 pubY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
+        // 4. check if the signer exists and retrieve the public key of the signer
+        (bytes32 _credIdHash, uint256 pubX, uint256 pubY) = SignerVaultWebAuthnP256R1.get(credIdHash);
+        if (_credIdHash != credIdHash) return EIP1271_VALIDATION_FAILURE;
         if (pubX == 0 && pubY == 0) return EIP1271_VALIDATION_FAILURE;
 
         // 5. verify the signature -- nevert revert, always return the expected EIP1271 value

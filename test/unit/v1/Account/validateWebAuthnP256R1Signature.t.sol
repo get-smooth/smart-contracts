@@ -10,7 +10,7 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
     SmartAccountHarness internal smartAccount;
     EntryPointMock internal entryPoint;
 
-    // create a valida p256r1 signature
+    // create a valid p256r1 signature
     function _createP256R1Signature() internal view returns (bytes memory signature) {
         return abi.encode(
             Signature.Type.WEBAUTHN_P256R1,
@@ -26,20 +26,25 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
         // 1. Mock the chain id
         vm.chainId(StaticData.CHAIN_ID);
 
-        // 2. Deploy an entryPoint instance and copy it where expected
+        // 2. Deploy an entryPoint instance and copy it where it is expected
         vm.etch(StaticData.ENTRYPOINT, address(new EntryPointMock()).code);
         entryPoint = EntryPointMock(StaticData.ENTRYPOINT);
 
         // 3. Deploy the WebAuthn verifier library
         WebAuthn256r1Wrapper webAuthnVerifier = new WebAuthn256r1Wrapper();
 
-        // 4. Deploy an SmartAccount instance and copy it where expected
-        vm.etch(
-            StaticData.SENDER, address(new SmartAccountHarness(StaticData.ENTRYPOINT, address(webAuthnVerifier))).code
+        // 4. deploy the implementation of the account
+        SmartAccount accountImplementation = new SmartAccountHarness(StaticData.ENTRYPOINT, address(webAuthnVerifier));
+
+        // 5. Deploy the proxy where it is expected, and initialize it using this contract as factory
+        deployCodeTo(
+            "ERC1967Proxy.sol",
+            abi.encode(address(accountImplementation), abi.encodeWithSelector(SmartAccount.initialize.selector)),
+            StaticData.SENDER
         );
         smartAccount = SmartAccountHarness(StaticData.SENDER);
 
-        // 5. ensure the fixture data we expect to use in the tests are correct
+        // 7. ensure the fixture data we expect to use in the tests are correct
         assertEq(StaticData.getChallenge(), bytes32(createFixtures.signature.challenge));
     }
 

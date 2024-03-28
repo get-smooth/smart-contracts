@@ -4,8 +4,10 @@ pragma solidity >=0.8.20 <0.9.0;
 import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUtils.sol";
 import { WebAuthn256r1Wrapper } from "script/WebAuthn256r1/WebAuthn256r1Wrapper.sol";
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
+import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { EIP1271_VALIDATION_SUCCESS, EIP1271_VALIDATION_FAILURE } from "src/v1/Account/SmartAccountEIP1271.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
+import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 
 struct ValidData {
     uint256 pubX;
@@ -17,7 +19,7 @@ struct ValidData {
 
 contract SmartAccountERC1271__EIP191 is BaseTest {
     SmartAccount internal account;
-    address internal factory;
+    AccountFactory internal factory;
 
     ValidData internal data;
 
@@ -28,12 +30,13 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
         // 2. deploy the mocked version of the entrypoint
         MockEntryPoint entrypoint = new MockEntryPoint();
 
-        // 3. deploy a new instance of the account
-        factory = makeAddr("factory");
-        vm.prank(factory);
-        account = new SmartAccount(address(entrypoint), address(webauthn));
+        // 3. deploy the implementation of the account
+        SmartAccount accountImplementation = new SmartAccount(address(entrypoint), address(webauthn));
 
-        // 4. set the signer data for the test
+        // 4. deploy the factory
+        factory = new AccountFactory(SMOOTH_SIGNER.addr, address(accountImplementation));
+
+        // 5. set the signer data for the test
         // This signer has been generated for the needs of this test file. It is a valid signer.
         // The authData here is the authData generated during the creation of the signer.
         data.pubX = 0x830211546a7f4f9a9dae0d54286ef871712be6161bc6863f7a0400e5ecebfc42;
@@ -44,7 +47,7 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
             hex"9a9dae0d54286ef871712be6161bc6863f7a0400e5ecebfc422258207cb4efd4499fe522b365a4307c66c3e8505c"
             hex"0f49b19bb77c0e8d356f3dd54622";
 
-        // 5. set the signature data for the test
+        // 6. set the signature data for the test
         // This signature has been generated for the needs of this test file. It is a valid signature for the signer
         // above. The message here is the message signed during the 191 flow.
         data.signature =
@@ -60,27 +63,23 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
             hex"703a2f2f6c6f63616c686f73743a33303030222c2263726f73734f726967696e223a66616c73657d000000000000"
             hex"0000000000000000000000000000000000000000";
         data.message = "hello you";
+
+        // 7. calculate the future address of the account
+        address accountFutureAddress = factory.getAddress(data.creationAuthData);
+
+        // 8. deploy the proxy that targets the implementation and set the first signer using the creationAuthData
+        bytes memory signature = craftDeploymentSignature(data.creationAuthData, accountFutureAddress);
+        account = SmartAccount(payable(factory.createAndInitAccount(data.creationAuthData, signature)));
     }
 
     function test_CanValidateEIP191Signature() external {
         // it can validate EIP191 signature
 
-        // 1. extract the credIDHash from the signature
-        (,,,,, bytes32 credIdHash) = abi.decode(data.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
-
-        // 2. calculate the eip191 that has been signed and its hash
+        // 1. calculate the eip191 that has been signed and its hash
         bytes32 eip191Message = MessageHashUtils.toEthSignedMessageHash(bytes(data.message));
         bytes32 hash = keccak256(abi.encodePacked(eip191Message));
 
-        // 3. set first signer and verify it has been set
-        vm.prank(factory);
-        account.addFirstSigner(data.creationAuthData);
-        (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
-        assertEq(storedCredIdHash, credIdHash);
-        assertEq(storedPubkeyX, data.pubX);
-        assertEq(storedPubkeyY, data.pubY);
-
-        // 4. verify the signature using the signature and the hash
+        // 2. verify the signature using the signature and the hash
         bytes4 selector = account.isValidSignature(hash, data.signature);
         assertEq(selector, EIP1271_VALIDATION_SUCCESS);
     }
@@ -89,29 +88,22 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
         return abi.encodePacked(prefix, signature[1:]);
     }
 
+    function _getCredHashFromAuthData(bytes calldata authData) external pure returns (bytes32 credIdHash) {
+        (, credIdHash,,) = SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authData);
+    }
+
     function test_ReturnFailureIfNotCorrectType() external {
         // it return failure if not correct type
 
-        // 1. extract the credIDHash from the signature
-        (,,,,, bytes32 credIdHash) = abi.decode(data.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
-
-        // 2. calculate the eip191 that has been signed and its hash
+        // 1. calculate the eip191 that has been signed and its hash
         bytes32 eip191Message = MessageHashUtils.toEthSignedMessageHash(bytes(data.message));
         bytes32 hash = keccak256(abi.encodePacked(eip191Message));
 
-        // 3. set first signer and verify it has been set
-        vm.prank(factory);
-        account.addFirstSigner(data.creationAuthData);
-        (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
-        assertEq(storedCredIdHash, credIdHash);
-        assertEq(storedPubkeyX, data.pubX);
-        assertEq(storedPubkeyY, data.pubY);
-
-        // 4. modify the prefix of the signature
+        // 2. modify the prefix of the signature
         bytes memory incorrectSignature =
             abi.encodePacked(bytes1(0x02), truncBytes(data.signature, 1, data.signature.length));
 
-        // 4. verify the signature using the signature and the hash
+        // 3. verify the signature using the signature and the hash
         bytes4 selector = account.isValidSignature(hash, incorrectSignature);
         assertEq(selector, EIP1271_VALIDATION_FAILURE);
     }
@@ -123,6 +115,11 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
         bytes32 eip191Message = MessageHashUtils.toEthSignedMessageHash(bytes(data.message));
         bytes32 hash = keccak256(abi.encodePacked(eip191Message));
 
+        // 3. manually remove the previously set signer by manipulating proxy's storage
+        bytes32 credIdHash = SmartAccountERC1271__EIP191(address(this))._getCredHashFromAuthData(data.creationAuthData);
+        bytes32 signerStorageSlot = SignerVaultWebAuthnP256R1.getSignerStartingSlot(credIdHash);
+        vm.store(address(account), signerStorageSlot, bytes32(0));
+
         // 2. verify the signature using the signature and the hash
         // -- it should fail because we didn't set the signer
         bytes4 selector = account.isValidSignature(hash, data.signature);
@@ -132,25 +129,14 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
     function test_RevertIfSignatureNotDecodable() external {
         // it revert if signature not decodable
 
-        // 1. extract the credIDHash from the signature
-        (,,,,, bytes32 credIdHash) = abi.decode(data.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
-
-        // 2. calculate the eip191 that has been signed and its hash
+        // 1. calculate the eip191 that has been signed and its hash
         bytes32 eip191Message = MessageHashUtils.toEthSignedMessageHash(bytes(data.message));
         bytes32 hash = keccak256(abi.encodePacked(eip191Message));
 
-        // 3. set first signer and verify it has been set
-        vm.prank(factory);
-        account.addFirstSigner(data.creationAuthData);
-        (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
-        assertEq(storedCredIdHash, credIdHash);
-        assertEq(storedPubkeyX, data.pubX);
-        assertEq(storedPubkeyY, data.pubY);
-
-        // 4. cut the signature to make it invalid
+        // 2. cut the signature to make it invalid
         bytes memory invalidSignature = truncBytes(data.signature, 0, data.signature.length - 32);
 
-        // 4. verify the signature using the signature and the hash
+        // 3. verify the signature using the signature and the hash
         // -- it should revert as the signature is not decodable
         vm.expectRevert();
         account.isValidSignature(hash, invalidSignature);
@@ -159,25 +145,14 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
     function test_ReturnFailureIfHashIncorrect() external {
         // it return failure if hash incorrect
 
-        // 1. extract the credIDHash from the signature
-        (,,,,, bytes32 credIdHash) = abi.decode(data.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
-
-        // 2. calculate the eip191 that has been signed and its hash
+        // 1. calculate the eip191 that has been signed and its hash
         bytes32 eip191Message = MessageHashUtils.toEthSignedMessageHash(bytes(data.message));
         bytes32 hash = keccak256(abi.encodePacked(eip191Message));
 
-        // 3. set first signer and verify it has been set
-        vm.prank(factory);
-        account.addFirstSigner(data.creationAuthData);
-        (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
-        assertEq(storedCredIdHash, credIdHash);
-        assertEq(storedPubkeyX, data.pubX);
-        assertEq(storedPubkeyY, data.pubY);
-
-        // 4. alter the hash to make it incorrect
+        // 2. alter the hash to make it incorrect
         bytes32 incorrectHash = keccak256(abi.encodePacked(hash));
 
-        // 5. verify the signature using the signature and the hash
+        // 3. verify the signature using the signature and the hash
         // -- it should fail as the hash is incorrect
         bytes4 selector = account.isValidSignature(incorrectHash, data.signature);
         assertEq(selector, EIP1271_VALIDATION_FAILURE);
@@ -186,25 +161,14 @@ contract SmartAccountERC1271__EIP191 is BaseTest {
     function test_ReturnFailureIfSignatureIncorrect() external {
         // it return failure if signature incorrect
 
-        // 1. extract the credIDHash from the signature
-        (,,,,, bytes32 credIdHash) = abi.decode(data.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
-
-        // 2. calculate the eip191 that has been signed and its hash
+        // 1. calculate the eip191 that has been signed and its hash
         bytes32 eip191Message = MessageHashUtils.toEthSignedMessageHash(bytes(data.message));
         bytes32 hash = keccak256(abi.encodePacked(eip191Message));
 
-        // 3. set first signer and verify it has been set
-        vm.prank(factory);
-        account.addFirstSigner(data.creationAuthData);
-        (bytes32 storedCredIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY) = account.getSigner(credIdHash);
-        assertEq(storedCredIdHash, credIdHash);
-        assertEq(storedPubkeyX, data.pubX);
-        assertEq(storedPubkeyY, data.pubY);
-
-        // 4. get dummy bytecode to use as signature
+        // 2. get dummy bytecode to use as signature
         bytes memory dummySignature = address(this).code;
 
-        // 5. verify the signature using the signature and the hash
+        // 3. verify the signature using the signature and the hash
         bytes4 selector = account.isValidSignature(hash, dummySignature);
         assertEq(selector, EIP1271_VALIDATION_FAILURE);
     }

@@ -3,6 +3,7 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { Paymaster } from "src/v1/Paymaster.sol";
 import { BaseScript } from "../Base.s.sol";
+import { Metadata } from "src/v1/Metadata.sol";
 
 // TODO: Use CREATEX as deployer
 /// @title  PaymasterDeploy
@@ -15,7 +16,19 @@ contract PaymasterDeploy is BaseScript {
         address owner = vm.envAddress("OWNER");
         address operator = vm.envAddress("OPERATOR");
 
-        return new Paymaster(entrypoint, owner, operator);
+        // 3. Check the owner address is valid
+        require(owner != address(0), "Invalid owner address");
+
+        // 3. Check the operator address is valid
+        require(operator != address(0), "Invalid operator address");
+
+        // 3. Deploy the paymaster
+        Paymaster paymaster = new Paymaster(entrypoint, owner, operator);
+
+        // 4. Check the version of the paymaster is the expected one
+        assertEqVersion(Metadata.VERSION, paymaster.VERSION());
+
+        return paymaster;
     }
 }
 

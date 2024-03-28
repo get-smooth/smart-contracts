@@ -1,5 +1,5 @@
 SmartAccount__AddWebAuthnP256R1Signer
-├── it reverts if a signer already exists
+├── it reverts if the signer already exists
 ├── it can only be called by itself
 ├── it set a new signer
 └── it emit the signer add event with the prefix

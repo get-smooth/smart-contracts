@@ -29,6 +29,7 @@ struct FixturesResponse {
 }
 
 struct CreateFixtures {
+    uint256 id;
     FixturesUser user;
     FixturesSignature signature;
     FixturesSigner signer;
@@ -55,6 +56,10 @@ contract BaseTestCreateFixtures is Test {
     function loadCreateFixture() internal {
         return loadCreateFixture(0);
     }
+
+    // TODO: split into two functions: `StoreX` and `LoadX`.
+    //       `LoadX` will return a fixtures
+    //       `StoreX` will call the `LoadX` function and store the result in the storage
 
     /// @notice Load a specific createFixture data from the `fixtures.create.json` file and store the in the
     ///         storage variable `createFixtures`. The data can be accessed using the `createFixtures` storage variable.
@@ -133,6 +138,13 @@ contract BaseTestCreateFixtures is Test {
         }
 
         // create the fixture and store it in the storage
-        createFixtures = CreateFixtures({ user: user, signature: signature, signer: signer, response: response });
+        // forgefmt: disable-next-item
+        createFixtures = CreateFixtures({
+            id: id,
+            user: user,
+            signature: signature,
+            signer: signer,
+            response: response
+        });
     }
 }

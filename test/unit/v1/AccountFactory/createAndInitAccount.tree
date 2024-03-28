@@ -5,4 +5,5 @@ AccountFactory__CreateAndInitAccount
 ├── it revert with an incorrect valid signature
 ├── it call initialize
 ├── it call the proxy addFirstSigner function
-└── it trigger an event on deployment
+├── it trigger an event on deployment
+└── it set the factory address in the proxy storage on init

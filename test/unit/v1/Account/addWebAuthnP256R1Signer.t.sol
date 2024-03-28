@@ -2,17 +2,14 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
+import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import "src/utils/Signature.sol" as Signature;
 
 contract SmartAccount__AddWebAuthnP256R1Signer is BaseTest {
     SmartAccount private account;
-    address private factory;
     address private entrypoint;
-
-    uint256 private pubkeyX = 0x1;
-    uint256 private pubkeyY = 0x2;
 
     // Duplicate of the event in the SmartAccount.sol file
     event SignerAdded(
@@ -20,34 +17,38 @@ contract SmartAccount__AddWebAuthnP256R1Signer is BaseTest {
     );
 
     function setUp() external setUpCreateFixture {
-        // deploy the entrypoint
+        // 1. deploy the entrypoint
         entrypoint = address(new MockEntryPoint());
 
-        // deploy the account using the "factory"
-        factory = makeAddr("factory");
-        vm.prank(factory);
-        account = new SmartAccount(entrypoint, makeAddr("verifier"));
+        // 2. deploy the implementation of the account
+        SmartAccount accountImplementation = new SmartAccount(entrypoint, makeAddr("verifier"));
+
+        // 3. deploy the factory
+        AccountFactory factory = new AccountFactory(SMOOTH_SIGNER.addr, address(accountImplementation));
+
+        // 4. calculate the future address of the account
+        address accountFutureAddress = factory.getAddress(createFixtures.response.authData);
+
+        // 5. deploy the proxy that targets the implementation and set the first signer
+        bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountFutureAddress);
+        account = SmartAccount(payable(factory.createAndInitAccount(createFixtures.response.authData, signature)));
     }
 
-    function test_RevertsIfASignerAlreadyExists() external {
-        // it reverts if a signer already exists
+    function test_RevertsIfTheSignerAlreadyExists() external {
+        // it reverts if the signer already exists
 
-        // 1. set the first signer
-        vm.prank(factory);
-        account.addFirstSigner(createFixtures.response.authData);
-
-        // 2. Add a new signer to the account. The only way to call the function is to call it from the account itself.
+        // 1. Add a new signer to the account. The only way to call the function is to call it from the account itself.
         //    The only way to do that is by calling the `execute` function with the entrypoint contract.
         vm.prank(entrypoint);
 
-        // 3. we tell the VM to expect an error
+        // 2. we tell the VM to expect an error
         vm.expectRevert(
             abi.encodeWithSelector(
                 SignerVaultWebAuthnP256R1.SignerOverrideNotAllowed.selector, keccak256(createFixtures.signer.credId)
             )
         );
 
-        // 4. we call the function that adds the new signer
+        // 3. we call the function that adds the new signer
         account.execute(
             address(account),
             0,
@@ -72,7 +73,12 @@ contract SmartAccount__AddWebAuthnP256R1Signer is BaseTest {
     function test_SetANewSigner() external {
         // it set a new signer
 
-        // 1. calculate the credId hash
+        // 1. load another valid fixture to test the creation of a new signer
+        // (!!) This function override the initial one in the storage. After this point, for this test,
+        // the `createFixtures` variable will be the one loaded by the `loadCreateFixture` function
+        loadCreateFixture(createFixtures.id + 1);
+
+        // 2. calculate the credId hash
         bytes32 newCredIdHash = keccak256(createFixtures.signer.credId);
 
         // 2. Add a new signer to the account. The only way to call the function is to call it from the account
@@ -97,24 +103,26 @@ contract SmartAccount__AddWebAuthnP256R1Signer is BaseTest {
     function test_EmitTheSignerAddEventWithThePrefix() external {
         // it emit the signer add event
 
-        // 1. calculate the credId hash
-        bytes32 newCredIdHash = keccak256(createFixtures.signer.credId);
+        // 1. load another valid fixture to test the creation of a new signer
+        // (!!) This function override the initial one in the storage. After this point, for this test,
+        // the `createFixtures` variable will be the one loaded by the `loadCreateFixture` function
+        loadCreateFixture(createFixtures.id + 1);
 
-        // 1. Add a new signer to the account. The only way to call the function is to call it from the account
+        // 2. Add a new signer to the account. The only way to call the function is to call it from the account
         // itself. The only way to do that is by calling the `execute` function with the entrypoint contract.
         vm.prank(entrypoint);
 
-        // 2. we tell the VM to expect an event
+        // 3. we tell the VM to expect an event
         vm.expectEmit(true, true, true, true, address(account));
         emit SignerAdded(
             Signature.Type.WEBAUTHN_P256R1,
             createFixtures.signer.credId,
-            newCredIdHash,
+            keccak256(createFixtures.signer.credId),
             createFixtures.signer.pubX,
             createFixtures.signer.pubY
         );
 
-        // 3. we call the function that adds the new signer
+        // 4. we call the function that adds the new signer
         account.execute(
             address(account),
             0,

@@ -8,7 +8,7 @@ contract AccountFactory__GetAddress is BaseTest {
     AccountFactory private factory;
 
     function setUp() external setUpCreateFixture {
-        factory = new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), makeAddr("owner"));
+        factory = new AccountFactory(makeAddr("owner"), makeAddr("account"));
     }
 
     function test_RevertIfTheAuthDataIsTooShort(bytes32 incorrectAuthData) external {
@@ -36,14 +36,14 @@ contract AccountFactory__GetAddress is BaseTest {
         // it return the precomputed address
 
         address computedAddress = factory.getAddress(createFixtures.response.authData);
-        assertEq(computedAddress, 0x4fe92c9DD6A88d39386AC9259b033d523Bcc530B);
+        assertEq(computedAddress, 0xdFa6C6d347bBab19e76c6f217C401ef2339Aa323);
     }
 
     function test_WhenTheFactoryIsDeployedAtADifferentAddress() external {
         // it return an address different than the original factory
 
         // we deploy a new instance of the factory at a different address but using the same parameters
-        AccountFactory factory2 = new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), makeAddr("owner"));
+        AccountFactory factory2 = new AccountFactory(makeAddr("owner"), makeAddr("account"));
         assertNotEq(
             factory2.getAddress(createFixtures.response.authData), factory.getAddress(createFixtures.response.authData)
         );

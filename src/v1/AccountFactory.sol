@@ -37,24 +37,18 @@ contract AccountFactory is Ownable {
 
     error InvalidSignature(address accountAddress, bytes authenticatorData, bytes signature);
 
-    // TODO: Accept the address of the implementation of the account as a parameter instead of deploying it
     /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
     ///         implementation will be used as the implementation reference for all the proxies deployed by this
     ///         factory. To make sure the instance deployed cannot be used, we brick it by calling the `initialize`
     ///         function and setting an invalid first signer.
-    /// @param  entryPoint The unique address of the entrypoint (EIP-4337 related)
-    /// @param  webAuthnVerifier The address of the crypto library that will be used by
-    ///         the account to verify the WebAuthn signature of the signer(s)
     /// @param  owner The address used to verify the signature. It is the owner of the factory.
+    /// @param  _accountImplementation The address of the implementation of the smart account.
     /// @dev    The account deployed here is expected to be proxied later, its own storage won't be used.
     ///         All the arguments passed to the constructor function are used to set immutable variables.
     ///         The account deployed is expected to be bricked by the `initialize` function.
-    constructor(address entryPoint, address webAuthnVerifier, address owner) Ownable(owner) {
-        // 1. deploy the implementation of the account
-        SmartAccount account = new SmartAccount(entryPoint, webAuthnVerifier);
-
-        // 2. set the address of the implementation deployed
-        accountImplementation = payable(address(account));
+    constructor(address owner, address _accountImplementation) Ownable(owner) {
+        // 1. set the address of the implementation account
+        accountImplementation = payable(_accountImplementation);
     }
 
     /// @notice This function checks if the signature is signed by the operator (owner)
@@ -149,7 +143,7 @@ contract AccountFactory is Ownable {
                     keccak256(
                         abi.encodePacked(
                             bytes1(0xff), // init code hash prefix
-                            address(this), // deployer address
+                            address(this), // deployer address  // @TODO: test factory upgrade
                             salt, // `keccak256(abi.encodePacked(credIdHash, pubX, pubY))`
                             keccak256( // the init code hash
                                 abi.encodePacked(

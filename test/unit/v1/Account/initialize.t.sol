@@ -49,13 +49,13 @@ contract SmartAccount__Initiliaze is BaseTest {
         // it stores the deployer address
 
         // 1. check the factory is not set
-        assertEq(account.getFactory(), address(0));
+        assertEq(account.factory(), address(0));
 
         // 2. call the initialize function
         account.initialize();
 
         // 3. check the factory is set to this contract
-        assertEq(account.getFactory(), address(this));
+        assertEq(account.factory(), address(this));
     }
 
     function test_CanNotBeCalledTwice() external {

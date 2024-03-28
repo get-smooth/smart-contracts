@@ -6,44 +6,6 @@ import { SmartAccount, UserOperation } from "src/v1/Account/SmartAccount.sol";
 import { WebAuthn256r1Wrapper } from "script/WebAuthn256r1/WebAuthn256r1Wrapper.sol";
 import "src/utils/Signature.sol" as Signature;
 
-/*
-** This library defines the data that has been used to generate the challenge.
-** The resulting challenge has been used to generate all the create fixtures in the
-** `test/fixtures/create.json` file.
-** In order to verify the creation flow, we need to recreate the environment that has
-** been used to generate the fixtures. That means:
-** - Deploy an EntryPoint instance at the address `entryPointAddress`
-** - Deploy a SmartAccount instance at the address `sender`
-** - Set the nonce of the account to the expected value. The nonce is managed by the entryPoint
-** - Set the chainId to the expected value
-**
-** After setting up the environement, all of the fixtures listed in the `test/fixtures/create.json`
-** file would be valid.
-**
-** TODO: move those data somewhere else
-*/
-library StaticData {
-    uint256 internal constant CHAIN_ID = 0x13;
-    address payable internal constant SENDER = payable(0xfB10aB832bD4Efba97002d9D7B58A029CC06b6A9);
-    uint256 internal constant NONCE = 0x124;
-    address internal constant ENTRYPOINT = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
-
-    bytes internal constant CALL_DATA =
-        hex"b61d27f600000000000000000000000029e69af6083f790d31804ed9adad40ccc32accc9000000000000000000"
-        hex"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        hex"0000000000000000006000000000000000000000000000000000000000000000000000000000000000041249c5"
-        hex"8b00000000000000000000000000000000000000000000000000000000";
-    bytes internal constant PAYMASTER_AND_DATA =
-        hex"904dff443aac03cefc537a85a98c1cd590dbbcb9d41670a13abb75fc1e8ce03534a2af932c758611cd58dd0f32"
-        hex"e35069c2b42a2f42fffe2f583727d3f826fcfc169ae240befc9488e36f5d0f9d5b2c16aead3ba91c";
-
-    function getChallenge() internal pure returns (bytes32) {
-        bytes memory packedData = abi.encode(SENDER, NONCE, CALL_DATA, PAYMASTER_AND_DATA);
-        bytes memory encodedPackedData = abi.encode(keccak256(packedData), ENTRYPOINT, CHAIN_ID);
-        return keccak256(encodedPackedData);
-    }
-}
-
 contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
     SmartAccountHarness internal smartAccount;
     EntryPointMock internal entryPoint;
@@ -241,6 +203,44 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
         // 5. Verify the validation reverts
         vm.expectRevert();
         smartAccount.exposed_validateSignature(userOp);
+    }
+}
+
+/*
+** This library defines the data that has been used to generate the challenge.
+** The resulting challenge has been used to generate all the create fixtures in the
+** `test/fixtures/create.json` file.
+** In order to verify the creation flow, we need to recreate the environment that has
+** been used to generate the fixtures. That means:
+** - Deploy an EntryPoint instance at the address `entryPointAddress`
+** - Deploy a SmartAccount instance at the address `sender`
+** - Set the nonce of the account to the expected value. The nonce is managed by the entryPoint
+** - Set the chainId to the expected value
+**
+** After setting up the environement, all of the fixtures listed in the `test/fixtures/create.json`
+** file would be valid.
+**
+** TODO: move those data somewhere else
+*/
+library StaticData {
+    uint256 internal constant CHAIN_ID = 0x13;
+    address payable internal constant SENDER = payable(0xfB10aB832bD4Efba97002d9D7B58A029CC06b6A9);
+    uint256 internal constant NONCE = 0x124;
+    address internal constant ENTRYPOINT = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
+
+    bytes internal constant CALL_DATA =
+        hex"b61d27f600000000000000000000000029e69af6083f790d31804ed9adad40ccc32accc9000000000000000000"
+        hex"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        hex"0000000000000000006000000000000000000000000000000000000000000000000000000000000000041249c5"
+        hex"8b00000000000000000000000000000000000000000000000000000000";
+    bytes internal constant PAYMASTER_AND_DATA =
+        hex"904dff443aac03cefc537a85a98c1cd590dbbcb9d41670a13abb75fc1e8ce03534a2af932c758611cd58dd0f32"
+        hex"e35069c2b42a2f42fffe2f583727d3f826fcfc169ae240befc9488e36f5d0f9d5b2c16aead3ba91c";
+
+    function getChallenge() internal pure returns (bytes32) {
+        bytes memory packedData = abi.encode(SENDER, NONCE, CALL_DATA, PAYMASTER_AND_DATA);
+        bytes memory encodedPackedData = abi.encode(keccak256(packedData), ENTRYPOINT, CHAIN_ID);
+        return keccak256(encodedPackedData);
     }
 }
 

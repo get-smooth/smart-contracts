@@ -40,6 +40,14 @@ contract AccountFactory__Constructor is BaseTest {
         return address(uint160(uint256(keccak256(data))));
     }
 
+    function test_RevertIfOwnerIs0() external {
+        // 1. we tell the VM to expect a revert with a precise error
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+
+        // 2. we try to deploy the account factory with an owner set to 0
+        new AccountFactory(makeAddr("entrypoint"), makeAddr("verifier"), address(0));
+    }
+
     function test_HaveCreatedTheImplementationContractDuringTheDeployement() external {
         // it should have created the implementation contract during the deployement
 

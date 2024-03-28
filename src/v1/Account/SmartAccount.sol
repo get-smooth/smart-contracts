@@ -130,6 +130,12 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     // solhint-disable-next-line no-empty-blocks
     receive() external payable { }
 
+    /// @notice Return the factory that initialized this contract
+    /// @return The address of the factory
+    function getFactory() external view returns (address) {
+        return factory;
+    }
+
     /// @notice Used internally to get the webauthn verifier
     /// @return The 256r1 webauthn verifier
     function webauthn256R1Verifier() internal view override returns (IWebAuthn256r1) {

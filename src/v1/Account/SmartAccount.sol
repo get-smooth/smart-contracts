@@ -35,7 +35,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     address public immutable webAuthnVerifier;
     /// @notice This variable is exposed by the `entryPoint` method
     address internal immutable entryPointAddress;
-    address internal immutable factory;
+    address internal factory;
 
     /// @notice Return the entrypoint used by this implementation
     function entryPoint() public view override returns (IEntryPoint) {
@@ -76,7 +76,6 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     // ======= CONSTRUCTION =========
     // ==============================
 
-    /// @notice Called by the factory at construction time when it deploys the account
     /// @dev    Do not store any state in this function as the contract will be proxified, only immutable variables
     /// @param _entryPoint The address of the 4337 entrypoint used by this implementation
     /// @param _webAuthnVerifier The address of the webauthn library used for verify the webauthn signature
@@ -84,17 +83,17 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         entryPointAddress = _entryPoint;
         webAuthnVerifier = _webAuthnVerifier;
 
-        // address of the factory that deployed this contract.
-        // only the factory will have the ability to set the first signer later on
-        factory = msg.sender;
-
         // prevent the implementation contract from being used directly
         _disableInitializers();
     }
 
     /// @notice Called once during the creation of the instance. Initialize the contract with the version 1.
     // solhint-disable-next-line no-empty-blocks
-    function initialize() external reinitializer(1) { }
+    function initialize() external reinitializer(1) {
+        // Address of the factory that initialize the proxy that points to this implementation
+        // Only the factory will have the ability to set the first signer when nonce==0
+        factory = msg.sender;
+    }
 
     // ==============================
     // ========= MODIFIER ===========

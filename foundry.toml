@@ -16,7 +16,10 @@ script = "script"
 solc = "0.8.20"
 src = "src"
 test = "test"
-fs_permissions = [{ access = "read", path = "./test/fixtures/fixtures.create.json"}]
+fs_permissions = [
+    {access = "read", path = "./test/fixtures/fixtures.create.json"},
+    {access = "read", path = "./out/ERC1967Proxy.sol/ERC1967Proxy.json"}
+]
 
 [profile.ci]
 fuzz = { runs = 10_000 }

@@ -8,7 +8,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     AccountFactoryHarness internal factory;
 
     function setUp() external setUpCreateFixture {
-        factory = new AccountFactoryHarness(makeAddr("entrypoint"), makeAddr("verifier"), SMOOTH_SIGNER.addr);
+        factory = new AccountFactoryHarness(SMOOTH_SIGNER.addr, makeAddr("account"));
     }
 
     function test_ReturnTrueIfTheSignatureIsValid() external {
@@ -98,13 +98,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 /// @dev Keep in mind this wrapper adds extra cost to the gas consumption, only use it for
 /// testing internal methods
 contract AccountFactoryHarness is AccountFactory {
-    constructor(
-        address entryPoint,
-        address webAuthnVerifier,
-        address admin
-    )
-        AccountFactory(entryPoint, webAuthnVerifier, admin)
-    { }
+    constructor(address owner, address accountImplementation) AccountFactory(owner, accountImplementation) { }
 
     function exposed_isSignatureLegit(
         address accountAddress,

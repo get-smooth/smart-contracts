@@ -7,14 +7,12 @@ import { Ownable } from "@openzeppelin/access/Ownable.sol";
 
 contract AccountFactory__Ownership is BaseTest {
     address private immutable owner = makeAddr("owner");
-    address private immutable verifiier = makeAddr("verifiier");
     address private immutable notOwner = makeAddr("notOwner");
-    address private immutable entrypoint = makeAddr("entrypoint");
 
     AccountFactory private factory;
 
     function setUp() external {
-        factory = new AccountFactory(entrypoint, verifiier, owner);
+        factory = new AccountFactory(owner, makeAddr("account"));
     }
 
     function test_ReturnTheOwner() external {

@@ -32,19 +32,6 @@ contract SmartAccount__Constructor is BaseTest {
         assertEq(account.exposedEntryPoint(), entrypoint);
     }
 
-    function test_StoresTheDeployerAddress() external {
-        // it stores the deployer address
-
-        // make the factory the sender for the next call
-        address factory = makeAddr("factory");
-        vm.prank(factory);
-
-        // deploy the account. The address of the factory must be stored as the deployer
-        SmartAccountTestWrapper account = new SmartAccountTestWrapper(makeAddr("entrypoint"), makeAddr("verifier"));
-
-        assertEq(account.exposedFactory(), factory);
-    }
-
     // @DEV: constant used by the `Initializable` library
     bytes32 private constant INITIALIZABLE_STORAGE = 0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
 

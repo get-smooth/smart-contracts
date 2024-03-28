@@ -412,7 +412,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
     }
 
     /// @dev The root value must never change. Never.
-    function test_AlwaysUseTheSameexposed_root() external {
+    function test_AlwaysUseTheSameRoot() external {
         // it should always use the same root
 
         assertEq(implementation.exposed_root(), 0x766490bc3db2290d3ce2c7c2b394a53399f99517ba4974536d11869c06dc8900);

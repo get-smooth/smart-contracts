@@ -5,7 +5,7 @@ import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseScript } from "../Base.s.sol";
 
 /// @title  FactoryGetAddress
-/// @notice Compute the address of the account based on the usernameHash
+/// @notice Compute the address of the account based on the authenticator data
 contract FactoryGetAddress is BaseScript {
     function run() public broadcast returns (address accountAddress) {
         // address of the factory we wanna use

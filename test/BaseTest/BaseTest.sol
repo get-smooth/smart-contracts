@@ -20,12 +20,10 @@ contract BaseTest is Test, BaseTestUtils, BaseTestCreateFixtures {
     ///      we create using an approved signer (the operator and also the owner of the factory).
     ///      This utility function is used to craft a signature for the deployment of an account.
     ///      This is for testing purposes only.
-    /// @param usernameHash The hash of the username to deploy the account for
     /// @param authenticatorData The authenticator data returned by the authenticator on the signer creation
     /// @param account The address of the account that will be deployed
     /// @return signature The signature to be used for the deployment
     function craftDeploymentSignature(
-        bytes32 usernameHash,
         bytes memory authenticatorData,
         address account
     )
@@ -34,8 +32,7 @@ contract BaseTest is Test, BaseTestUtils, BaseTestCreateFixtures {
         returns (bytes memory signature)
     {
         // recreate the message to sign
-        bytes memory message =
-            abi.encode(Signature.Type.CREATION, usernameHash, authenticatorData, account, block.chainid);
+        bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, account, block.chainid);
 
         // hash the message with the EIP-191 prefix
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);

@@ -15,7 +15,6 @@ contract FactoryCreateAndInitAccount is BaseScript {
         AccountFactory factory = AccountFactory(factoryAddress);
 
         // arguments to pass to the `createAndInit` function
-        bytes32 usernameHash = vm.envBytes32("USERNAME_HASH");
         bytes memory authData = vm.envBytes("AUTH_DATA");
         bytes memory signature = vm.envBytes("SIGNATURE");
 
@@ -24,7 +23,7 @@ contract FactoryCreateAndInitAccount is BaseScript {
         require(accountAddress.code.length == 0, "Account already exists");
 
         // deploy and init the account
-        address deployedAddress = factory.createAndInitAccount(usernameHash, authData, signature);
+        address deployedAddress = factory.createAndInitAccount(authData, signature);
 
         // ensure the account has been deployed at the correct address
         require(deployedAddress == accountAddress, "Invalid account address");

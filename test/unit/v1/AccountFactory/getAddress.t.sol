@@ -5,7 +5,6 @@ import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
-    bytes32 private constant LOGIN_HASH = keccak256("qdqd");
     AccountFactory private factory;
 
     function setUp() external setUpCreateFixture {
@@ -19,7 +18,7 @@ contract AccountFactory__GetAddress is BaseTest {
         factory.getAddress(abi.encodePacked(incorrectAuthData));
     }
 
-    function test_GivenARandomLoginHash(bytes32 randomWord) external {
+    function test_GivenARandomAuthData(bytes32 randomWord) external {
         // it return a valid address
 
         // 1. create a false authData by replacing the last 3 32-words of the correct authData with random data
@@ -56,7 +55,7 @@ contract AccountFactory__GetAddress is BaseTest {
         address computedAddress1 = factory.getAddress(createFixtures.response.authData);
         // we artifically upgrade the nonce of the factory
         vm.setNonce(address(factory), 1234);
-        // then recompute the address using the same login hash
+        // then recompute the address using the same authenticator data
         address computedAddress2 = factory.getAddress(createFixtures.response.authData);
         assertEq(computedAddress1, computedAddress2);
     }

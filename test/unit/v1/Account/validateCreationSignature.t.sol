@@ -12,28 +12,26 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
     MockFactory internal factory;
     MockEntryPoint internal entrypoint;
 
-    bytes32 internal usernameHash = keccak256("qdqdqd");
-
     // deploy the mocked entrypoint, the mocked factory, the account
     function setUp() external setUpCreateFixture {
-        // deploy a mock of the entrypoint
+        // 1. Deploy a mock of the entrypoint
         entrypoint = new MockEntryPoint();
 
-        // deploy a mock of the factory that will deploy the account base implementation
+        // 2. deploy a mock of the factory that will deploy the account base implementation
         factory = new MockFactory(SMOOTH_SIGNER.addr, address(entrypoint));
 
-        // deploy a valid instance of the account implementation and set a valid signer
-        account = factory.mockDeployAccount(usernameHash, createFixtures.response.authData);
+        // 3. deploy a valid instance of the account implementation and set a valid signer
+        account = factory.mockDeployAccount(createFixtures.response.authData);
     }
 
     // utilitary function that calculates a valid initCode and the signature
     function calculateInitCodeAndSignature() internal view returns (bytes memory initCode, bytes memory signature) {
-        signature = craftDeploymentSignature(usernameHash, createFixtures.response.authData, address(account));
+        signature = craftDeploymentSignature(createFixtures.response.authData, address(account));
 
         initCode = abi.encodePacked(
             address(factory),
             abi.encodeWithSelector(
-                AccountFactory.createAndInitAccount.selector, usernameHash, createFixtures.response.authData, signature
+                AccountFactory.createAndInitAccount.selector, createFixtures.response.authData, signature
             )
         );
     }
@@ -60,11 +58,11 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         // 1. get valid signature
         (, bytes memory signature) = calculateInitCodeAndSignature();
 
-        // 2. construct invalid initcode (authData/usernameHash inverted)
+        // 2. construct invalid initcode (authData/signature inverted)
         bytes memory invalidInitCode = abi.encodePacked(
             address(factory),
             abi.encodeWithSelector(
-                AccountFactory.createAndInitAccount.selector, createFixtures.response.authData, usernameHash, signature
+                AccountFactory.createAndInitAccount.selector, signature, createFixtures.response.authData
             )
         );
 
@@ -85,7 +83,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         bytes memory invalidInitCode = abi.encodePacked(
             address(incorrectFactory), // incorrect factory address
             abi.encodeWithSelector(
-                AccountFactory.createAndInitAccount.selector, usernameHash, createFixtures.response.authData, signature
+                AccountFactory.createAndInitAccount.selector, createFixtures.response.authData, signature
             )
         );
 
@@ -233,8 +231,6 @@ contract MockFactory is BaseTest {
     address payable public immutable accountImplementation;
     address public immutable admin;
 
-    mapping(bytes32 usernameHash => address accountAddress) public addresses;
-
     function owner() public view returns (address) {
         return admin;
     }
@@ -252,18 +248,19 @@ contract MockFactory is BaseTest {
     }
 
     // shortcut the real deployment/setup process for testing purposes
-    function mockDeployAccount(
-        bytes32 usernameHash,
-        bytes calldata authenticatorData
-    )
-        external
-        returns (SmartAccountHarness)
-    {
+    function mockDeployAccount(bytes calldata authenticatorData) external returns (SmartAccountHarness account) {
+        // 1. extract the signer from the authenticatorData
+        (, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) =
+            SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
+
+        // 2. encode the signer and hash the result to get the salt
+        bytes32 salt = keccak256(abi.encodePacked(credIdHash, pubkeyX, pubkeyY));
+
         // deploy the proxy for the user. During the deployment, the initialize function in the implementation contract
         // is called using the `delegatecall` opcode
-        SmartAccountHarness account = SmartAccountHarness(
+        account = SmartAccountHarness(
             payable(
-                new ERC1967Proxy{ salt: usernameHash }(
+                new ERC1967Proxy{ salt: salt }(
                     accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
                 )
             )
@@ -271,13 +268,5 @@ contract MockFactory is BaseTest {
 
         // set the first signer of the account using the parameters given
         account.addFirstSigner(authenticatorData);
-
-        addresses[usernameHash] = address(account);
-
-        return account;
-    }
-
-    function getAddress(bytes32 usernameHash) external view returns (address) {
-        return addresses[usernameHash];
     }
 }

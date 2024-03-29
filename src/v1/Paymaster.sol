@@ -28,9 +28,21 @@ contract Paymaster is BasePaymaster {
 
     uint256 public constant VERSION = Metadata.VERSION;
 
+    // ==============================
+    // =========== STATE ============
+    // ==============================
+
     address public operator;
 
+    // ==============================
+    // ======= EVENTS/ERRORS ========
+    // ==============================
+
     error InvalidOperator();
+
+    // ==============================
+    // ======= CONSTRUCTION =========
+    // ==============================
 
     /// @notice Set the owner, the operator and the address of the entrypoint.
     /// @param entryPoint The address of the entrypoint contract
@@ -51,6 +63,10 @@ contract Paymaster is BasePaymaster {
         operator = _operator;
     }
 
+    // ==============================
+    // ========= MODIFIER ===========
+    // ==============================
+
     /// @notice Modifier to check if the sender is the owner or the operator
     modifier onlyOwnerOrOperator() {
         if (msg.sender != owner() && msg.sender != operator) {
@@ -58,6 +74,10 @@ contract Paymaster is BasePaymaster {
         }
         _;
     }
+
+    // ==============================
+    // ======== FUNCTIONS ===========
+    // ==============================
 
     /// @notice Change the operator of the paymaster
     /// @param newOperator The new operator address

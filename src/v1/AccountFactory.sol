@@ -25,7 +25,7 @@ contract AccountFactory is Ownable {
     // ========= METADATA ===========
     // ==============================
 
-    string public constant VERSION = Metadata.VERSION;
+    uint256 public constant VERSION = Metadata.VERSION;
 
     // ==============================
     // ========= CONSTANT ===========

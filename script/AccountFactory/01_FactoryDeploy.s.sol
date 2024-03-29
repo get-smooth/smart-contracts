@@ -17,7 +17,7 @@ contract FactoryDeploy is BaseScript {
         require(address(accountImplementation).code.length > 0, "Account not deployed");
 
         // 2. Check the version of the account is the expected one
-        assertEqVersion(Metadata.VERSION, SmartAccount(accountImplementation).VERSION());
+        require(Metadata.VERSION == SmartAccount(accountImplementation).VERSION());
 
         // 3. Check the owner address is valid
         require(owner != address(0), "Invalid owner address");
@@ -26,7 +26,7 @@ contract FactoryDeploy is BaseScript {
         AccountFactory accountFactory = new AccountFactory(owner, accountImplementation);
 
         // 5. Check the version of the account factory is the expected one
-        assertEqVersion(Metadata.VERSION, accountFactory.VERSION());
+        require(Metadata.VERSION == accountFactory.VERSION());
 
         return accountFactory;
     }

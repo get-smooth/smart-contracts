@@ -24,7 +24,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     // ========= METADATA ===========
     // ==============================
 
-    string public constant VERSION = Metadata.VERSION;
+    uint256 public constant VERSION = Metadata.VERSION;
 
     // ==============================
     // ========= CONSTANTS ==========

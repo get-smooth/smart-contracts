@@ -26,7 +26,7 @@ contract Paymaster is BasePaymaster {
     // ========= METADATA ===========
     // ==============================
 
-    string public constant VERSION = Metadata.VERSION;
+    uint256 public constant VERSION = Metadata.VERSION;
 
     address public operator;
 

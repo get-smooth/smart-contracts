@@ -4,6 +4,7 @@ pragma solidity >=0.8.20 <0.9.0;
 import { Ownable } from "@eth-infinitism/core/BasePaymaster.sol";
 import { Paymaster } from "src/v1/Paymaster.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
+import { Metadata } from "src/v1/Metadata.sol";
 
 contract Paymaster__Constructor is BaseTest {
     address private owner = makeAddr("owner");
@@ -84,12 +85,12 @@ contract Paymaster__Constructor is BaseTest {
         vm.record();
 
         // fetch the owner of the paymaster
-        string memory versionStored = paymaster.VERSION();
+        uint256 versionStored = paymaster.VERSION();
 
         (bytes32[] memory reads,) = vm.accesses(address(paymaster));
 
         // check the version is correct and no storage has been accessed
-        assertEq(versionStored, "1.0.0");
+        assertEq(versionStored, Metadata.VERSION);
         assertEq(reads.length, 0);
     }
 

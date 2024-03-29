@@ -17,8 +17,7 @@ import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
 /**
  * TODO:
  *  - Take a look to proxy's versions
- *  - Make entrypoint more flexible? v0.7.0 https://etherscan.io/address/0x0000000071727De22E5E9d8BAf0edAc6f37da032#code
- *  --- New nonce serie per entrypoint? In that case, first addFirstSigner
+ *  - New nonce serie per entrypoint? In that case, first addFirstSigner
  */
 contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, SmartAccountEIP1271 {
     // ==============================

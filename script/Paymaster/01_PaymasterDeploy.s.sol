@@ -11,8 +11,36 @@ import { Metadata } from "src/v1/Metadata.sol";
 /// @dev    Only the owner address will be able to withdraw funds from the paymaster
 ///         The operator is the expected signer of the paymaster signature
 contract PaymasterDeploy is BaseScript {
-    function run() external payable virtual broadcast returns (Paymaster) {
-        address entrypoint = vm.envOr("ENTRYPOINT", DEFAULT_ENTRYPOINT);
+    function run() external payable returns (Paymaster) {
+        address entryPointAddress = Metadata.entrypoint();
+
+        // 1. Confirm the address of the entrypoint with the user
+        string memory prompt = string(
+            abi.encodePacked(
+                "Are you okay to use this version of the entrypoint (type yes to approve): ",
+                vm.toString(entryPointAddress)
+            )
+        );
+        try vm.prompt(prompt) returns (string memory res) {
+            // solhint-disable-next-line custom-errors
+            // forgefmt: disable-next-item
+            require(
+                keccak256(abi.encodePacked(res)) == keccak256(abi.encodePacked("yes")),
+                "Entrypoint address not approved"
+            );
+        } catch (bytes memory) {
+            // solhint-disable-next-line custom-errors
+            revert("Entrypoint address not approved");
+        }
+
+        // 2. Check if the address of the entryPoint is deployed
+        require(entryPointAddress.code.length > 0, "The entrypoint is not deployed");
+
+        // 3. Run the script using the entrypoint address
+        return run(entryPointAddress);
+    }
+
+    function run(address entryPointAddress) internal virtual broadcast returns (Paymaster) {
         address owner = vm.envAddress("OWNER");
         address operator = vm.envAddress("OPERATOR");
 
@@ -23,7 +51,7 @@ contract PaymasterDeploy is BaseScript {
         require(operator != address(0), "Invalid operator address");
 
         // 3. Deploy the paymaster
-        Paymaster paymaster = new Paymaster(entrypoint, owner, operator);
+        Paymaster paymaster = new Paymaster(entryPointAddress, owner, operator);
 
         // 4. Check the version of the paymaster is the expected one
         assertEqVersion(Metadata.VERSION, paymaster.VERSION());

@@ -31,17 +31,16 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     // ==============================
 
     address public immutable webAuthnVerifierAddress;
-    /// @notice This variable is exposed by the `entryPoint` method
     address internal immutable entryPointAddress;
-    address internal factoryAddress;
-
-    /// @notice Return the entrypoint used by this implementation
-    function entryPoint() public view override returns (IEntryPoint) {
-        return IEntryPoint(entryPointAddress);
-    }
 
     // ==============================
-    // ========== EVENTS ============
+    // =========== STATE ============
+    // ==============================
+
+    address internal factoryAddress;
+
+    // ==============================
+    // ======= EVENTS/ERRORS ========
     // ==============================
 
     /// @notice Emitted every time a signer is added to the account
@@ -56,10 +55,6 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     event SignerRemoved(
         bytes1 indexed signatureType, bytes32 indexed credIdHash, uint256 storedPubkeyX, uint256 storedPubkeyY
     );
-
-    // ==============================
-    // ========== ERRORS ============
-    // ==============================
 
     /// @notice This error is thrown if the factory tries to add the first signer when the nonce is not 0x00
     error InvalidFirstSignerAddition();
@@ -126,6 +121,11 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     /// @notice Allow the contract to receive native tokens
     // solhint-disable-next-line no-empty-blocks
     receive() external payable { }
+
+    /// @notice Return the entrypoint used by this implementation
+    function entryPoint() public view override returns (IEntryPoint) {
+        return IEntryPoint(entryPointAddress);
+    }
 
     /// @notice Return the factory that initialized this contract
     /// @return The address of the factory

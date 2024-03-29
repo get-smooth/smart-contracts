@@ -33,9 +33,17 @@ contract AccountFactory is Ownable {
 
     address payable public immutable accountImplementation;
 
+    // ==============================
+    // ======= EVENTS/ERRORS ========
+    // ==============================
+
     event AccountCreated(address account, bytes authenticatorData);
 
     error InvalidSignature(address accountAddress, bytes authenticatorData, bytes signature);
+
+    // ==============================
+    // ======= CONSTRUCTION =========
+    // ==============================
 
     /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
     ///         implementation will be used as the implementation reference for all the proxies deployed by this
@@ -50,6 +58,10 @@ contract AccountFactory is Ownable {
         // 1. set the address of the implementation account
         accountImplementation = payable(_accountImplementation);
     }
+
+    // ==============================
+    // ======== FUNCTIONS ===========
+    // ==============================
 
     /// @notice This function checks if the signature is signed by the operator (owner)
     /// @param  accountAddress The address of the account that would be deployed

@@ -24,10 +24,4 @@ library StorageSlotRegistry {
     ///         Final value: 0x4af245f3834b267909e0839a9d1bd5a4d800d78cbc580638b0487080d20b0900
     bytes32 internal constant VANILLA_P256K1_SIGNER =
         keccak256(abi.encode(uint256(keccak256(abi.encode("smooth.vanilla.p256k1"))) - 1)) & ~bytes32(uint256(0xff));
-
-    /// @notice This is the storage slot used to store the login hash of an account.
-    /// @dev    It is extremely important this value never changes.
-    ///         Final value: 0x1d00c83ead4f6b6248f73d12dcfa1e48e66aad920ce1240c275af2141d4bc600
-    bytes32 internal constant LOGIN_HASH =
-        keccak256(abi.encode(uint256(keccak256(abi.encode("smooth.account.login"))) - 1)) & ~bytes32(uint256(0xff));
 }

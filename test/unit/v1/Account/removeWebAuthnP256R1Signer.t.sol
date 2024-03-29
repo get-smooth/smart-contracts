@@ -78,9 +78,9 @@ contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
         try account.getSigner(keccak256("it's a trap")) {
             assertTrue(true);
         } catch Error(string memory) {
-            fail("ccount.getSigner() reverted");
+            assertTrue(false);
         } catch {
-            fail("ccount.getSigner() reverted");
+            assertTrue(false);
         }
     }
 

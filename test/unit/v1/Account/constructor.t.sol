@@ -10,9 +10,9 @@ contract SmartAccount__Constructor is BaseTest {
         try new SmartAccount(address(0), address(0)) {
             assertTrue(true);
         } catch Error(string memory) {
-            fail("account.constructor() reverted");
+            assertTrue(false);
         } catch {
-            fail("account.constructor() reverted");
+            assertTrue(false);
         }
     }
 

@@ -18,9 +18,4 @@ abstract contract BaseScript is Script {
 
         vm.stopBroadcast();
     }
-
-    /// @notice compare implementations version
-    function assertEqVersion(string memory current, string memory expected) internal pure {
-        require(keccak256(bytes(current)) == keccak256(bytes(expected)), "Implementation versions mismatch");
-    }
 }

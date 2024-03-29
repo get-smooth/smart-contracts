@@ -2,7 +2,7 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 library Metadata {
-    string internal constant VERSION = "1.0.0";
+    uint256 internal constant VERSION = 1_000_000;
 
     // default address -- entrypoint version: 0.6.0
     address internal constant ENTRYPOINT_ADDRESS = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;

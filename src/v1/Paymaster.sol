@@ -83,6 +83,7 @@ contract Paymaster is BasePaymaster {
     /// @param newOperator The new operator address
     /// @dev Only the owner or the operator can call this function
     function transferOperator(address newOperator) external onlyOwnerOrOperator {
+        if (newOperator == address(0)) revert InvalidOperator();
         operator = newOperator;
     }
 

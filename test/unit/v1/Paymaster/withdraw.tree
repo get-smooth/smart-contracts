@@ -1,0 +1,7 @@
+Paymaster__Withdraw
+├── it allow the owner to withdraw for anybody including him
+├── it allow the owner to withdraw for a contract
+├── it allow the owner to withdraw for itself
+├── it allow the operator to withdraw for the owner
+├── it reverts if non owner try to withdraw
+└── it reverts if operator try to choose the receiver

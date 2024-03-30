@@ -87,6 +87,14 @@ contract Paymaster is BasePaymaster {
         operator = newOperator;
     }
 
+    /// @notice Allow the operator or the owner to withdraw for the owner
+    /// @param amount The amount to withdraw
+    /// @dev The owner has the ability to withdraw the funds to any address using the other withdrawTo function
+    ///      `withdrawTo(address payable, uint256)`. The operator can only call this function
+    function withdrawTo(uint256 amount) public onlyOwnerOrOperator {
+        entryPoint.withdrawTo(payable(owner()), amount);
+    }
+
     /// @notice Validates a paymaster user operation and calculates the required token amount for the transaction.
     /// @dev    This function do not use the maxCost parameter meaning we do not check the maximum cost of the
     ///         transaction.

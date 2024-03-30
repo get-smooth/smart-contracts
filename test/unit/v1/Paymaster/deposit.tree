@@ -1,5 +1,3 @@
 Paymaster__Deposit
 ├── it return current paymaster deposit
-├── it allow anybody to deposit
-├── it withdraw to anybody if caller is owner
-└── it reverts if withdrawer is not owner
+└──  it allow anybody to deposit

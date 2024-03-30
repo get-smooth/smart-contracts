@@ -45,15 +45,13 @@ contract Paymaster__Operator is BaseTest {
         assertEq(paymaster.operator(), operator);
     }
 
-    function test_AllowSettingOperatorToZero() external {
+    function test_DoNotAllowSettingOperatorToZero() external {
         // it allow setting operator to zero
 
-        // we impersonate the operator and update the operator to the notOwner
+        // we impersonate the operator and try to update the operator to the address(0) -- expect revert
         vm.prank(operator);
+        vm.expectRevert(abi.encodeWithSelector(Paymaster.InvalidOperator.selector));
         paymaster.transferOperator(address(0));
-
-        // make sure the operator has been updated
-        assertEq(paymaster.operator(), address(0));
     }
 
     function test_RevertIfUpdateFromUnauthorizedAddress(address unauthorized) external {

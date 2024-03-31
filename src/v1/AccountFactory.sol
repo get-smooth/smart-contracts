@@ -2,11 +2,12 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
-import { Ownable } from "@openzeppelin/access/Ownable.sol";
-import "src/utils/Signature.sol" as Signature;
+import { OwnableUpgradeable } from "@openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
+import { Initializable } from "@openzeppelin-upgradeable/proxy/utils/Initializable.sol";
 import { SmartAccount } from "./Account/SmartAccount.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
+import "src/utils/Signature.sol" as Signature;
 
 // FIXME:   createAndInitAccount() Understand the implications of the ban system of the function
 
@@ -20,13 +21,7 @@ import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.s
 ///         signed by the owner. The message is the keccak256 hash of the login of the account.
 ///         As the address of the account is already dependant of the address of the factory, we do not need to
 ///         include it in the signature.
-contract AccountFactory is Ownable {
-    // ==============================
-    // ========= METADATA ===========
-    // ==============================
-
-    uint256 public constant VERSION = Metadata.VERSION;
-
+contract AccountFactory is Initializable, OwnableUpgradeable {
     // ==============================
     // ========= CONSTANT ===========
     // ==============================
@@ -40,6 +35,7 @@ contract AccountFactory is Ownable {
     event AccountCreated(address account, bytes authenticatorData);
 
     error InvalidSignature(address accountAddress, bytes authenticatorData, bytes signature);
+    error InvalidAccountImplementation();
 
     // ==============================
     // ======= CONSTRUCTION =========
@@ -47,16 +43,22 @@ contract AccountFactory is Ownable {
 
     /// @notice Deploy the implementation of the account and store it in the storage of the factory. This
     ///         implementation will be used as the implementation reference for all the proxies deployed by this
-    ///         factory. To make sure the instance deployed cannot be used, we brick it by calling the `initialize`
-    ///         function and setting an invalid first signer.
-    /// @param  owner The address used to verify the signature. It is the owner of the factory.
-    /// @param  _accountImplementation The address of the implementation of the smart account.
-    /// @dev    The account deployed here is expected to be proxied later, its own storage won't be used.
-    ///         All the arguments passed to the constructor function are used to set immutable variables.
-    ///         The account deployed is expected to be bricked by the `initialize` function.
-    constructor(address owner, address _accountImplementation) Ownable(owner) {
-        // 1. set the address of the implementation account
+    ///         factory.
+    /// @param  _accountImplementation The address of the implementation of the smart account. Must never be changed!!
+    /// @dev    All the arguments passed to the constructor function are used to set immutable variables.
+    constructor(address _accountImplementation) {
+        // 1. set the address of the implementation account -- THIS ADDRESS MUST NEVER BE CHANGED (!!)
+        if (_accountImplementation == address(0)) revert InvalidAccountImplementation();
         accountImplementation = payable(_accountImplementation);
+
+        // 2. prevent the implementation contract from being used directly
+        _disableInitializers();
+    }
+
+    // The initialize function will be used to set up the initial state of the contract.
+    function initialize(address owner) public virtual reinitializer(1) {
+        // 1. set the owner
+        __Ownable_init(owner);
     }
 
     // ==============================
@@ -77,6 +79,7 @@ contract AccountFactory is Ownable {
     )
         internal
         view
+        virtual
         returns (bool)
     {
         // 1. Recreate the message signed by the operator (owner)
@@ -91,12 +94,13 @@ contract AccountFactory is Ownable {
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     /// @param  signature Signature made off-chain by made the operator of the factory (owner). It gates the use of the
     ///         factory.
-    /// @return The address of the existing account (either deployed by this fucntion or not)
+    /// @return The address of the existing account (either deployed by this function or not)
     function createAndInitAccount(
         bytes calldata authenticatorData,
         bytes calldata signature
     )
         external
+        virtual
         returns (address)
     {
         // 1. calculate the salt that will be used to deploy the account
@@ -133,7 +137,7 @@ contract AccountFactory is Ownable {
 
     /// @notice This function calculates the salt used to deploy the account
     /// @dev The salt is calculated using the credIdHash, the pubkeyX and the pubkeyY extracted from the
-    ///      authenticatorData
+    ///      authenticatorData. This function must never be changed (!!)
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     function calculateSalt(bytes calldata authenticatorData) internal pure returns (bytes32) {
         // 1. extract the signer from the authenticatorData
@@ -145,7 +149,7 @@ contract AccountFactory is Ownable {
     }
 
     /// @notice This utility function returns the address of the account that would be deployed using the salt
-    /// @dev    This is the under the hood formula used by the CREATE2 opcode
+    /// @dev    This is the under the hood formula used by the CREATE2 opcode. This function must never be changed (!!)
     /// @param  salt The salt used to deploy the account
     /// @return The address of the account that would be deployed
     function getAddress(bytes32 salt) internal view returns (address) {
@@ -175,12 +179,17 @@ contract AccountFactory is Ownable {
     }
 
     /// @notice This utility function returns the address of the account that would be deployed using the authData
-    /// @dev    The salt is calculated using the signer extracted from the authenticatorData
+    /// @dev    The salt is calculated using the signer extracted from the authenticatorData.  This function must never
+    ///         be changed (!!)
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     /// @return The address of the account that would be deployed
     function getAddress(bytes calldata authenticatorData) external view returns (address) {
         bytes32 salt = calculateSalt(authenticatorData);
         return getAddress(salt);
+    }
+
+    function version() external pure virtual returns (uint256) {
+        return Metadata.VERSION;
     }
 }
 

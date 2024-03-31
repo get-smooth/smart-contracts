@@ -26,7 +26,7 @@ contract PaymasterDeploy is BaseScript {
             // forgefmt: disable-next-item
             require(
                 keccak256(abi.encodePacked(res)) == keccak256(abi.encodePacked("yes")),
-                "Entrypoint address not approved"
+                "Entrypoint not approved"
             );
         } catch (bytes memory) {
             // solhint-disable-next-line custom-errors
@@ -34,7 +34,7 @@ contract PaymasterDeploy is BaseScript {
         }
 
         // 2. Check if the address of the entryPoint is deployed
-        require(entryPointAddress.code.length > 0, "The entrypoint is not deployed");
+        require(entryPointAddress.code.length > 0, "Entrypoint not deployed");
 
         // 3. Run the script using the entrypoint address
         return run(entryPointAddress);
@@ -54,7 +54,7 @@ contract PaymasterDeploy is BaseScript {
         Paymaster paymaster = new Paymaster(entryPointAddress, owner, operator);
 
         // 4. Check the version of the paymaster is the expected one
-        require(Metadata.VERSION == paymaster.VERSION());
+        require(Metadata.VERSION == paymaster.VERSION(), "Version mismatch");
 
         return paymaster;
     }

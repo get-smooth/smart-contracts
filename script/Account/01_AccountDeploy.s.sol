@@ -46,7 +46,7 @@ contract SmartAccountDeploy is BaseScript {
         SmartAccount account = new SmartAccount(entryPointAddress, verifier);
 
         // 3. Check the version of the account factory is the expected one
-        require(Metadata.VERSION == account.VERSION());
+        require(Metadata.VERSION == account.VERSION(), "Version mismatch");
         return account;
     }
 }

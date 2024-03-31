@@ -12,7 +12,9 @@ contract AccountFactory__Ownership is BaseTest {
     AccountFactory private factory;
 
     function setUp() external {
-        factory = new AccountFactory(owner, makeAddr("account"));
+        // 1. deploy the factory
+        address factoryImplementation = address(deployFactoryImplementation(makeAddr("account")));
+        factory = deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), owner);
     }
 
     function test_ReturnTheOwner() external {

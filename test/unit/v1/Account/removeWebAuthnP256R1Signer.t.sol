@@ -21,7 +21,9 @@ contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
         SmartAccount accountImplementation = new SmartAccount(entrypoint, makeAddr("verifier"));
 
         // 3. deploy the factory
-        AccountFactory factory = new AccountFactory(SMOOTH_SIGNER.addr, address(accountImplementation));
+        address factoryImplementation = address(deployFactoryImplementation(address(accountImplementation)));
+        AccountFactory factory =
+            deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), SMOOTH_SIGNER.addr);
 
         // 4. calculate the future address of the account
         address accountFutureAddress = factory.getAddress(createFixtures.response.authData);

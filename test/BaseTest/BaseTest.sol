@@ -7,10 +7,11 @@ import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUt
 import "src/utils/Signature.sol" as Signature;
 import { BaseTestUtils } from "test/BaseTest/BaseTestUtils.sol";
 import { BaseTestCreateFixtures } from "test/BaseTest/BaseTestCreateFixtures.sol";
+import { BaseTestDeployment } from "test/BaseTest/BaseTestDeployment.sol";
 
 /// @title BaseTest
 /// @notice This contract override the default Foundry's `Test` contract with some utility functions
-contract BaseTest is Test, BaseTestUtils, BaseTestCreateFixtures {
+contract BaseTest is Test, BaseTestUtils, BaseTestCreateFixtures, BaseTestDeployment {
     // solhint-disable-next-line var-name-mixedcase
     VmSafe.Wallet internal SMOOTH_SIGNER;
 

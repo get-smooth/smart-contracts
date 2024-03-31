@@ -33,7 +33,8 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
         SmartAccount accountImplementation = new SmartAccount(address(entrypoint), address(webauthn));
 
         // 4. deploy the factory
-        factory = new AccountFactory(SMOOTH_SIGNER.addr, address(accountImplementation));
+        address factoryImplementation = address(deployFactoryImplementation(address(accountImplementation)));
+        factory = deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), SMOOTH_SIGNER.addr);
 
         // 5. set the signer data for the test
         // This signer has been generated for the needs of this test file. It is a valid signer.

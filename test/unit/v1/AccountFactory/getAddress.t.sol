@@ -5,10 +5,14 @@ import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
+    address internal factoryImplementation;
     AccountFactoryHarness private factory;
 
     function setUp() external setUpCreateFixture {
-        factory = new AccountFactoryHarness(makeAddr("owner"), makeAddr("account"));
+        factoryImplementation = address(new AccountFactoryHarness(makeAddr("account")));
+        factory = AccountFactoryHarness(
+            address(deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), makeAddr("owner")))
+        );
     }
 
     function test_RevertIfTheAuthDataIsTooShort(bytes32 incorrectAuthData) external {
@@ -32,18 +36,12 @@ contract AccountFactory__GetAddress is BaseTest {
         assertNotEq(computedAddress, address(0));
     }
 
-    function test_GivenAPredeterminedHash() external {
-        // it return the precomputed address
-
-        address computedAddress = factory.getAddress(createFixtures.response.authData);
-        assertEq(computedAddress, 0xdFa6C6d347bBab19e76c6f217C401ef2339Aa323);
-    }
-
     function test_WhenTheFactoryIsDeployedAtADifferentAddress() external {
         // it return an address different than the original factory
 
         // we deploy a new instance of the factory at a different address but using the same parameters
-        AccountFactory factory2 = new AccountFactory(makeAddr("owner"), makeAddr("account"));
+        AccountFactory factory2 =
+            deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), makeAddr("owner"));
         assertNotEq(
             factory2.getAddress(createFixtures.response.authData), factory.getAddress(createFixtures.response.authData)
         );
@@ -70,7 +68,7 @@ contract AccountFactory__GetAddress is BaseTest {
 }
 
 contract AccountFactoryHarness is AccountFactory {
-    constructor(address owner, address accountImplementation) AccountFactory(owner, accountImplementation) { }
+    constructor(address accountImplementation) AccountFactory(accountImplementation) { }
 
     function exposed_calculateSalt(bytes calldata authenticatorData) external pure returns (bytes32) {
         return calculateSalt(authenticatorData);

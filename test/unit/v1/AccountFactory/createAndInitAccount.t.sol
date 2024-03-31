@@ -19,7 +19,8 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         account = new SmartAccount(mockedEntrypoint, makeAddr("verifier"));
 
         // 2. deploy the factory
-        factory = new AccountFactory(SMOOTH_SIGNER.addr, address(account));
+        address factoryImplementation = address(deployFactoryImplementation(address(account)));
+        factory = deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), SMOOTH_SIGNER.addr);
     }
 
     function test_UseADeterministicDeploymentProcess() external {

@@ -1,6 +1,5 @@
 AccountFactory__Constructor
-├── it revert if owner is 0
+├── it revert if account implementation is 0
 ├── it expose the implementation address after being deployed
-├── it expose the owner after being deployed
-└── it expose the expected version
-
+├── it expose the expected version
+└── it disable the initializer

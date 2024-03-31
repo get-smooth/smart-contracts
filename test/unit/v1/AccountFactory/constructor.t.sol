@@ -1,45 +1,51 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.20;
 
-import { Ownable } from "@openzeppelin/access/Ownable.sol";
+import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
-import { SmartAccount } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 
+// @DEV: constant used by the `Initializable` library
+bytes32 constant INITIALIZABLE_STORAGE = 0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
+
 contract AccountFactory__Constructor is BaseTest {
-    address private account;
+    function test_RevertIfAccountImplementationIs0() external {
+        // it revert if account implementation is 0
 
-    function setUp() external {
-        account = address(new SmartAccount(makeAddr("entrypoint"), makeAddr("verifier")));
-    }
-
-    function test_RevertIfOwnerIs0() external {
         // 1. we tell the VM to expect a revert with a precise error
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(AccountFactory.InvalidAccountImplementation.selector));
 
         // 2. we try to deploy the account factory with an owner set to 0
-        new AccountFactory(address(0), account);
+        new AccountFactory(address(0));
     }
 
     function test_ExposeTheImplementationAddressAfterBeingDeployed() external {
-        // it should expose the implementation address after being deployed
+        // it expose the implementation address after being deployed
 
-        AccountFactory factory = new AccountFactory(makeAddr("owner"), account);
-        assertEq(factory.accountImplementation(), account);
-    }
-
-    function test_ExposeTheOwnerAfterBeingDeployed() external {
-        // it should expose the admin after being deployed
-
-        AccountFactory factory = new AccountFactory(makeAddr("owner"), account);
-        assertEq(factory.owner(), makeAddr("owner"));
+        AccountFactory factory = new AccountFactory(makeAddr("account"));
+        assertEq(factory.accountImplementation(), makeAddr("account"));
     }
 
     function test_ExposeTheExpectedVersion() external {
-        // it should expose the admin after being deployed
+        // it expose the expected version
 
-        AccountFactory factory = new AccountFactory(makeAddr("owner"), account);
-        assertEq(factory.VERSION(), Metadata.VERSION);
+        AccountFactory factory = new AccountFactory(makeAddr("account"));
+        assertEq(factory.version(), Metadata.VERSION);
+    }
+
+    function test_DisableTheInitializer() external {
+        // it disable the initializer
+
+        // deploy the account
+        AccountFactory factory = new AccountFactory(makeAddr("account"));
+
+        // make sure the version is set to the max value possible
+        bytes32 value = vm.load(address(factory), INITIALIZABLE_STORAGE);
+        assertEq(value, bytes32(uint256(type(uint64).max)));
+
+        // make sure the initializer is not callable
+        vm.expectRevert(Initializable.InvalidInitialization.selector);
+        factory.initialize(makeAddr("new owner"));
     }
 }

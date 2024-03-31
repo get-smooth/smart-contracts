@@ -9,12 +9,16 @@ contract AccountFactory__Versionning is BaseTest {
     AccountFactory private factory;
 
     function setUp() external {
-        factory = new AccountFactory(makeAddr("owner"), makeAddr("account"));
+        // 1. deploy the implementation of the factory and one instance
+        address factoryImplementation = address(deployFactoryImplementation(makeAddr("account")));
+        factory = AccountFactory(
+            address(deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), makeAddr("owner")))
+        );
     }
 
     function test_AllowVersionFetching() external {
         // it allow version fetching
 
-        assertEq(factory.VERSION(), Metadata.VERSION);
+        assertEq(factory.version(), Metadata.VERSION);
     }
 }

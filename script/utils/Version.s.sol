@@ -33,8 +33,8 @@ contract SmoothVersionScan is BaseScript {
         address smoothContract = vm.envAddress("SMOOTH_CONTRACT");
 
         // 1. get full version of the contract
-        (bool success, bytes memory data) = smoothContract.call(abi.encodeWithSignature("VERSION()"));
-        require(success, "Failed to get the version of the contract");
+        (bool success, bytes memory data) = smoothContract.call(abi.encodeWithSignature("version()"));
+        require(success, "Failed to fetch version");
         uint256 fullVersion = abi.decode(data, (uint256));
 
         // 2. parse major/minor/patch versions of the contract

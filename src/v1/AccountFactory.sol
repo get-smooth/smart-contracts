@@ -219,6 +219,8 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
         return _getAddress(credIdHash, pubX, pubY, credId);
     }
 
+    /// @notice This function returns the version of the contract
+    /// @return * The version of the contract
     function version() external pure virtual returns (uint256) {
         return Metadata.VERSION;
     }

@@ -85,7 +85,7 @@ contract Paymaster__Constructor is BaseTest {
         vm.record();
 
         // fetch the owner of the paymaster
-        uint256 versionStored = paymaster.VERSION();
+        uint256 versionStored = paymaster.version();
 
         (bytes32[] memory reads,) = vm.accesses(address(paymaster));
 

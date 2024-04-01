@@ -23,12 +23,6 @@ import { Metadata } from "src/v1/Metadata.sol";
 ///           replay attacks
 contract Paymaster is BasePaymaster {
     // ==============================
-    // ========= METADATA ===========
-    // ==============================
-
-    uint256 public constant VERSION = Metadata.VERSION;
-
-    // ==============================
     // =========== STATE ============
     // ==============================
 
@@ -78,6 +72,12 @@ contract Paymaster is BasePaymaster {
     // ==============================
     // ======== FUNCTIONS ===========
     // ==============================
+
+    /// @notice This function returns the version of the contract
+    /// @return * The version of the contract
+    function version() external pure virtual returns (uint256) {
+        return Metadata.VERSION;
+    }
 
     /// @notice Change the operator of the paymaster
     /// @param newOperator The new operator address

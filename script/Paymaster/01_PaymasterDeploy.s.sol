@@ -54,7 +54,7 @@ contract PaymasterDeploy is BaseScript {
         Paymaster paymaster = new Paymaster(entryPointAddress, owner, operator);
 
         // 4. Check the version of the paymaster is the expected one
-        require(Metadata.VERSION == paymaster.VERSION(), "Version mismatch");
+        require(Metadata.VERSION == paymaster.version(), "Version mismatch");
 
         return paymaster;
     }

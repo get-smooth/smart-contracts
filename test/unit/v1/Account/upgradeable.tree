@@ -1,0 +1,10 @@
+SmartAccount__Upgradeable
+├── it can be upgraded with data
+├── it can be upgraded without data
+├── it revert if not initiated by itself
+├── it revert if reinitializer is equal or below
+├── it maintains the signers stored
+├── it maintains the factory address stored
+├── it can update the webauthn verifier
+├── it emit an event
+└── it can update the version

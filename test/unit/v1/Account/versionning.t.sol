@@ -15,6 +15,6 @@ contract SmartAccount__Versionning is BaseTest {
     function test_AllowVersionFetching() external {
         // it allow version fetching
 
-        assertEq(account.VERSION(), Metadata.VERSION);
+        assertEq(account.version(), Metadata.VERSION);
     }
 }

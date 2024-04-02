@@ -16,7 +16,7 @@ contract FactoryDeployImplementation is BaseScript {
         require(address(accountImplementation).code.length > 0, "Account not deployed");
 
         // 2. Check the version of the account is the expected one
-        require(Metadata.VERSION == SmartAccount(accountImplementation).VERSION(), "Version mismatch");
+        require(Metadata.VERSION == SmartAccount(accountImplementation).version(), "Version mismatch");
 
         // 3. Confirm the account implementation address with the user
         string memory prompt = string(

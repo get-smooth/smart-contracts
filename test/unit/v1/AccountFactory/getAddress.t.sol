@@ -62,22 +62,24 @@ contract AccountFactory__GetAddress is BaseTest {
     function _extractSignerFromAuthData(bytes calldata authenticatorData)
         external
         pure
-        returns (bytes32, uint256, uint256)
+        returns (bytes memory, bytes32, uint256, uint256)
     {
-        (, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
             SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
-        return (credIdHash, pubX, pubY);
+        return (credId, credIdHash, pubX, pubY);
     }
 
     function test_CalculateSameAddressUsingBothMethods() external {
         // it calculate same address using both methods
 
         // 1. extract the signer from the authenticatorData
-        (bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
             AccountFactory__GetAddress(address(this))._extractSignerFromAuthData(createFixtures.response.authData);
 
+        // 2. compare the address computed by both methods
         assertEq(
-            factory.getAddress(createFixtures.response.authData), factory.exposed_getAddress(credIdHash, pubX, pubY)
+            factory.getAddress(createFixtures.response.authData),
+            factory.exposed_getAddress(credIdHash, pubX, pubY, credId)
         );
     }
 }
@@ -85,7 +87,16 @@ contract AccountFactory__GetAddress is BaseTest {
 contract AccountFactoryHarness is AccountFactory {
     constructor(address accountImplementation) AccountFactory(accountImplementation) { }
 
-    function exposed_getAddress(bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) external view returns (address) {
-        return getAddress(credIdHash, pubkeyX, pubkeyY);
+    function exposed_getAddress(
+        bytes32 credIdHash,
+        uint256 pubkeyX,
+        uint256 pubkeyY,
+        bytes calldata credId
+    )
+        external
+        view
+        returns (address)
+    {
+        return _getAddress(credIdHash, pubkeyX, pubkeyY, credId);
     }
 }

@@ -1,5 +1,0 @@
-SmartAccount__AddFirstSigner
-├── it reverts if the nonce is not 0
-├── it reverts if not called by the factory
-├── it stores the signer
-└── it emits the signer add event

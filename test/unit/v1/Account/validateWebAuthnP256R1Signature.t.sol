@@ -37,9 +37,19 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
         SmartAccount accountImplementation = new SmartAccountHarness(StaticData.ENTRYPOINT, address(webAuthnVerifier));
 
         // 5. Deploy the proxy where it is expected, and initialize it using this contract as factory
+        //    This step also set the first signer of the account
         deployCodeTo(
             "ERC1967Proxy.sol",
-            abi.encode(address(accountImplementation), abi.encodeWithSelector(SmartAccount.initialize.selector)),
+            abi.encode(
+                address(accountImplementation),
+                abi.encodeWithSelector(
+                    SmartAccount.initialize.selector,
+                    keccak256(createFixtures.signer.credId),
+                    createFixtures.signer.pubX,
+                    createFixtures.signer.pubY,
+                    createFixtures.signer.credId
+                )
+            ),
             StaticData.SENDER
         );
         smartAccount = SmartAccountHarness(StaticData.SENDER);
@@ -49,81 +59,12 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
     }
 
     function test_ReturnTrueIfTheSignatureRecoveryIsCorrect() external {
-        // 1. Set the first signer of the account
-        smartAccount.addFirstSigner(createFixtures.response.authData);
-
-        // 2. Mock the call to the entryPoint to return the expected nonce
+        // 1. Mock the call to the entryPoint to return the expected nonce
         vm.mockCall(
             address(entryPoint), abi.encodeWithSelector(EntryPointMock.getNonce.selector), abi.encode(StaticData.NONCE)
         );
 
-        // 3. Create a UserOperation with the expected values
-        UserOperation memory userOp = UserOperation({
-            // fields relevant for the flow
-            sender: StaticData.SENDER,
-            nonce: StaticData.NONCE,
-            callData: StaticData.CALL_DATA,
-            paymasterAndData: StaticData.PAYMASTER_AND_DATA,
-            signature: _createP256R1Signature(),
-            // unused fields
-            initCode: hex"053F",
-            callGasLimit: 0x053F,
-            verificationGasLimit: 0x053F,
-            preVerificationGas: 0x053F,
-            maxFeePerGas: 0x053F,
-            maxPriorityFeePerGas: 0x053F
-        });
-
-        // 4. Verify the signature
-        uint256 result = smartAccount.exposed_validateSignature(userOp);
-        assertTrue(result == Signature.State.SUCCESS);
-    }
-
-    function test_ReturnFalseIfTheWebauthnLibraryReturnFalse() external {
-        // 1. Set the first signer of the account
-        smartAccount.addFirstSigner(createFixtures.response.authData);
-
-        // 2. Mock the call to the entryPoint to return the expected nonce
-        vm.mockCall(
-            address(entryPoint), abi.encodeWithSelector(EntryPointMock.getNonce.selector), abi.encode(StaticData.NONCE)
-        );
-
-        // 3. Create a UserOperation with the expected values
-        UserOperation memory userOp = UserOperation({
-            // fields relevant for the flow
-            sender: StaticData.SENDER,
-            nonce: StaticData.NONCE,
-            callData: StaticData.CALL_DATA,
-            paymasterAndData: StaticData.PAYMASTER_AND_DATA,
-            signature: _createP256R1Signature(),
-            // unused fields
-            initCode: hex"053F",
-            callGasLimit: 0x053F,
-            verificationGasLimit: 0x053F,
-            preVerificationGas: 0x053F,
-            maxFeePerGas: 0x053F,
-            maxPriorityFeePerGas: 0x053F
-        });
-
-        // 4. mock the call to the webauthn verifier to return false
-        vm.mockCall(
-            smartAccount.webAuthnVerifier(),
-            abi.encodeWithSelector(WebAuthn256r1Wrapper.verify.selector),
-            abi.encode(false)
-        );
-
-        // 5. Ensure the signature is not valid
-        uint256 result = smartAccount.exposed_validateSignature(userOp);
-        assertTrue(result == Signature.State.FAILURE);
-    }
-
-    function test_ReturnFalseIfTheSignerIsNotStored() external {
-        // 2. Mock the call to the entryPoint to return the expected nonce
-        vm.mockCall(
-            address(entryPoint), abi.encodeWithSelector(EntryPointMock.getNonce.selector), abi.encode(StaticData.NONCE)
-        );
-
-        // 2. Create a UserOperation struct -- the signer is not set
+        // 2. Create a UserOperation with the expected values
         UserOperation memory userOp = UserOperation({
             // fields relevant for the flow
             sender: StaticData.SENDER,
@@ -142,18 +83,16 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
 
         // 3. Verify the signature
         uint256 result = smartAccount.exposed_validateSignature(userOp);
-        assertTrue(result == Signature.State.FAILURE);
+        assertTrue(result == Signature.State.SUCCESS);
     }
 
-    function test_ReturnTrueEvenIfTheNonceIsNotCorrect() external {
-        // @DEV: This is the entrypoint contract that is in charge of validating
-        //       the nonce in the user operation is the correct one.
-        //       Our validation function must not checking it.
+    function test_ReturnFalseIfTheWebauthnLibraryReturnFalse() external {
+        // 1. Mock the call to the entryPoint to return the expected nonce
+        vm.mockCall(
+            address(entryPoint), abi.encodeWithSelector(EntryPointMock.getNonce.selector), abi.encode(StaticData.NONCE)
+        );
 
-        // 1. Set the first signer of the account
-        smartAccount.addFirstSigner(createFixtures.response.authData);
-
-        // 2. Create a UserOperation struct -- the nonce is not correct
+        // 2. Create a UserOperation with the expected values
         UserOperation memory userOp = UserOperation({
             // fields relevant for the flow
             sender: StaticData.SENDER,
@@ -170,25 +109,89 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
             maxPriorityFeePerGas: 0x053F
         });
 
-        // 3. Verify the signature succeeds
+        // 3. mock the call to the webauthn verifier to return false
+        vm.mockCall(
+            smartAccount.webAuthnVerifier(),
+            abi.encodeWithSelector(WebAuthn256r1Wrapper.verify.selector),
+            abi.encode(false)
+        );
+
+        // 4. Ensure the signature is not valid
+        uint256 result = smartAccount.exposed_validateSignature(userOp);
+        assertTrue(result == Signature.State.FAILURE);
+    }
+
+    function test_ReturnFalseIfTheSignerIsNotStored() external {
+        // 1. Mock the call to the entryPoint to return the expected nonce
+        vm.mockCall(
+            address(entryPoint), abi.encodeWithSelector(EntryPointMock.getNonce.selector), abi.encode(StaticData.NONCE)
+        );
+
+        // 2. Remove the previously set signer -- to bypass the entiere 4337 flow we prank the caller to be the
+        //    smartAccount itself
+        vm.prank(address(smartAccount));
+        smartAccount.removeWebAuthnP256R1Signer(keccak256(createFixtures.signer.credId));
+
+        // 3. Create a UserOperation struct -- the signer is not set
+        UserOperation memory userOp = UserOperation({
+            // fields relevant for the flow
+            sender: StaticData.SENDER,
+            nonce: StaticData.NONCE,
+            callData: StaticData.CALL_DATA,
+            paymasterAndData: StaticData.PAYMASTER_AND_DATA,
+            signature: _createP256R1Signature(),
+            // unused fields
+            initCode: hex"053F",
+            callGasLimit: 0x053F,
+            verificationGasLimit: 0x053F,
+            preVerificationGas: 0x053F,
+            maxFeePerGas: 0x053F,
+            maxPriorityFeePerGas: 0x053F
+        });
+
+        // 4. Verify the signature
+        uint256 result = smartAccount.exposed_validateSignature(userOp);
+        assertTrue(result == Signature.State.FAILURE);
+    }
+
+    function test_ReturnTrueEvenIfTheNonceIsNotCorrect() external {
+        // @DEV: This is the entrypoint contract that is in charge of validating
+        //       the nonce in the user operation is the correct one.
+        //       Our validation function must not checking it.
+
+        // 1. Create a UserOperation struct -- the nonce is not correct
+        UserOperation memory userOp = UserOperation({
+            // fields relevant for the flow
+            sender: StaticData.SENDER,
+            nonce: StaticData.NONCE,
+            callData: StaticData.CALL_DATA,
+            paymasterAndData: StaticData.PAYMASTER_AND_DATA,
+            signature: _createP256R1Signature(),
+            // unused fields
+            initCode: hex"053F",
+            callGasLimit: 0x053F,
+            verificationGasLimit: 0x053F,
+            preVerificationGas: 0x053F,
+            maxFeePerGas: 0x053F,
+            maxPriorityFeePerGas: 0x053F
+        });
+
+        // 2. Verify the signature succeeds
         uint256 result = smartAccount.exposed_validateSignature(userOp);
         assertTrue(result == Signature.State.SUCCESS);
     }
 
     function test_RevertIfTheSignatureIsNotDecodable() external {
-        // 1. Set the first signer of the account
-        smartAccount.addFirstSigner(createFixtures.response.authData);
-
-        // 2. Mock the call to the entryPoint to return the expected nonce
+        // 1. Mock the call to the entryPoint to return the expected nonce
         vm.mockCall(
             address(entryPoint), abi.encodeWithSelector(EntryPointMock.getNonce.selector), abi.encode(StaticData.NONCE)
         );
 
-        // 3. Create an invalid signature that is not decodable
+        // 2. Create an invalid signature that is not decodable
         bytes memory signature = _createP256R1Signature();
         bytes memory truncSignature = truncBytes(signature, 0, 40);
 
-        // 4. Create a UserOperation struct -- the signature is not valid
+        // 3. Create a UserOperation struct -- the signature is not valid
         UserOperation memory userOp = UserOperation({
             // fields relevant for the flow
             sender: StaticData.SENDER,
@@ -205,7 +208,7 @@ contract SmartAccount__validateWebAuthnP256R1Signature is BaseTest {
             maxPriorityFeePerGas: 0x053F
         });
 
-        // 5. Verify the validation reverts
+        // 4. Verify the validation reverts
         vm.expectRevert();
         smartAccount.exposed_validateSignature(userOp);
     }

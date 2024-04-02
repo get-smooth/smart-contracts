@@ -62,7 +62,7 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
     }
 
     // ==============================
-    // ======== FUNCTIONS ===========
+    // ===== INTERNAL FUNCTIONS =====
     // ==============================
 
     /// @notice This function checks if the signature is signed by the operator (owner)
@@ -89,6 +89,84 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
         return Signature.recover(owner(), message, signature[1:]);
     }
 
+    function _deployAccount(
+        bytes32 credIdHash,
+        uint256 pubX,
+        uint256 pubY,
+        bytes memory credId
+    )
+        internal
+        returns (SmartAccount account)
+    {
+        account = SmartAccount(
+            payable(
+                new ERC1967Proxy{ salt: _calculateSalt(credIdHash, pubX, pubY) }(
+                    accountImplementation,
+                    abi.encodeWithSelector(SmartAccount.initialize.selector, credIdHash, pubX, pubY, credId)
+                )
+            )
+        );
+    }
+
+    /// @notice This function calculates the salt used to deploy the account
+    /// @dev This function must never be changed (!!)
+    /// @param credIdHash The hash of the credential ID of the signer
+    /// @param pubkeyX The x-coordinate of the public key of the signer
+    /// @param pubkeyY The y-coordinate of the public key of the signer
+    function _calculateSalt(bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) internal pure returns (bytes32) {
+        // 1. encode the signer and hash the result to get the salt
+        return keccak256(abi.encodePacked(credIdHash, pubkeyX, pubkeyY));
+    }
+
+    /// @notice This utility function returns the address of the account that would be deployed using the salt
+    /// @dev    This is the under the hood formula used by the CREATE2 opcode. This function must never be changed (!!)
+    /// @param  credIdHash The hash of the credential ID of the signer
+    /// @param  pubX The x-coordinate of the public key of the signer
+    /// @param  pubY The y-coordinate of the public key of the signer
+    /// @param  credId The credential ID of the signer
+    /// @return The address of the account that would be deployed
+    function _getAddress(
+        bytes32 credIdHash,
+        uint256 pubX,
+        uint256 pubY,
+        bytes memory credId
+    )
+        internal
+        view
+        returns (address)
+    {
+        return address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff), // init code hash prefix
+                            address(this), // deployer address
+                            _calculateSalt(credIdHash, pubX, pubY),
+                            keccak256( // the init code hash
+                                abi.encodePacked(
+                                    // creation code of the contract deployed
+                                    type(ERC1967Proxy).creationCode,
+                                    // arguments passed to the constructor of the contract deployed
+                                    abi.encode(
+                                        accountImplementation,
+                                        abi.encodeWithSelector(
+                                            SmartAccount.initialize.selector, credIdHash, pubX, pubY, credId
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    // ==============================
+    // ===== EXTERNAL FUNCTIONS =====
+    // ==============================
+
     /// @notice This function either deploys an account and sets its first signer or returns the address of an existing
     ///         account based on the parameter given
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
@@ -104,11 +182,11 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
         returns (address)
     {
         // 1. extract the signer from the authenticatorData
-        (, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
             SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
 
         // 2. get the address of the account if it exists
-        address accountAddress = getAddress(credIdHash, pubX, pubY);
+        address accountAddress = _getAddress(credIdHash, pubX, pubY, credId);
 
         // 3. check if the account is already deployed and return prematurely if it is
         if (accountAddress.code.length > 0) return accountAddress;
@@ -120,62 +198,11 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
 
         // 5. deploy the proxy for the user. During the deployment, the initialize function in the implementation
         // is called using the `delegatecall` opcode
-        SmartAccount account = SmartAccount(
-            payable(
-                new ERC1967Proxy{ salt: calculateSalt(credIdHash, pubX, pubY) }(
-                    accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
-                )
-            )
-        );
+        SmartAccount account = _deployAccount(credIdHash, pubX, pubY, credId);
 
-        // 6. set the initial signer of the account defined in the authenticatorData
-        account.addFirstSigner(authenticatorData);
-
-        // 7. emit the event and return the address of the deployed account
+        // 6. emit the event and return the address of the deployed account
         emit AccountCreated(address(account), authenticatorData);
         return address(account);
-    }
-
-    /// @notice This function calculates the salt used to deploy the account
-    /// @dev This function must never be changed (!!)
-    /// @param credIdHash The hash of the credential ID of the signer
-    /// @param pubkeyX The x-coordinate of the public key of the signer
-    /// @param pubkeyY The y-coordinate of the public key of the signer
-    function calculateSalt(bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) internal pure returns (bytes32) {
-        // 1. encode the signer and hash the result to get the salt
-        return keccak256(abi.encodePacked(credIdHash, pubkeyX, pubkeyY));
-    }
-
-    /// @notice This utility function returns the address of the account that would be deployed using the salt
-    /// @dev    This is the under the hood formula used by the CREATE2 opcode. This function must never be changed (!!)
-    /// @param  credIdHash The hash of the credential ID of the signer
-    /// @param  pubkeyX The x-coordinate of the public key of the signer
-    /// @param  pubkeyY The y-coordinate of the public key of the signer
-    /// @return The address of the account that would be deployed
-    function getAddress(bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) internal view returns (address) {
-        return address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff), // init code hash prefix
-                            address(this), // deployer address
-                            calculateSalt(credIdHash, pubkeyX, pubkeyY),
-                            keccak256( // the init code hash
-                                abi.encodePacked(
-                                    // creation code of the contract deployed
-                                    type(ERC1967Proxy).creationCode,
-                                    // arguments passed to the constructor of the contract deployed
-                                    abi.encode(
-                                        accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        );
     }
 
     /// @notice This utility function returns the address of the account that would be deployed using the authData
@@ -185,11 +212,11 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
     /// @return The address of the account that would be deployed
     function getAddress(bytes calldata authenticatorData) external view returns (address) {
         // 1. extract the signer from the authenticatorData
-        (, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
             SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
 
         // 2. return the address of the account that would be deployed
-        return getAddress(credIdHash, pubX, pubY);
+        return _getAddress(credIdHash, pubX, pubY, credId);
     }
 
     function version() external pure virtual returns (uint256) {

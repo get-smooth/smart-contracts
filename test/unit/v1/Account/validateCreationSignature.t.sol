@@ -89,7 +89,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         account.exposed_validateCreationSignature(signature, invalidInitCode);
     }
 
-    function test_FailsIfTheUseropFactoryIsNotCorrect(address incorrectFactory) external {
+    function test_FailsIfTheUseropFactoryIsNotCorrect(address incorrectFactory) external view {
         // it fails if the userop factory is not correct
 
         vm.assume(incorrectFactory != address(factory));
@@ -142,7 +142,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         assertEq(account.exposed_validateCreationSignature(invalidSignature, initCode), Signature.State.FAILURE);
     }
 
-    function test_FailsIfSignatureTypeMissing() external {
+    function test_FailsIfSignatureTypeMissing() external view {
         // it fails if the passed signature is not correct
 
         // 1. get valid initcode and signature
@@ -211,7 +211,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
-    function test_SucceedIfTheSignatureRecoveryIsCorrect() external {
+    function test_SucceedIfTheSignatureRecoveryIsCorrect() external view {
         // it succeed if the signature recovery is correct
 
         // 1. get valid initcode and signature

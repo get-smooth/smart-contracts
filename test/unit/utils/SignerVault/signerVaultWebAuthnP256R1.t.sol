@@ -94,7 +94,13 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(loadSSxU(startingSlot, SIGNER.PUBKEY_Y), pubkeyY);
     }
 
-    function test_DoesNotStoreTwoSignersToTheSameStorageSlots(bytes32 clientIdHash1, bytes32 clientIdHash2) external {
+    function test_DoesNotStoreTwoSignersToTheSameStorageSlots(
+        bytes32 clientIdHash1,
+        bytes32 clientIdHash2
+    )
+        external
+        view
+    {
         // it should not store two signers to the same storage slots
 
         // bound the fuzzed arguments to have coherent values
@@ -167,7 +173,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertEq(pubYStored, pubkeyY);
     }
 
-    function test_ReturnAnEmptySignerIfNotFoundGivenAClientId(bytes calldata clientId) external {
+    function test_ReturnAnEmptySignerIfNotFoundGivenAClientId(bytes calldata clientId) external view {
         // it should return an empty signer if not found given a client id
 
         // retrieve the signer for the given client id
@@ -206,7 +212,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertTrue(implementation.exposed_has(clientIdHash));
     }
 
-    function test_ReturnFalseIfNoSignerExistsGivenAClientIdHash(bytes32 clientIdHash) external {
+    function test_ReturnFalseIfNoSignerExistsGivenAClientIdHash(bytes32 clientIdHash) external view {
         // it should return false if no signer exists given a client id hash
 
         // ensure the signer exists
@@ -233,7 +239,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
         assertTrue(implementation.exposed_has(clientId));
     }
 
-    function test_ReturnFalseIfNoSignerExistsGivenAClientId(bytes calldata clientId) external {
+    function test_ReturnFalseIfNoSignerExistsGivenAClientId(bytes calldata clientId) external view {
         // it should return false if no signer exists given a client id
 
         // ensure the signer exists
@@ -412,7 +418,7 @@ contract SignerVault__WebAuthnP256R1 is BaseTest {
     }
 
     /// @dev The root value must never change. Never.
-    function test_AlwaysUseTheSameRoot() external {
+    function test_AlwaysUseTheSameRoot() external view {
         // it should always use the same root
 
         assertEq(implementation.exposed_root(), 0x766490bc3db2290d3ce2c7c2b394a53399f99517ba4974536d11869c06dc8900);

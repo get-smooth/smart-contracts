@@ -53,7 +53,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertEq(signerStored, signer);
     }
 
-    function test_DoesNotStoreTwoSignersToTheSameStorageSlots(address signer1, address signer2) external {
+    function test_DoesNotStoreTwoSignersToTheSameStorageSlots(address signer1, address signer2) external view {
         // it should not store two signers to the same storage slots
 
         signer1 = boundNoPrecompute(signer1);
@@ -82,7 +82,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertTrue(implementation.has(signer));
     }
 
-    function test_ReturnFalseIfNoSignerExistsGivenTheOwnerAddress(address signer) external {
+    function test_ReturnFalseIfNoSignerExistsGivenTheOwnerAddress(address signer) external view {
         // it should return false if no signer exists given the owner address
 
         signer = boundNoPrecompute(signer);
@@ -109,7 +109,7 @@ contract SignerVault__VanillaP256K1 is BaseTest {
         assertFalse(implementation.has(signer));
     }
 
-    function test_AlwaysUseTheSameRoot() external {
+    function test_AlwaysUseTheSameRoot() external view {
         // it should always use the same root
 
         assertEq(implementation.root(), 0x4af245f3834b267909e0839a9d1bd5a4d800d78cbc580638b0487080d20b0900);

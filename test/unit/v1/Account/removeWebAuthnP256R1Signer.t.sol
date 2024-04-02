@@ -73,7 +73,7 @@ contract SmartAccount__RemoveWebAuthnP256R1Signer is BaseTest {
         assertEq(storedPubkeyY, 0);
     }
 
-    function test_DoNotCheckIfTheSignerExists() external {
+    function test_DoNotCheckIfTheSignerExists() external view {
         // it do not check if the signer exists
 
         // 1. we remove an unset signer -- it should not revert

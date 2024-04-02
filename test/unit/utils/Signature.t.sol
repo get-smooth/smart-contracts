@@ -7,22 +7,22 @@ import { MessageHashUtils } from "@openzeppelin/utils/cryptography/MessageHashUt
 import { VmSafe } from "forge-std/Vm.sol";
 
 contract Signature_Test is BaseTest {
-    function test_Return0ForASuccessfulSignatureVerification() external {
+    function test_Return0ForASuccessfulSignatureVerification() external pure {
         // it return 0 for a successful signature verification as specificied in the EIP-4337
         assertEq(Signature.State.SUCCESS, 0);
     }
 
-    function test_Return1ForAFailedSignatureVerification() external {
+    function test_Return1ForAFailedSignatureVerification() external pure {
         // it return 1 for a failed signature verification as specificied in the EIP-4337
         assertEq(Signature.State.FAILURE, 1);
     }
 
-    function test_Return0ForACreationSignature() external {
+    function test_Return0ForACreationSignature() external pure {
         // it return 0 for a creation signature. This must never change!
         assertEq(Signature.Type.CREATION, bytes1(0x00));
     }
 
-    function test_Return1ForAWebauthnP256r1Signature() external {
+    function test_Return1ForAWebauthnP256r1Signature() external pure {
         // it return 1 for a webauthn p256r1 signature. This must never change!
         assertEq(Signature.Type.WEBAUTHN_P256R1, bytes1(0x01));
     }
@@ -57,6 +57,7 @@ contract Signature_Test is BaseTest {
         bytes calldata signature
     )
         external
+        pure
     {
         // it return false if the signature is incorrectly recovered
         assertEq(Signature.recover(expectedSigner, message, signature), false);

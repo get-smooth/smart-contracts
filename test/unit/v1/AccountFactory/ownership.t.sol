@@ -17,7 +17,7 @@ contract AccountFactory__Ownership is BaseTest {
         factory = deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), owner);
     }
 
-    function test_ReturnTheOwner() external {
+    function test_ReturnTheOwner() external view {
         // it return the owner
 
         assertEq(factory.owner(), owner);

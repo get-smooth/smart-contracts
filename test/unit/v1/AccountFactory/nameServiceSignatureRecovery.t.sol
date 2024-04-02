@@ -15,7 +15,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         );
     }
 
-    function test_ReturnTrueIfTheSignatureIsValid() external {
+    function test_ReturnTrueIfTheSignatureIsValid() external view {
         // it return true if the signature is valid
 
         // 1. calculate the future address of the account
@@ -43,7 +43,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         assertFalse(factory.exposed_isSignatureLegit(accountAddress, createFixtures.response.authData, signature));
     }
 
-    function test_ReturnFalseIfNotTheCorrectAuthData(bytes calldata fakeAuthData) external {
+    function test_ReturnFalseIfNotTheCorrectAuthData(bytes calldata fakeAuthData) external view {
         // it return false if not the correct pubKey
 
         // 1. calculate the future address of the account
@@ -55,7 +55,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         assertFalse(factory.exposed_isSignatureLegit(accountAddress, fakeAuthData, signature));
     }
 
-    function test_ReturnFalseIfNotTheCorrectAccountAddress(address incorrectAddr) external {
+    function test_ReturnFalseIfNotTheCorrectAccountAddress(address incorrectAddr) external view {
         // it return false if not the correct AccountAddress
 
         // 1. make sure the fuzzed address is not correct
@@ -68,7 +68,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         assertFalse(factory.exposed_isSignatureLegit(incorrectAddr, createFixtures.response.authData, signature));
     }
 
-    function test_ReturnFalseIfNotTheCorrectSignature(bytes32 hash) external {
+    function test_ReturnFalseIfNotTheCorrectSignature(bytes32 hash) external view {
         // it return false if not the correct signature
 
         // 1. calculate the future address of the account
@@ -81,7 +81,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         );
     }
 
-    function test_ReturnFalseIfNotTheCorrectSignatureLength(bytes32 r, bytes32 s) external {
+    function test_ReturnFalseIfNotTheCorrectSignatureLength(bytes32 r, bytes32 s) external view {
         // it return false if not the correct signature length
 
         // NOTE: A valid ecdsa signature is 65 bytes long. We add a 1 byte type to it meaning

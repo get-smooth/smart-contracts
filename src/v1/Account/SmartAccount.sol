@@ -5,6 +5,7 @@ import { IEntryPoint } from "@eth-infinitism/interfaces/IEntryPoint.sol";
 import { UserOperation } from "@eth-infinitism/interfaces/UserOperation.sol";
 import { BaseAccount } from "@eth-infinitism/core/BaseAccount.sol";
 import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/proxy/utils/UUPSUpgradeable.sol";
 import { IWebAuthn256r1 } from "@webauthn/IWebAuthn256r1.sol";
 import { UV_FLAG_MASK } from "@webauthn/utils.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
@@ -14,34 +15,23 @@ import { Metadata } from "src/v1/Metadata.sol";
 import { SmartAccountTokensSupport } from "src/v1/Account/SmartAccountTokensSupport.sol";
 import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
 
-/**
- * TODO:
- *  - Take a look to proxy's versions
- *  - New nonce serie per entrypoint? In that case, first addFirstSigner
- */
-contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, SmartAccountEIP1271 {
-    // ==============================
-    // ========= METADATA ===========
-    // ==============================
-
-    uint256 public constant VERSION = Metadata.VERSION;
-
-    // ==============================
-    // ========= CONSTANTS ==========
-    // ==============================
+contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccountTokensSupport, SmartAccountEIP1271 {
+    // ======================================
+    // ============= CONSTANTS ==============
+    // ======================================
 
     address public immutable webAuthnVerifierAddress;
     address internal immutable entryPointAddress;
 
-    // ==============================
-    // =========== STATE ============
-    // ==============================
+    // ======================================
+    // =============== STATE ================
+    // ======================================
 
     address internal factoryAddress;
 
-    // ==============================
-    // ======= EVENTS/ERRORS ========
-    // ==============================
+    // ======================================
+    // =========== EVENTS/ERRORS ============
+    // ======================================
 
     /// @notice Emitted every time a signer is added to the account
     /// @dev The credIdHash is indexed to allow off-chain services to track account with same signer authorized
@@ -65,9 +55,9 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     /// @dev    `values` can be of length 0 if no value is passed to the calls
     error IncorrectExecutionBatchParameters();
 
-    // ==============================
-    // ======= CONSTRUCTION =========
-    // ==============================
+    // ======================================
+    // ============ CONSTRUCTION =============
+    // ======================================
 
     /// @dev   Do not store any state in this function as the contract will be proxified, only immutable variables
     /// @param _entryPoint The address of the 4337 entrypoint used by this implementation
@@ -99,9 +89,9 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         _addWebAuthnSigner(credIdHash, pubX, pubY, credId);
     }
 
-    // ==============================
-    // ========= MODIFIER ===========
-    // ==============================
+    // ======================================
+    // ============= MODIFIER ===============
+    // ======================================
 
     /// @notice This modifier ensure the caller is the 4337 entrypoint stored
     modifier onlyEntrypoint() {
@@ -119,88 +109,14 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         _;
     }
 
-    // ==============================
-    // ======== FUNCTIONS ===========
-    // ==============================
-
-    /// @notice Allow the contract to receive native tokens
-    // solhint-disable-next-line no-empty-blocks
-    receive() external payable { }
-
-    /// @notice Return the entrypoint used by this implementation
-    function entryPoint() public view override returns (IEntryPoint) {
-        return IEntryPoint(entryPointAddress);
-    }
-
-    /// @notice Return the factory that initialized this contract
-    /// @return The address of the factory
-    function factory() external view returns (address) {
-        return factoryAddress;
-    }
-
-    /// @notice Return the webauthn verifier used by this contract
-    /// @return The address of the webauthn verifier
-    function webAuthnVerifier() external view returns (address) {
-        return webAuthnVerifierAddress;
-    }
+    // ======================================
+    // ========= INTERNAL FUNCTIONS =========
+    // ======================================
 
     /// @notice Used internally to get the webauthn verifier
     /// @return The 256r1 webauthn verifier
     function webauthn256R1Verifier() internal view override returns (IWebAuthn256r1) {
         return IWebAuthn256r1(webAuthnVerifierAddress);
-    }
-
-    /// @notice Extract the signer from the authenticatorData
-    /// @dev    This function is free to be called (!!)
-    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
-    /// @return credId The credential ID, uniquely identifying the signer.
-    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
-    /// @return pubkeyX The X coordinate of the signer's public key.
-    /// @return pubkeyY The Y coordinate of the signer's public key.
-    function extractSignerFromAuthData(bytes calldata authenticatorData)
-        public
-        pure
-        virtual
-        returns (bytes memory credId, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
-    {
-        (credId, credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
-    }
-
-    /// @notice Remove an existing Webauthn p256r1.
-    /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected
-    /// @param  credIdHash The hash of the credential ID associated to the signer
-    function removeWebAuthnP256R1Signer(bytes32 credIdHash) external virtual onlySelf {
-        // 1. get the current public key stored
-        (uint256 pubkeyX, uint256 pubkeyY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
-
-        // 2. remove the signer from the vault
-        SignerVaultWebAuthnP256R1.remove(credIdHash);
-
-        // 3. emit the event with the removed signer
-        emit SignerRemoved(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
-    }
-
-    /// @notice Add a Webauthn p256r1 new signer to the account
-    /// @dev   This function can only be called by the account itself. The whole 4337 workflow must be respected
-    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
-    function addWebAuthnP256R1Signer(bytes calldata authenticatorData)
-        external
-        virtual
-        onlySelf
-        returns (bytes32, uint256, uint256, bytes memory)
-    {
-        // 1. verify the UV is set in the authenticatorData
-        if ((authenticatorData[32] & UV_FLAG_MASK) == 0) revert InvalidSignerAddition();
-
-        // 2. extract the signer from the authenticatorData
-        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
-            extractSignerFromAuthData(authenticatorData);
-
-        // 3. set the signer in the vault
-        _addWebAuthnSigner(credIdHash, pubX, pubY, credId);
-
-        // 4. return the signer
-        return (credIdHash, pubX, pubY, credId);
     }
 
     /// @notice Set a new Webauthn p256r1 new signer and emit the expected event. This function
@@ -222,21 +138,6 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
 
         // 2. emit the event with the added signer
         emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credId, credIdHash, pubkeyX, pubkeyY);
-    }
-
-    /// @notice Return a signer stored in the account using its credIdHash. When storing a signer, the credId
-    ///         is hashed using keccak256 because its length is unpredictable.
-    /// @dev    This function is free to be called (!!)
-    /// @param  _credIdHash The hash of the credential ID, uniquely identifying the signer.
-    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
-    /// @return pubkeyX The X coordinate of the signer's public key.
-    /// @return pubkeyY The Y coordinate of the signer's public key.
-    function getSigner(bytes32 _credIdHash)
-        external
-        view
-        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
-    {
-        (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(_credIdHash);
     }
 
     /// @notice The validation of the creation signature
@@ -298,7 +199,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     //          the signature. The expected challenge is constructed on-chain using the data from the userOp and
     //          the environment (entrypoint address, chainid, this contract address)...
     /// @param userOp The user operation to validate
-    function _validateWebAuthnP256R1Signature(UserOperation calldata userOp) internal returns (uint256) {
+    function _validateWebAuthnP256R1Signature(UserOperation calldata userOp) internal virtual returns (uint256) {
         // 1. decode the signature
         ( /*identifier*/ , bytes memory authData, bytes memory clientData, uint256 r, uint256 s, bytes32 credIdHash) =
             abi.decode(userOp.signature, (bytes1, bytes, bytes, uint256, uint256, bytes32));
@@ -334,6 +235,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         bytes32 // userOpHash
     )
         internal
+        virtual
         override
         returns (uint256 validationData)
     {
@@ -352,14 +254,12 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         return Signature.State.FAILURE;
     }
 
-    // *********** EXECUTE ***********//
-
     /// @notice Execute a transaction
     /// @dev Revert if the call fails
     /// @param target The address of the contract to call
     /// @param value The value to pass in this call
     /// @param data The calldata to pass in this call (selector + encoded arguments)
-    function _call(address target, uint256 value, bytes calldata data) internal {
+    function _call(address target, uint256 value, bytes calldata data) internal virtual {
         (bool success, bytes memory result) = target.call{ value: value }(data);
         if (!success) {
             assembly {
@@ -368,12 +268,121 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         }
     }
 
+    // ======================================
+    // ======= EXTERNAL FREE FUNCTIONS ======
+    // ======================================
+
+    /// @notice Allow the contract to receive native tokens
+    // solhint-disable-next-line no-empty-blocks
+    receive() external payable { }
+
+    function version() external pure virtual returns (uint256) {
+        return Metadata.VERSION;
+    }
+
+    /// @notice Return the entrypoint used by this implementation
+    function entryPoint() public view override returns (IEntryPoint) {
+        return IEntryPoint(entryPointAddress);
+    }
+
+    /// @notice Return the factory that initialized this contract
+    /// @return The address of the factory
+    function factory() external view returns (address) {
+        return factoryAddress;
+    }
+
+    /// @notice Return the webauthn verifier used by this contract
+    /// @return The address of the webauthn verifier
+    function webAuthnVerifier() external view returns (address) {
+        return webAuthnVerifierAddress;
+    }
+
+    /// @notice Extract the signer from the authenticatorData
+    /// @dev    This function is free to be called (!!)
+    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    /// @return credId The credential ID, uniquely identifying the signer.
+    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function extractSignerFromAuthData(bytes calldata authenticatorData)
+        public
+        pure
+        virtual
+        returns (bytes memory credId, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        (credId, credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
+    }
+
+    /// @notice Return a signer stored in the account using its credIdHash. When storing a signer, the credId
+    ///         is hashed using keccak256 because its length is unpredictable.
+    /// @dev    This function is free to be called (!!)
+    /// @param  _credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return credIdHash The hash of the credential ID, uniquely identifying the signer.
+    /// @return pubkeyX The X coordinate of the signer's public key.
+    /// @return pubkeyY The Y coordinate of the signer's public key.
+    function getSigner(bytes32 _credIdHash)
+        external
+        view
+        virtual
+        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+    {
+        (credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.get(_credIdHash);
+    }
+
+    // ======================================
+    // ===== EXTERNAL ITSELF FUNCTIONS ======
+    // ======================================
+
+    /// @notice Remove an existing Webauthn p256r1.
+    /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected
+    /// @param  credIdHash The hash of the credential ID associated to the signer
+    function removeWebAuthnP256R1Signer(bytes32 credIdHash) external virtual onlySelf {
+        // 1. get the current public key stored
+        (uint256 pubkeyX, uint256 pubkeyY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
+
+        // 2. remove the signer from the vault
+        SignerVaultWebAuthnP256R1.remove(credIdHash);
+
+        // 3. emit the event with the removed signer
+        emit SignerRemoved(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
+    }
+
+    /// @notice Add a Webauthn p256r1 new signer to the account
+    /// @dev   This function can only be called by the account itself. The whole 4337 workflow must be respected
+    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
+    function addWebAuthnP256R1Signer(bytes calldata authenticatorData)
+        external
+        virtual
+        onlySelf
+        returns (bytes32, uint256, uint256, bytes memory)
+    {
+        // 1. verify the UV is set in the authenticatorData
+        if ((authenticatorData[32] & UV_FLAG_MASK) == 0) revert InvalidSignerAddition();
+
+        // 2. extract the signer from the authenticatorData
+        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            extractSignerFromAuthData(authenticatorData);
+
+        // 3. set the signer in the vault
+        _addWebAuthnSigner(credIdHash, pubX, pubY, credId);
+
+        // 4. return the signer
+        return (credIdHash, pubX, pubY, credId);
+    }
+
+    /// @notice authorize account upgrade to a new implementation if the caller is the account itself
+    function _authorizeUpgrade(address) internal virtual override onlySelf { }
+
+    // ======================================
+    // === EXTERNAL ENTRYPOINT FUNCTIONS ====
+    // ======================================
+
     /// @notice Execute a transaction if called by the entrypoint
     /// @dev Revert if the call fails
     /// @param target The address of the contract to call
     /// @param value The value to pass in this call
     /// @param data The calldata to pass in this call (selector + encoded arguments)
-    function execute(address target, uint256 value, bytes calldata data) external onlyEntrypoint {
+    function execute(address target, uint256 value, bytes calldata data) external virtual onlyEntrypoint {
         _call(target, value, data);
     }
 
@@ -388,6 +397,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         bytes[] calldata datas
     )
         external
+        virtual
         onlyEntrypoint
     {
         // 1. check the length of the parameters is correct. Note that `values` can be of length 0 if no value is passed

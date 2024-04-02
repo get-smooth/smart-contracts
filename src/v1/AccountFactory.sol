@@ -103,11 +103,12 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
         virtual
         returns (address)
     {
-        // 1. calculate the salt that will be used to deploy the account
-        bytes32 salt = calculateSalt(authenticatorData);
+        // 1. extract the signer from the authenticatorData
+        (, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
 
         // 2. get the address of the account if it exists
-        address accountAddress = getAddress(salt);
+        address accountAddress = getAddress(credIdHash, pubX, pubY);
 
         // 3. check if the account is already deployed and return prematurely if it is
         if (accountAddress.code.length > 0) return accountAddress;
@@ -121,7 +122,7 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
         // is called using the `delegatecall` opcode
         SmartAccount account = SmartAccount(
             payable(
-                new ERC1967Proxy{ salt: salt }(
+                new ERC1967Proxy{ salt: calculateSalt(credIdHash, pubX, pubY) }(
                     accountImplementation, abi.encodeWithSelector(SmartAccount.initialize.selector)
                 )
             )
@@ -136,31 +137,30 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
     }
 
     /// @notice This function calculates the salt used to deploy the account
-    /// @dev The salt is calculated using the credIdHash, the pubkeyX and the pubkeyY extracted from the
-    ///      authenticatorData. This function must never be changed (!!)
-    /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
-    function calculateSalt(bytes calldata authenticatorData) internal pure returns (bytes32) {
-        // 1. extract the signer from the authenticatorData
-        (, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) =
-            SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
-
-        // 2. encode the signer and hash the result to get the salt
+    /// @dev This function must never be changed (!!)
+    /// @param credIdHash The hash of the credential ID of the signer
+    /// @param pubkeyX The x-coordinate of the public key of the signer
+    /// @param pubkeyY The y-coordinate of the public key of the signer
+    function calculateSalt(bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) internal pure returns (bytes32) {
+        // 1. encode the signer and hash the result to get the salt
         return keccak256(abi.encodePacked(credIdHash, pubkeyX, pubkeyY));
     }
 
     /// @notice This utility function returns the address of the account that would be deployed using the salt
     /// @dev    This is the under the hood formula used by the CREATE2 opcode. This function must never be changed (!!)
-    /// @param  salt The salt used to deploy the account
+    /// @param  credIdHash The hash of the credential ID of the signer
+    /// @param  pubkeyX The x-coordinate of the public key of the signer
+    /// @param  pubkeyY The y-coordinate of the public key of the signer
     /// @return The address of the account that would be deployed
-    function getAddress(bytes32 salt) internal view returns (address) {
+    function getAddress(bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) internal view returns (address) {
         return address(
             uint160(
                 uint256(
                     keccak256(
                         abi.encodePacked(
                             bytes1(0xff), // init code hash prefix
-                            address(this), // deployer address  // @TODO: test factory upgrade
-                            salt, // `keccak256(abi.encodePacked(credIdHash, pubX, pubY))`
+                            address(this), // deployer address
+                            calculateSalt(credIdHash, pubkeyX, pubkeyY),
                             keccak256( // the init code hash
                                 abi.encodePacked(
                                     // creation code of the contract deployed
@@ -184,8 +184,12 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     /// @return The address of the account that would be deployed
     function getAddress(bytes calldata authenticatorData) external view returns (address) {
-        bytes32 salt = calculateSalt(authenticatorData);
-        return getAddress(salt);
+        // 1. extract the signer from the authenticatorData
+        (, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
+
+        // 2. return the address of the account that would be deployed
+        return getAddress(credIdHash, pubX, pubY);
     }
 
     function version() external pure virtual returns (uint256) {

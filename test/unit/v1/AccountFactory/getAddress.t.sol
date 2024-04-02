@@ -3,6 +3,7 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
+import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
     address internal factoryImplementation;
@@ -58,23 +59,33 @@ contract AccountFactory__GetAddress is BaseTest {
         assertEq(computedAddress1, computedAddress2);
     }
 
+    function _extractSignerFromAuthData(bytes calldata authenticatorData)
+        external
+        pure
+        returns (bytes32, uint256, uint256)
+    {
+        (, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
+        return (credIdHash, pubX, pubY);
+    }
+
     function test_CalculateSameAddressUsingBothMethods() external {
         // it calculate same address using both methods
 
-        bytes32 salt = factory.exposed_calculateSalt(createFixtures.response.authData);
+        // 1. extract the signer from the authenticatorData
+        (bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            AccountFactory__GetAddress(address(this))._extractSignerFromAuthData(createFixtures.response.authData);
 
-        assertEq(factory.getAddress(createFixtures.response.authData), factory.exposed_getAddress(salt));
+        assertEq(
+            factory.getAddress(createFixtures.response.authData), factory.exposed_getAddress(credIdHash, pubX, pubY)
+        );
     }
 }
 
 contract AccountFactoryHarness is AccountFactory {
     constructor(address accountImplementation) AccountFactory(accountImplementation) { }
 
-    function exposed_calculateSalt(bytes calldata authenticatorData) external pure returns (bytes32) {
-        return calculateSalt(authenticatorData);
-    }
-
-    function exposed_getAddress(bytes32 salt) external view returns (address) {
-        return getAddress(salt);
+    function exposed_getAddress(bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) external view returns (address) {
+        return getAddress(credIdHash, pubkeyX, pubkeyY);
     }
 }

@@ -73,30 +73,35 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     /// @param _entryPoint The address of the 4337 entrypoint used by this implementation
     /// @param _webAuthnVerifier The address of the webauthn library used for verify the webauthn signature
     constructor(address _entryPoint, address _webAuthnVerifier) {
+        // 1. set the immutable variables
         entryPointAddress = _entryPoint;
         webAuthnVerifierAddress = _webAuthnVerifier;
 
-        // prevent the implementation contract from being used directly
+        // 2. prevent the implementation contract from being used directly
         _disableInitializers();
     }
 
-    /// @notice Called once during the creation of the instance. Initialize the contract with the version 1.
-    // solhint-disable-next-line no-empty-blocks
-    function initialize() external reinitializer(1) {
-        // Address of the factory that initialize the proxy that points to this implementation
-        // Only the factory will have the ability to set the first signer when nonce==0
+    /// @notice Called once during the creation of the instance. Set the first signer.
+    function initialize(
+        bytes32 credIdHash,
+        uint256 pubX,
+        uint256 pubY,
+        bytes calldata credId
+    )
+        external
+        virtual
+        reinitializer(1)
+    {
+        // 1. address of the factory that initialize the proxy contract
         factoryAddress = msg.sender;
+
+        // 2. set the first signer
+        _addWebAuthnSigner(credIdHash, pubX, pubY, credId);
     }
 
     // ==============================
     // ========= MODIFIER ===========
     // ==============================
-
-    /// @notice This modifier ensure the caller is the factory that deployed this contract
-    modifier onlyFactory() {
-        if (msg.sender != factoryAddress) revert NotTheFactory();
-        _;
-    }
 
     /// @notice This modifier ensure the caller is the 4337 entrypoint stored
     modifier onlyEntrypoint() {
@@ -145,20 +150,6 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         return IWebAuthn256r1(webAuthnVerifierAddress);
     }
 
-    /// @notice Remove an existing Webauthn p256r1.
-    /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected
-    /// @param  credIdHash The hash of the credential ID associated to the signer
-    function removeWebAuthnP256R1Signer(bytes32 credIdHash) external onlySelf {
-        // 1. get the current public key stored
-        (uint256 pubkeyX, uint256 pubkeyY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
-
-        // 2. remove the signer from the vault
-        SignerVaultWebAuthnP256R1.remove(credIdHash);
-
-        // 3. emit the event with the removed signer
-        emit SignerRemoved(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
-    }
-
     /// @notice Extract the signer from the authenticatorData
     /// @dev    This function is free to be called (!!)
     /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
@@ -169,31 +160,24 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     function extractSignerFromAuthData(bytes calldata authenticatorData)
         public
         pure
+        virtual
         returns (bytes memory credId, bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
     {
         (credId, credIdHash, pubkeyX, pubkeyY) = SignerVaultWebAuthnP256R1.extractSignerFromAuthData(authenticatorData);
     }
 
-    /// @notice Set a new Webauthn p256r1 new signer and emit the expected event. This function
-    ///         can not override an existing signer, use `remnoveWebAuthnP256R1Signer` for this
-    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
-    function _addWebAuthnSigner(bytes calldata authenticatorData)
-        internal
-        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
-    {
-        // 0. verify the UV is set in the authenticatorData
-        if ((authenticatorData[32] & UV_FLAG_MASK) == 0) revert InvalidSignerAddition();
+    /// @notice Remove an existing Webauthn p256r1.
+    /// @dev    This function can only be called by the account itself. The whole 4337 workflow must be respected
+    /// @param  credIdHash The hash of the credential ID associated to the signer
+    function removeWebAuthnP256R1Signer(bytes32 credIdHash) external virtual onlySelf {
+        // 1. get the current public key stored
+        (uint256 pubkeyX, uint256 pubkeyY) = SignerVaultWebAuthnP256R1.pubkey(credIdHash);
 
-        // 1. extract the signer from the authenticatorData
-        // @DEV: WHY CANNOT WE USE `bytes memory` in the tuple without specify other fucking types?
-        bytes memory credId;
-        (credId, credIdHash, pubkeyX, pubkeyY) = extractSignerFromAuthData(authenticatorData);
+        // 2. remove the signer from the vault
+        SignerVaultWebAuthnP256R1.remove(credIdHash);
 
-        // 2. Set the new signer in the vault if the signer does not already exist
-        SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
-
-        // 3. emit the event with the added signer
-        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credId, credIdHash, pubkeyX, pubkeyY);
+        // 3. emit the event with the removed signer
+        emit SignerRemoved(Signature.Type.WEBAUTHN_P256R1, credIdHash, pubkeyX, pubkeyY);
     }
 
     /// @notice Add a Webauthn p256r1 new signer to the account
@@ -201,24 +185,43 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     function addWebAuthnP256R1Signer(bytes calldata authenticatorData)
         external
+        virtual
         onlySelf
-        returns (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY)
+        returns (bytes32, uint256, uint256, bytes memory)
     {
-        return _addWebAuthnSigner(authenticatorData);
+        // 1. verify the UV is set in the authenticatorData
+        if ((authenticatorData[32] & UV_FLAG_MASK) == 0) revert InvalidSignerAddition();
+
+        // 2. extract the signer from the authenticatorData
+        (bytes memory credId, bytes32 credIdHash, uint256 pubX, uint256 pubY) =
+            extractSignerFromAuthData(authenticatorData);
+
+        // 3. set the signer in the vault
+        _addWebAuthnSigner(credIdHash, pubX, pubY, credId);
+
+        // 4. return the signer
+        return (credIdHash, pubX, pubY, credId);
     }
 
-    /// @notice Add the first signer to the account. This function is only call once by the factory
-    ///         during the deployment of the account. All the future signers must be added using the
-    ///         `addWebAuthnP256R1Signer` function.
-    /// @dev    This function adds a signer generated using the WebAuthn protocol on the
-    ///         secp256r1 curve. This function can only be called once when the nonce of the account is 0x00.
-    /// @param authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
-    function addFirstSigner(bytes calldata authenticatorData) external onlyFactory {
-        // 1. check that the nonce is 0x00. The value of the first key is checked here
-        if (getNonce() != 0) revert InvalidFirstSignerAddition();
+    /// @notice Set a new Webauthn p256r1 new signer and emit the expected event. This function
+    ///         can not override an existing signer, use `remnoveWebAuthnP256R1Signer` for this
+    /// @param credIdHash The hash of the credential ID associated to the signer
+    /// @param pubkeyX The X coordinate of the signer's public key
+    /// @param pubkeyY The Y coordinate of the signer's public key
+    function _addWebAuthnSigner(
+        bytes32 credIdHash,
+        uint256 pubkeyX,
+        uint256 pubkeyY,
+        bytes memory credId
+    )
+        internal
+        virtual
+    {
+        // 1. Set the new signer in the vault if the signer does not already exist
+        SignerVaultWebAuthnP256R1.set(credIdHash, pubkeyX, pubkeyY);
 
-        // 2. add account's first signer and emit the signer addition event
-        _addWebAuthnSigner(authenticatorData);
+        // 2. emit the event with the added signer
+        emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credId, credIdHash, pubkeyX, pubkeyY);
     }
 
     /// @notice Return a signer stored in the account using its credIdHash. When storing a signer, the credId
@@ -245,12 +248,14 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
     /// @param signature The signature field presents in the userOp.
     /// @param initCode The initCode field presents in the userOp. It has been used to create the account
     /// @return 0 if the signature is valid, 1 otherwise
+    // TODO: use transient storage for the expected signer/factory?
     function _validateCreationSignature(
         bytes calldata signature,
         bytes calldata initCode
     )
         internal
         view
+        virtual
         returns (uint256)
     {
         // 1. check that the nonce is 0x00. The value of the first key is checked here
@@ -258,7 +263,8 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
 
         // 2. get the address of the factory and check it is the expected one
         address accountFactory = address(bytes20(initCode[:20]));
-        if (accountFactory != factoryAddress) return Signature.State.FAILURE;
+        address storedFactoryAddress = factoryAddress;
+        if (accountFactory != storedFactoryAddress) return Signature.State.FAILURE;
 
         // 3. decode the rest of the initCode (skip the first 4 bytes -- function selector)
         (bytes memory authenticatorData,) = abi.decode(initCode[24:], (bytes, bytes));
@@ -272,7 +278,7 @@ contract SmartAccount is Initializable, BaseAccount, SmartAccountTokensSupport, 
         bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, address(this), block.chainid);
 
         // 6. fetch the expected signer from the factory contract
-        address expectedSigner = AccountFactory(factoryAddress).owner();
+        address expectedSigner = AccountFactory(storedFactoryAddress).owner();
 
         // 7. Check the signature is valid and revert if it is not
         // NOTE: The signature prefix, added manually to identify the signature, is removed before the recovery process

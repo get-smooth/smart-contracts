@@ -47,6 +47,6 @@ contract SmartAccount__Constructor is BaseTest {
 
         // make sure the initializer is not callable
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        account.initialize();
+        account.initialize(keccak256("fake-cred-id"), 0, 0, "fake-cred-id");
     }
 }

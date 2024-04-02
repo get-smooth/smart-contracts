@@ -4,6 +4,6 @@ AccountFactory__CreateAndInitAccount
 ├── it deploy a new account if none exists given a new hash
 ├── it revert with an incorrect valid signature
 ├── it call initialize
-├── it call the proxy addFirstSigner function
+├── it set the first signer
 ├── it trigger an event on deployment
 └── it set the factory address in the proxy storage on init

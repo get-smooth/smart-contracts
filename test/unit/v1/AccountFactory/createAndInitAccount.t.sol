@@ -3,6 +3,7 @@ pragma solidity >=0.8.20 <0.9.0;
 
 import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
+import { SmartAccount } from "src/v1/Account/SmartAccount.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 
 contract AccountFactory__CreateAndInitAccount is BaseTest {
@@ -93,7 +94,7 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // 1. calculate where the account will be deployed
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
-        // 2. deploy the account contract using the same hash
+        // 2. craft the signature for the deployment
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // 3. we tell the VM to expect *one* call to the initialize function without any parameter
@@ -103,22 +104,25 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         factory.createAndInitAccount(createFixtures.response.authData, signature);
     }
 
-    function test_CallTheProxyAddFirstSignerFunction() external {
+    function test_SetTheFirstSigner() external {
         // 1. calculate where the account will be deployed
         address accountAddress = factory.getAddress(createFixtures.response.authData);
 
-        // 2. deploy the account contract using the same hash
+        // 2. craft the deployment signature
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        // 3. we tell the VM to expect *one* call to the addFirstSigner function with the authData as parameter
-        vm.expectCall(
-            factory.getAddress(createFixtures.response.authData),
-            abi.encodeCall(SmartAccount.addFirstSigner, (createFixtures.response.authData)),
-            1
-        );
+        // 3. we deploy the instance of the account
+        SmartAccount newAccount =
+            SmartAccount(payable(factory.createAndInitAccount(createFixtures.response.authData, signature)));
 
-        // 4. we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(createFixtures.response.authData, signature);
+        // 4. fetch the signer that is supposed to be stored
+        (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) =
+            newAccount.getSigner(keccak256(createFixtures.signer.credId));
+
+        // 5. check the signer has been set correctly
+        assertEq(keccak256(createFixtures.signer.credId), credIdHash);
+        assertEq(createFixtures.signer.pubX, pubkeyX);
+        assertEq(createFixtures.signer.pubY, pubkeyY);
     }
 
     function test_TriggerAnEventOnDeployment() external {

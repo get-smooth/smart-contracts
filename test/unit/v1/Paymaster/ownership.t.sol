@@ -17,7 +17,7 @@ contract Paymaster__Ownership is BaseTest {
         paymaster = new Paymaster(entrypoint, owner, operator);
     }
 
-    function test_ReturnTheOwner() external {
+    function test_ReturnTheOwner() external view {
         // it return the owner
 
         assertEq(paymaster.owner(), owner);

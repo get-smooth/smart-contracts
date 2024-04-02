@@ -17,7 +17,7 @@ contract Paymaster__Versionning is BaseTest {
         paymaster = new Paymaster(entrypoint, owner, operator);
     }
 
-    function test_AllowVersionFetching() external {
+    function test_AllowVersionFetching() external view {
         // it allow version fetching
 
         assertEq(paymaster.version(), Metadata.VERSION);

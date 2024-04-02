@@ -24,7 +24,7 @@ contract SmartAccount__GetNonce is BaseTest {
         assertEq(acc.getNonce(), 1);
     }
 
-    function test_Return0ForInactiveAccount() external {
+    function test_Return0ForInactiveAccount() external view {
         // it return 0 for a never used account
 
         assertEq(acc.getNonce(), 0);

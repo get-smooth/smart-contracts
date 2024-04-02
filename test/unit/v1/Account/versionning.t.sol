@@ -12,7 +12,7 @@ contract SmartAccount__Versionning is BaseTest {
         account = new SmartAccount(makeAddr("entrypoint"), makeAddr("verifier"));
     }
 
-    function test_AllowVersionFetching() external {
+    function test_AllowVersionFetching() external view {
         // it allow version fetching
 
         assertEq(account.version(), Metadata.VERSION);

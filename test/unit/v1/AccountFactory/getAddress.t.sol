@@ -69,7 +69,7 @@ contract AccountFactory__GetAddress is BaseTest {
         return (credId, credIdHash, pubX, pubY);
     }
 
-    function test_CalculateSameAddressUsingBothMethods() external {
+    function test_CalculateSameAddressUsingBothMethods() external view {
         // it calculate same address using both methods
 
         // 1. extract the signer from the authenticatorData

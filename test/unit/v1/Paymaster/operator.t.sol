@@ -39,7 +39,7 @@ contract Paymaster__Operator is BaseTest {
         assertEq(paymaster.operator(), newOperator);
     }
 
-    function test_AllowOperatorToBeFetch() external {
+    function test_AllowOperatorToBeFetch() external view {
         // it allow operator to be fetch
 
         assertEq(paymaster.operator(), operator);

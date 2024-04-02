@@ -16,7 +16,7 @@ contract AccountFactory__Versionning is BaseTest {
         );
     }
 
-    function test_AllowVersionFetching() external {
+    function test_AllowVersionFetching() external view {
         // it allow version fetching
 
         assertEq(factory.version(), Metadata.VERSION);

@@ -20,7 +20,7 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
     // ============= CONSTANTS ==============
     // ======================================
 
-    address public immutable webAuthnVerifierAddress;
+    address internal immutable webAuthnVerifierAddress;
     address internal immutable entryPointAddress;
 
     // ======================================

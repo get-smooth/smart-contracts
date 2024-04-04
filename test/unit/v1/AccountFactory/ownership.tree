@@ -1,6 +1,0 @@
-AccountFactory__Ownership
-├── it return the owner
-├── it allow owner to transfer ownership
-├── it revert if not owner try to transfer ownership
-├── it allow owner to renounce ownership
-└── it revert if not owner try to renounce ownership

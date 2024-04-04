@@ -16,8 +16,7 @@ contract SmartAccount__GetSigner is BaseTest {
         SmartAccount accountImplementation = new SmartAccount(entrypoint, makeAddr("verifier"));
 
         // 3. deploy the factory
-        address factoryImplementation = address(deployFactoryImplementation(address(accountImplementation)));
-        factory = deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), SMOOTH_SIGNER.addr);
+        factory = new AccountFactory(address(accountImplementation), SMOOTH_SIGNER.addr);
     }
 
     function _deployAndInitValidAccount() internal returns (SmartAccount) {

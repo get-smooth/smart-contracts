@@ -1,9 +1,0 @@
-AccountFactory__Upgradeable
-├── it can be upgraded to another implementation
-├── it deploy a ProxyAdmin contract on init and store the admin
-├── it allows the admin to change the admin
-├── it allows the admin to upgrade the proxy using fallback
-├── it delegate non admin calls correctly
-├── it revert if reinitializer is equal or below
-├── it do not alter the signer address
-└── it do not alter the CREATE2 formula on upgrade

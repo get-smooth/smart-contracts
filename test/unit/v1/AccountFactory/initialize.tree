@@ -1,5 +1,0 @@
-AccountFactory__Initiliaze
-├── it reverts if called in the implementation
-├── it can be called using a proxy and set version to 1
-├── it store the owner
-└── it can not be called twice

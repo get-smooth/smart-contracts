@@ -22,10 +22,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         address accountImplementation = address(new SmartAccountHarness(address(entrypoint), makeAddr("verifier")));
 
         // 3. deploy the implementation of the factory and its instance
-        address factoryImplementation = address(new AccountFactoryHarness(accountImplementation));
-        factory = AccountFactoryHarness(
-            address(deployFactoryInstance(factoryImplementation, makeAddr("proxy-owner"), SMOOTH_SIGNER.addr))
-        );
+        factory = new AccountFactoryHarness(address(accountImplementation), SMOOTH_SIGNER.addr);
 
         // 4. deploy a valid instance of the account implementation and set a valid signer
         account = SmartAccountHarness(
@@ -238,7 +235,7 @@ contract SmartAccountHarness is SmartAccount {
 }
 
 contract AccountFactoryHarness is AccountFactory {
-    constructor(address accountImplementation) AccountFactory(accountImplementation) { }
+    constructor(address accountImplementation, address operator) AccountFactory(accountImplementation, operator) { }
 
     function exposed_deployAccount(
         bytes32 credIdHash,

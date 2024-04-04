@@ -21,8 +21,7 @@ contract SmartAccount__Upgradeable is BaseTest {
         address accountImplementation = address(new SmartAccount(entryPoint, verifier));
 
         // 3. deploy the implementation of the factory and one instance
-        address factoryImplementation = address(deployFactoryImplementation(payable(accountImplementation)));
-        factory = deployFactoryInstance(factoryImplementation, makeAddr("proxy-owner"), SMOOTH_SIGNER.addr);
+        factory = new AccountFactory(address(accountImplementation), SMOOTH_SIGNER.addr);
 
         // 4. get the address of the future account
         address accountFutureAddress = factory.getAddress(createFixtures.response.authData);

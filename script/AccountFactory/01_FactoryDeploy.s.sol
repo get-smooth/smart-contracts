@@ -9,16 +9,18 @@ import { Metadata } from "src/v1/Metadata.sol";
 /// @title  FactoryDeployImplementation
 /// @notice Deploy an implementation of the account factory
 contract FactoryDeployImplementation is BaseScript {
-    function run() public broadcast returns (AccountFactory) {
+    function run() public returns (AccountFactory) {
+        // 1. get the environment variables
         address payable accountImplementation = payable(vm.envAddress("ACCOUNT_IMPLEMENTATION"));
+        address factorySigner = vm.envAddress("FACTORY_SIGNER");
 
-        // 1. Check if the account implementation is deployed
+        // 2. Check if the account implementation is deployed
         require(address(accountImplementation).code.length > 0, "Account not deployed");
 
-        // 2. Check the version of the account is the expected one
+        // 3. Check the version of the account is the expected one
         require(Metadata.VERSION == SmartAccount(accountImplementation).version(), "Version mismatch");
 
-        // 3. Confirm the account implementation address with the user
+        // 4. Confirm the account implementation address with the user
         string memory prompt = string(
             abi.encodePacked(
                 "The account implementation can never be changed in the factory contract."
@@ -41,8 +43,13 @@ contract FactoryDeployImplementation is BaseScript {
             revert("Entrypoint address not approved");
         }
 
+        // 5. run the script
+        return run(accountImplementation, factorySigner);
+    }
+
+    function run(address accountImplementation, address factorySigner) internal broadcast returns (AccountFactory) {
         // 4. Deploy the account factory
-        AccountFactory accountFactoryImplementation = new AccountFactory(accountImplementation);
+        AccountFactory accountFactoryImplementation = new AccountFactory(accountImplementation, factorySigner);
 
         // 5. Check the version of the account factory is the expected one
         require(Metadata.VERSION == accountFactoryImplementation.version(), "Version mismatch");

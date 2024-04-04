@@ -32,16 +32,15 @@ contract SmartAccountDeploy is BaseScript {
         // 2. Check if the address of the entryPoint is deployed
         require(entryPointAddress.code.length > 0, "The entrypoint is not deployed");
 
-        // 3. Run the script using the entrypoint address
-        return run(entryPointAddress);
-    }
-
-    function run(address entryPointAddress) internal broadcast returns (SmartAccount) {
+        // 3. Get the address of the verifier and check if it is deployed
         address verifier = vm.envAddress("WEBAUTHN_VERIFIER");
-
-        // 1. Check if the address of the verifier is correct
         require(verifier.code.length > 0, "The verifier is not deployed");
 
+        // 3. Run the script using the entrypoint address
+        return run(entryPointAddress, verifier);
+    }
+
+    function run(address entryPointAddress, address verifier) internal broadcast returns (SmartAccount) {
         // 2. Deploy the smart account
         SmartAccount account = new SmartAccount(entryPointAddress, verifier);
 

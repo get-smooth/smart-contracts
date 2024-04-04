@@ -17,35 +17,37 @@ contract AccountFactory__Constructor is BaseTest {
         vm.expectRevert(abi.encodeWithSelector(AccountFactory.InvalidAccountImplementation.selector));
 
         // 2. we try to deploy the account factory with an owner set to 0
-        new AccountFactory(address(0));
+        new AccountFactory(address(0), makeAddr("operator"));
     }
 
     function test_ExposeTheImplementationAddressAfterBeingDeployed() external {
         // it expose the implementation address after being deployed
 
-        AccountFactory factory = new AccountFactory(makeAddr("account"));
+        AccountFactory factory = new AccountFactory(makeAddr("account"), makeAddr("operator"));
         assertEq(factory.accountImplementation(), makeAddr("account"));
     }
 
     function test_ExposeTheExpectedVersion() external {
         // it expose the expected version
 
-        AccountFactory factory = new AccountFactory(makeAddr("account"));
+        AccountFactory factory = new AccountFactory(makeAddr("account"), makeAddr("operator"));
         assertEq(factory.version(), Metadata.VERSION);
     }
 
-    function test_DisableTheInitializer() external {
+    function test_RevertIfOwnerIs0() external {
+        // it revert if account implementation is 0
+
+        // 1. we tell the VM to expect a revert with a precise error
+        vm.expectRevert(abi.encodeWithSelector(AccountFactory.InvalidSigner.selector));
+
+        // 2. we try to deploy the account factory with an owner set to 0
+        new AccountFactory(makeAddr("account"), address(0));
+    }
+
+    function test_StoreTheOwner() external {
         // it disable the initializer
 
-        // deploy the account
-        AccountFactory factory = new AccountFactory(makeAddr("account"));
-
-        // make sure the version is set to the max value possible
-        bytes32 value = vm.load(address(factory), INITIALIZABLE_STORAGE);
-        assertEq(value, bytes32(uint256(type(uint64).max)));
-
-        // make sure the initializer is not callable
-        vm.expectRevert(Initializable.InvalidInitialization.selector);
-        factory.initialize(makeAddr("new owner"));
+        AccountFactory factory = new AccountFactory(makeAddr("account"), makeAddr("operator"));
+        assertEq(factory.owner(), makeAddr("operator"));
     }
 }

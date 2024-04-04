@@ -19,10 +19,7 @@ contract SmartAccount__Initiliaze is BaseTest {
         accountImplementation = new SmartAccount(makeAddr("entrypoint"), makeAddr("verifier"));
 
         // 2. deploy an implementation of the factory and its instance
-        address factoryImplementation = address(new AccountFactoryHarness(address(accountImplementation)));
-        factory = AccountFactoryHarness(
-            address(deployFactoryInstance(factoryImplementation, makeAddr("proxyOwner"), makeAddr("factorySigner")))
-        );
+        factory = new AccountFactoryHarness(address(accountImplementation), makeAddr("factorySigner"));
     }
 
     function test_RevertsIfCalledDirectly() external {
@@ -143,7 +140,7 @@ contract SmartAccount__Initiliaze is BaseTest {
 }
 
 contract AccountFactoryHarness is AccountFactory {
-    constructor(address accountImplementation) AccountFactory(accountImplementation) { }
+    constructor(address accountImplementation, address operator) AccountFactory(accountImplementation, operator) { }
 
     function exposed_deployAccount(
         bytes32 credIdHash,

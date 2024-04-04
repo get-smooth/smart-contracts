@@ -6,14 +6,10 @@ import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 
 contract AccountFactory__GetAddress is BaseTest {
-    address internal factoryImplementation;
     AccountFactoryHarness private factory;
 
     function setUp() external setUpCreateFixture {
-        factoryImplementation = address(new AccountFactoryHarness(makeAddr("account")));
-        factory = AccountFactoryHarness(
-            address(deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), makeAddr("owner")))
-        );
+        factory = new AccountFactoryHarness(makeAddr("account"), makeAddr("operator"));
     }
 
     function test_RevertIfTheAuthDataIsTooShort(bytes32 incorrectAuthData) external {
@@ -41,8 +37,7 @@ contract AccountFactory__GetAddress is BaseTest {
         // it return an address different than the original factory
 
         // we deploy a new instance of the factory at a different address but using the same parameters
-        AccountFactory factory2 =
-            deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), makeAddr("owner"));
+        AccountFactory factory2 = new AccountFactoryHarness(makeAddr("account"), makeAddr("operator"));
         assertNotEq(
             factory2.getAddress(createFixtures.response.authData), factory.getAddress(createFixtures.response.authData)
         );
@@ -85,7 +80,7 @@ contract AccountFactory__GetAddress is BaseTest {
 }
 
 contract AccountFactoryHarness is AccountFactory {
-    constructor(address accountImplementation) AccountFactory(accountImplementation) { }
+    constructor(address accountImplementation, address operator) AccountFactory(accountImplementation, operator) { }
 
     function exposed_getAddress(
         bytes32 credIdHash,

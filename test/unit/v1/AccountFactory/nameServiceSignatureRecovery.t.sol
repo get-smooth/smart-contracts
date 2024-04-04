@@ -9,10 +9,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
     function setUp() external setUpCreateFixture {
         // 1. deploy the factory implementation and one instance of the factory
-        address factoryImplementation = address(new AccountFactoryHarness(makeAddr("account")));
-        factory = AccountFactoryHarness(
-            address(deployFactoryInstance(factoryImplementation, makeAddr("proxy_owner"), SMOOTH_SIGNER.addr))
-        );
+        factory = new AccountFactoryHarness(makeAddr("account"), SMOOTH_SIGNER.addr);
     }
 
     function test_ReturnTrueIfTheSignatureIsValid() external view {
@@ -30,17 +27,17 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
     function test_ReturnFalseIfNotTheCorrectSigner() external {
         // it return false if not the correct signer
 
-        // 1. calculate the future address of the account
-        address accountAddress = factory.getAddress(createFixtures.response.authData);
+        // 1. deploy a new factory with a different operator
+        AccountFactoryHarness factory2 = new AccountFactoryHarness(makeAddr("account"), makeAddr("incorrect-operator"));
 
-        // 2. generate the valid signature
+        // 2. calculate the future address of the account
+        address accountAddress = factory2.getAddress(createFixtures.response.authData);
+
+        // 3. generate the valid signature
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        // 3. transfer ownership to someone else -- that invalidate all the previous signature
-        vm.prank(SMOOTH_SIGNER.addr);
-        factory.transferOwnership(address(12));
-
-        assertFalse(factory.exposed_isSignatureLegit(accountAddress, createFixtures.response.authData, signature));
+        // 4. make sure the signature is not valid
+        assertFalse(factory2.exposed_isSignatureLegit(accountAddress, createFixtures.response.authData, signature));
     }
 
     function test_ReturnFalseIfNotTheCorrectAuthData(bytes calldata fakeAuthData) external view {
@@ -102,7 +99,7 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 /// @dev Keep in mind this wrapper adds extra cost to the gas consumption, only use it for
 /// testing internal methods
 contract AccountFactoryHarness is AccountFactory {
-    constructor(address accountImplementation) AccountFactory(accountImplementation) { }
+    constructor(address accountImplementation, address operator) AccountFactory(accountImplementation, operator) { }
 
     function exposed_isSignatureLegit(
         address accountAddress,

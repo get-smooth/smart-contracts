@@ -2,14 +2,10 @@
 pragma solidity >=0.8.20 <0.9.0;
 
 import { ERC1967Proxy } from "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
-import { OwnableUpgradeable } from "@openzeppelin-upgradeable/access/OwnableUpgradeable.sol";
-import { Initializable } from "@openzeppelin-upgradeable/proxy/utils/Initializable.sol";
 import { SmartAccount } from "./Account/SmartAccount.sol";
 import { Metadata } from "src/v1/Metadata.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import "src/utils/Signature.sol" as Signature;
-
-// FIXME:   createAndInitAccount() Understand the implications of the ban system of the function
 
 /// @title  4337-compliant Account Factory
 /// @notice This contract is a 4337-compliant factory for smart-accounts. It is in charge of deploying an account
@@ -18,15 +14,16 @@ import "src/utils/Signature.sol" as Signature;
 ///         reference. Once the account has been deployed by the factory, the factory is also in charge of setting
 ///         the first signer of the account, leading to a fully-setup account for the user.
 /// @dev    The signature is only used to set the first-signer to the account. It is a EIP-191 message
-///         signed by the owner. The message is the keccak256 hash of the login of the account.
+///         signed by the operator. The message is the keccak256 hash of the login of the account.
 ///         As the address of the account is already dependant of the address of the factory, we do not need to
 ///         include it in the signature.
-contract AccountFactory is Initializable, OwnableUpgradeable {
+contract AccountFactory {
     // ==============================
     // ========= CONSTANT ===========
     // ==============================
 
     address payable public immutable accountImplementation;
+    address private immutable operator;
 
     // ==============================
     // ======= EVENTS/ERRORS ========
@@ -36,6 +33,7 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
 
     error InvalidSignature(address accountAddress, bytes authenticatorData, bytes signature);
     error InvalidAccountImplementation();
+    error InvalidSigner();
 
     // ==============================
     // ======= CONSTRUCTION =========
@@ -45,31 +43,26 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
     ///         implementation will be used as the implementation reference for all the proxies deployed by this
     ///         factory.
     /// @param  _accountImplementation The address of the implementation of the smart account. Must never be changed!!
+    /// @param  _operator The address of the operator of the factory
     /// @dev    All the arguments passed to the constructor function are used to set immutable variables.
-    constructor(address _accountImplementation) {
+    constructor(address _accountImplementation, address _operator) {
         // 1. set the address of the implementation account -- THIS ADDRESS MUST NEVER BE CHANGED (!!)
         if (_accountImplementation == address(0)) revert InvalidAccountImplementation();
         accountImplementation = payable(_accountImplementation);
 
-        // 2. prevent the implementation contract from being used directly
-        _disableInitializers();
-    }
-
-    // The initialize function will be used to set up the initial state of the contract.
-    function initialize(address owner) public virtual reinitializer(1) {
-        // 1. set the owner
-        __Ownable_init(owner);
+        // 2. set the operator
+        if (_operator == address(0)) revert InvalidSigner();
+        operator = _operator;
     }
 
     // ==============================
     // ===== INTERNAL FUNCTIONS =====
     // ==============================
 
-    /// @notice This function checks if the signature is signed by the operator (owner)
+    /// @notice This function checks if the signature is signed by the operator
     /// @param  accountAddress The address of the account that would be deployed
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
-    /// @param  signature Signature made off-chain by made the operator of the factory (owner). It gates the use of the
-    ///         factory.
+    /// @param  signature Signature made off-chain by made the operator of the factory. It gates the use of the factory.
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
     function _isSignatureLegit(
@@ -82,11 +75,11 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
         virtual
         returns (bool)
     {
-        // 1. Recreate the message signed by the operator (owner)
+        // 1. Recreate the message signed by the operator
         bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, accountAddress, block.chainid);
 
         // 2. Try to recover the address and return if the signature is legit
-        return Signature.recover(owner(), message, signature[1:]);
+        return Signature.recover(operator, message, signature[1:]);
     }
 
     function _deployAccount(
@@ -170,8 +163,7 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
     /// @notice This function either deploys an account and sets its first signer or returns the address of an existing
     ///         account based on the parameter given
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
-    /// @param  signature Signature made off-chain by made the operator of the factory (owner). It gates the use of the
-    ///         factory.
+    /// @param  signature Signature made off-chain by made the operator of the factory. It gates the use of the factory.
     /// @return The address of the existing account (either deployed by this function or not)
     function createAndInitAccount(
         bytes calldata authenticatorData,
@@ -223,6 +215,12 @@ contract AccountFactory is Initializable, OwnableUpgradeable {
     /// @return * The version of the contract
     function version() external pure virtual returns (uint256) {
         return Metadata.VERSION;
+    }
+
+    /// @notice This function returns the owner of the factory
+    /// @return The owner of the factory
+    function owner() external view virtual returns (address) {
+        return operator;
     }
 }
 

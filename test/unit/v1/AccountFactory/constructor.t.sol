@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: APACHE-2.0
 pragma solidity >=0.8.20;
 
-import { Initializable } from "@openzeppelin/proxy/utils/Initializable.sol";
 import { AccountFactory } from "src/v1/AccountFactory.sol";
 import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { Metadata } from "src/v1/Metadata.sol";
-
-// @DEV: constant used by the `Initializable` library
-bytes32 constant INITIALIZABLE_STORAGE = 0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
 
 contract AccountFactory__Constructor is BaseTest {
     function test_RevertIfAccountImplementationIs0() external {

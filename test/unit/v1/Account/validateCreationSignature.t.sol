@@ -51,19 +51,15 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         );
     }
 
-    function test_FailsIfTheNonceIsNot0(uint256 randomNonce) external {
-        // it fails if the nonce is not 0
+    function test_FailsIfCalledTwice() external {
+        // it fails if called twice
 
-        // bound the nonce to a invalid range
-        randomNonce = bound(randomNonce, 1, type(uint256).max);
-
-        // get valid initcode and signature
+        // 1. get valid initcode and signature
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
-        // mock the call to the entrypoint to return the random nonce
-        vm.mockCall(address(entrypoint), abi.encodeWithSelector(MockEntryPoint.getNonce.selector), abi.encode(1));
-
-        // assert that the signature validation fails if the nonce is not equal to zero
+        // 2. check the signature validation is successful
+        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.SUCCESS);
+        // 3. ensure we cannot calling it twice
         assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
@@ -86,7 +82,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         account.exposed_validateCreationSignature(signature, invalidInitCode);
     }
 
-    function test_FailsIfTheUseropFactoryIsNotCorrect(address incorrectFactory) external view {
+    function test_FailsIfTheUseropFactoryIsNotCorrect(address incorrectFactory) external {
         // it fails if the userop factory is not correct
 
         vm.assume(incorrectFactory != address(factory));
@@ -139,7 +135,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         assertEq(account.exposed_validateCreationSignature(invalidSignature, initCode), Signature.State.FAILURE);
     }
 
-    function test_FailsIfSignatureTypeMissing() external view {
+    function test_FailsIfSignatureTypeMissing() external {
         // it fails if the passed signature is not correct
 
         // 1. get valid initcode and signature
@@ -208,7 +204,21 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
     }
 
-    function test_SucceedIfTheSignatureRecoveryIsCorrect() external view {
+    function test_SetsTheCreationFuseToZero() external {
+        // it succeed if the signature recovery is correct
+
+        // 1. check that the creation flow fuse is initially set to 1
+        assertEq(account.exposed_creationFlowFuse(), 1);
+
+        // 2. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
+
+        // 3. make sure the creation flow fuse is set to 0 after calling the function
+        account.exposed_validateCreationSignature(signature, initCode);
+        assertEq(account.exposed_creationFlowFuse(), 0);
+    }
+
+    function test_SucceedIfTheSignatureRecoveryIsCorrect() external {
         // it succeed if the signature recovery is correct
 
         // 1. get valid initcode and signature
@@ -227,10 +237,13 @@ contract SmartAccountHarness is SmartAccount {
         bytes calldata initCode
     )
         external
-        view
         returns (uint256)
     {
         return _validateCreationSignature(signature, initCode);
+    }
+
+    function exposed_creationFlowFuse() external view returns (uint256) {
+        return creationFlowFuse;
     }
 }
 

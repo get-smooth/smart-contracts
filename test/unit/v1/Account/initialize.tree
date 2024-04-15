@@ -3,4 +3,5 @@ SmartAccount__Initiliaze
 ├── it can be called using a proxy and set version to 1
 ├── it store the initiator
 ├── it store the first signer
+├── it sets the creation fuse
 └── it can not be called twice

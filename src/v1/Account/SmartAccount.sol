@@ -28,6 +28,7 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
     // ======================================
 
     address internal factoryAddress;
+    uint96 internal creationFlowFuse;
 
     // ======================================
     // =========== EVENTS/ERRORS ============
@@ -87,6 +88,9 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
 
         // 2. set the first signer
         _addWebAuthnSigner(credIdHash, pubX, pubY, credId);
+
+        // 3. activate the creation flow fuse
+        creationFlowFuse = 1;
     }
 
     // ======================================
@@ -149,18 +153,17 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
     /// @param signature The signature field presents in the userOp.
     /// @param initCode The initCode field presents in the userOp. It has been used to create the account
     /// @return 0 if the signature is valid, 1 otherwise
-    // TODO: use transient storage for the expected signer/factory?
     function _validateCreationSignature(
         bytes calldata signature,
         bytes calldata initCode
     )
         internal
-        view
         virtual
         returns (uint256)
     {
-        // 1. check that the nonce is 0x00. The value of the first key is checked here
-        if (getNonce() != 0) return Signature.State.FAILURE;
+        // 1. check that we are in the creation flow -- either return failure if not or deactivate the creation flow fuse
+        if (creationFlowFuse != 1) return Signature.State.FAILURE;
+        creationFlowFuse = 0;
 
         // 2. get the address of the factory and check it is the expected one
         address accountFactory = address(bytes20(initCode[:20]));

@@ -29,6 +29,7 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
 
     address internal factoryAddress;
     uint96 internal creationFlowFuse;
+    uint256[50] internal __gap;
 
     // ======================================
     // =========== EVENTS/ERRORS ============

@@ -21,6 +21,7 @@ import { Metadata } from "src/v1/Metadata.sol";
 ///         - This contract is not upgradeable
 ///         - The signature includes the sender, nonce, chainId, the address of this contract and the callData to prevent
 ///           replay attacks
+/// @custom:experimental This contract is unaudited yet
 contract Paymaster is BasePaymaster {
     // ==============================
     // =========== STATE ============

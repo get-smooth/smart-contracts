@@ -7,6 +7,7 @@ import { IERC165 } from "@openzeppelin/utils/introspection/IERC165.sol";
 
 /// @title ERC721Support
 /// @notice Indicate the contract supports ERC721 token transfer
+/// @custom:experimental This contract is unaudited yet
 contract ERC721Support is IERC721Receiver {
     /// @notice Indicate that the contract supports ERC721 token transfer
     /// @param {operator} The address which called `safeTransferFrom` function

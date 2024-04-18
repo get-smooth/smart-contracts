@@ -17,6 +17,7 @@ import "src/utils/Signature.sol" as Signature;
 ///         signed by the operator. The message is the keccak256 hash of the login of the account.
 ///         As the address of the account is already dependant of the address of the factory, we do not need to
 ///         include it in the signature.
+/// @custom:experimental This contract is unaudited yet
 contract AccountFactory {
     // ==============================
     // ========= CONSTANT ===========

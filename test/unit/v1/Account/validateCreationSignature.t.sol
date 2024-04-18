@@ -51,16 +51,16 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         );
     }
 
-    function test_FailsIfCalledTwice() external {
+    function test_FailsIfNonceNot0(uint256 fuzzedNonce) external {
         // it fails if called twice
+
+        fuzzedNonce = bound(fuzzedNonce, 1, type(uint256).max);
 
         // 1. get valid initcode and signature
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
-        // 2. check the signature validation is successful
-        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.SUCCESS);
-        // 3. ensure we cannot calling it twice
-        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
+        // 2. check the signature validation is failure -- nonce not equal to 0
+        assertEq(account.exposed_validateCreationSignature(fuzzedNonce, signature, initCode), Signature.State.FAILURE);
     }
 
     function test_RevertsIfTheInitCodeIsNotCorrectlyConstructed() external {
@@ -79,7 +79,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
 
         // 3. check the signature validation is failure
         vm.expectRevert();
-        account.exposed_validateCreationSignature(signature, invalidInitCode);
+        account.exposed_validateCreationSignature(0, signature, invalidInitCode);
     }
 
     function test_FailsIfTheUseropFactoryIsNotCorrect(address incorrectFactory) external {
@@ -99,7 +99,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         );
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(signature, invalidInitCode), Signature.State.FAILURE);
+        assertEq(account.exposed_validateCreationSignature(0, signature, invalidInitCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfTheAdminOfTheFactoryIsNotCorrect(address incorrectSigner) external {
@@ -117,7 +117,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         );
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
+        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfThePassedSignatureIsNotCorrect(string memory name) external {
@@ -132,7 +132,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode,) = _calculateInitCodeAndSignature();
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(invalidSignature, initCode), Signature.State.FAILURE);
+        assertEq(account.exposed_validateCreationSignature(0, invalidSignature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfSignatureTypeMissing() external {
@@ -145,7 +145,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         bytes memory invalidSignature = truncBytes(signature, 1, signature.length);
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(invalidSignature, initCode), Signature.State.FAILURE);
+        assertEq(account.exposed_validateCreationSignature(0, invalidSignature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfTheCredIdDoesNotMatchTheCredIdStored(bytes32 incorrectCredIdHash) external {
@@ -163,7 +163,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 4. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
+        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfThePubKeyXDoesNotMatchThePubKeyXStored(uint256 incorrectPubKeyX) external {
@@ -182,7 +182,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 4. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
+        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
     }
 
     function test_FailsIfThePubKeyYDoesNotMatchThePubKeyYStored(uint256 incorrectPubKeyY) external {
@@ -201,21 +201,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 4. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.FAILURE);
-    }
-
-    function test_SetsTheCreationFuseToZero() external {
-        // it succeed if the signature recovery is correct
-
-        // 1. check that the creation flow fuse is initially set to 1
-        assertEq(account.exposed_creationFlowFuse(), 1);
-
-        // 2. get valid initcode and signature
-        (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
-
-        // 3. make sure the creation flow fuse is set to 0 after calling the function
-        account.exposed_validateCreationSignature(signature, initCode);
-        assertEq(account.exposed_creationFlowFuse(), 0);
+        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
     }
 
     function test_SucceedIfTheSignatureRecoveryIsCorrect() external {
@@ -225,7 +211,7 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 2. check the signature validation is successful
-        assertEq(account.exposed_validateCreationSignature(signature, initCode), Signature.State.SUCCESS);
+        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.SUCCESS);
     }
 }
 
@@ -233,17 +219,14 @@ contract SmartAccountHarness is SmartAccount {
     constructor(address entryPoint, address webAuthnVerifier) SmartAccount(entryPoint, webAuthnVerifier) { }
 
     function exposed_validateCreationSignature(
+        uint256 nonce,
         bytes calldata signature,
         bytes calldata initCode
     )
         external
         returns (uint256)
     {
-        return _validateCreationSignature(signature, initCode);
-    }
-
-    function exposed_creationFlowFuse() external view returns (uint256) {
-        return creationFlowFuse;
+        return _validateCreationSignature(nonce, signature, initCode);
     }
 }
 

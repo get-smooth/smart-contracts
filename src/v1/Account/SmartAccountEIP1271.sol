@@ -8,6 +8,7 @@ import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.s
 bytes4 constant EIP1271_VALIDATION_SUCCESS = 0x1626ba7e;
 bytes4 constant EIP1271_VALIDATION_FAILURE = 0xffffffff;
 
+/// @custom:experimental This contract is unaudited yet
 abstract contract SmartAccountEIP1271 {
     function webauthn256R1Verifier() internal view virtual returns (IWebAuthn256r1);
 

@@ -15,6 +15,7 @@ import { Metadata } from "src/v1/Metadata.sol";
 import { SmartAccountTokensSupport } from "src/v1/Account/SmartAccountTokensSupport.sol";
 import { SmartAccountEIP1271 } from "src/v1/Account/SmartAccountEIP1271.sol";
 
+/// @custom:experimental This contract is unaudited yet
 contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccountTokensSupport, SmartAccountEIP1271 {
     // ======================================
     // ============= CONSTANTS ==============

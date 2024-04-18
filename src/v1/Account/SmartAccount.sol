@@ -28,7 +28,6 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
     // ======================================
 
     address internal factoryAddress;
-    uint96 internal creationFlowFuse;
     uint256[50] internal __gap;
 
     // ======================================
@@ -89,9 +88,6 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
 
         // 2. set the first signer
         _addWebAuthnSigner(credIdHash, pubX, pubY, credId);
-
-        // 3. activate the creation flow fuse
-        creationFlowFuse = 1;
     }
 
     // ======================================
@@ -155,6 +151,7 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
     /// @param initCode The initCode field presents in the userOp. It has been used to create the account
     /// @return 0 if the signature is valid, 1 otherwise
     function _validateCreationSignature(
+        uint256 nonce,
         bytes calldata signature,
         bytes calldata initCode
     )
@@ -162,9 +159,8 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
         virtual
         returns (uint256)
     {
-        // 1. check that we are in the creation flow -- either return failure if not or deactivate the creation flow fuse
-        if (creationFlowFuse != 1) return Signature.State.FAILURE;
-        creationFlowFuse = 0;
+        // 1. check that the nonce is equal to 0
+        if (nonce != 0) return Signature.State.FAILURE;
 
         // 2. get the address of the factory and check it is the expected one
         address accountFactory = address(bytes20(initCode[:20]));
@@ -252,7 +248,7 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
 
         // 1.b check the signature is a "creation" signature (length is checked by the signature library)
         if (signatureType == Signature.Type.CREATION) {
-            return _validateCreationSignature(userOp.signature, userOp.initCode);
+            return _validateCreationSignature(userOp.nonce, userOp.signature, userOp.initCode);
         }
 
         return Signature.State.FAILURE;

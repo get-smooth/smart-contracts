@@ -1,5 +1,5 @@
 SmartAccount__ValidateCreationSignature
-├── it fails if called twice
+├── it fails if nonce not 0
 ├── it reverts if the initCode is not correctly constructed
 ├── it fails if the userop factory is not correct
 ├── it fails if the admin of the factory is not correct
@@ -8,5 +8,4 @@ SmartAccount__ValidateCreationSignature
 ├── it fails if the credId does not match the credId stored
 ├── it fails if the pubKeyX does not match the pubKeyX stored
 ├── it fails if the pubKeyY does not match the pubKeyY stored
-├── it sets the creation fuse to zero
 └── it succeed if the signature recovery is correct

@@ -8,15 +8,15 @@ import { BaseTest } from "test/BaseTest/BaseTest.sol";
 import { SignerVaultWebAuthnP256R1 } from "src/utils/SignerVaultWebAuthnP256R1.sol";
 import "src/utils/Signature.sol" as Signature;
 
-contract AccountHarness__Initiliaze is BaseTest {
+contract SmartAccount__Initiliaze is BaseTest {
     // @DEV: constant used by the `Initializable` library
     bytes32 private constant INITIALIZABLE_STORAGE = 0xf0c57e16840df040f15088dc2f81fe391c3923bec73e23a9662efc9c229c6a00;
-    AccountHarness private accountImplementation;
+    SmartAccount private accountImplementation;
     AccountFactoryHarness private factory;
 
     function setUp() external {
         // 1. deploy an implementation of the account
-        accountImplementation = new AccountHarness(makeAddr("entrypoint"), makeAddr("verifier"));
+        accountImplementation = new SmartAccount(makeAddr("entrypoint"), makeAddr("verifier"));
 
         // 2. deploy an implementation of the factory and its instance
         factory = new AccountFactoryHarness(address(accountImplementation), makeAddr("factorySigner"));
@@ -46,7 +46,7 @@ contract AccountHarness__Initiliaze is BaseTest {
         );
 
         // 2. deploy the account and call the initialize function at the same time
-        AccountHarness account = factory.exposed_deployAccount(
+        SmartAccount account = factory.exposed_deployAccount(
             keccak256(createFixtures.signer.credId),
             createFixtures.signer.pubX,
             createFixtures.signer.pubY,
@@ -75,7 +75,7 @@ contract AccountHarness__Initiliaze is BaseTest {
         );
 
         // 2. deploy the account and call the initialize function at the same time
-        AccountHarness account = factory.exposed_deployAccount(
+        SmartAccount account = factory.exposed_deployAccount(
             keccak256(createFixtures.signer.credId),
             createFixtures.signer.pubX,
             createFixtures.signer.pubY,
@@ -90,7 +90,7 @@ contract AccountHarness__Initiliaze is BaseTest {
         // it can be called using a proxy and set version to 1
 
         // 1. deploy the account and call the initialize function at the same time
-        AccountHarness account = factory.exposed_deployAccount(
+        SmartAccount account = factory.exposed_deployAccount(
             keccak256(createFixtures.signer.credId),
             createFixtures.signer.pubX,
             createFixtures.signer.pubY,
@@ -109,22 +109,7 @@ contract AccountHarness__Initiliaze is BaseTest {
         );
     }
 
-    function test_ItSetsTheCreationFuse() external setUpCreateFixture {
-        // it stores the signer
-
-        // 1. deploy the account and call the initialize function at the same time
-        AccountHarness account = factory.exposed_deployAccount(
-            keccak256(createFixtures.signer.credId),
-            createFixtures.signer.pubX,
-            createFixtures.signer.pubY,
-            createFixtures.signer.credId
-        );
-
-        // 2. check the creation fuse has been set
-        assertEq(account.exposed_creationFlowFuse(), 1);
-    }
-
-    // Duplicate of the event in the AccountHarness.sol file
+    // Duplicate of the event in the SmartAccount.sol file
     event SignerAdded(
         bytes1 indexed signatureType, bytes credId, bytes32 indexed credIdHash, uint256 pubKeyX, uint256 pubKeyY
     );
@@ -142,7 +127,7 @@ contract AccountHarness__Initiliaze is BaseTest {
         emit SignerAdded(Signature.Type.WEBAUTHN_P256R1, credId, credIdHash, pubX, pubY);
 
         // 2. deploy the account and call the initialize function at the same time
-        AccountHarness account = factory.exposed_deployAccount(credIdHash, pubX, pubY, credId);
+        SmartAccount account = factory.exposed_deployAccount(credIdHash, pubX, pubY, credId);
 
         // 3. get the starting slot of the signer
         bytes32 startingSlot = SignerVaultWebAuthnP256R1.getSignerStartingSlot(credIdHash);
@@ -151,14 +136,6 @@ contract AccountHarness__Initiliaze is BaseTest {
         assertEq(vm.load(address(account), startingSlot), credIdHash);
         assertEq(uint256(vm.load(address(account), bytes32(uint256(startingSlot) + 1))), pubX);
         assertEq(uint256(vm.load(address(account), bytes32(uint256(startingSlot) + 2))), pubY);
-    }
-}
-
-contract AccountHarness is SmartAccount {
-    constructor(address entrypoint, address verifier) SmartAccount(entrypoint, verifier) { }
-
-    function exposed_creationFlowFuse() external view returns (uint256) {
-        return creationFlowFuse;
     }
 }
 
@@ -172,8 +149,8 @@ contract AccountFactoryHarness is AccountFactory {
         bytes calldata credId
     )
         external
-        returns (AccountHarness account)
+        returns (SmartAccount account)
     {
-        return AccountHarness(payable(address(_deployAccount(credIdHash, pubX, pubY, credId))));
+        return SmartAccount(payable(address(_deployAccount(credIdHash, pubX, pubY, credId))));
     }
 }

@@ -14,7 +14,6 @@ contract SmartAccount__Receive is BaseTest {
     function test_CanReceiveNativeTokens(address sender, uint256 amount) external {
         // it can receive native tokens
 
-        // sender = bound(100, type(address).max);
         amount = bound(amount, 1, type(uint256).max);
 
         // make the sender the caller for the next call and send him n native tokens

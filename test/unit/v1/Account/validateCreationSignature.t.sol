@@ -46,7 +46,10 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         initCode = abi.encodePacked(
             address(factory),
             abi.encodeWithSelector(
-                AccountFactory.createAndInitAccount.selector, createFixtures.response.authData, signature
+                AccountFactory.createAndInitAccount.selector,
+                createFixtures.response.authData,
+                signature,
+                createFixtures.transaction.calldataHash
             )
         );
     }
@@ -60,7 +63,12 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 2. check the signature validation is failure -- nonce not equal to 0
-        assertEq(account.exposed_validateCreationSignature(fuzzedNonce, signature, initCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(
+                fuzzedNonce, initCode, createFixtures.transaction.callData, signature
+            ),
+            Signature.State.FAILURE
+        );
     }
 
     function test_RevertsIfTheInitCodeIsNotCorrectlyConstructed() external {
@@ -73,13 +81,16 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         bytes memory invalidInitCode = abi.encodePacked(
             address(factory),
             abi.encodeWithSelector(
-                AccountFactory.createAndInitAccount.selector, signature, createFixtures.response.authData
+                AccountFactory.createAndInitAccount.selector,
+                signature,
+                createFixtures.response.authData,
+                createFixtures.transaction.calldataHash
             )
         );
 
         // 3. check the signature validation is failure
         vm.expectRevert();
-        account.exposed_validateCreationSignature(0, signature, invalidInitCode);
+        account.exposed_validateCreationSignature(0, invalidInitCode, createFixtures.transaction.callData, signature);
     }
 
     function test_FailsIfTheUseropFactoryIsNotCorrect(address incorrectFactory) external {
@@ -88,18 +99,24 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         vm.assume(incorrectFactory != address(factory));
 
         // 1. get valid signature
-        (, bytes memory signature) = _calculateInitCodeAndSignature();
+        (, bytes memory sig) = _calculateInitCodeAndSignature();
 
         // 2. construct invalid initcode (incorrect factory address)
         bytes memory invalidInitCode = abi.encodePacked(
             address(incorrectFactory), // incorrect factory address
             abi.encodeWithSelector(
-                AccountFactory.createAndInitAccount.selector, createFixtures.response.authData, signature
+                AccountFactory.createAndInitAccount.selector,
+                createFixtures.response.authData,
+                sig,
+                createFixtures.transaction.calldataHash
             )
         );
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(0, signature, invalidInitCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(0, invalidInitCode, createFixtures.transaction.callData, sig),
+            Signature.State.FAILURE
+        );
     }
 
     function test_FailsIfTheAdminOfTheFactoryIsNotCorrect(address incorrectSigner) external {
@@ -117,7 +134,10 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         );
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, createFixtures.transaction.callData, signature),
+            Signature.State.FAILURE
+        );
     }
 
     function test_FailsIfThePassedSignatureIsNotCorrect(string memory name) external {
@@ -126,13 +146,28 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         // 1. create an invalid signature with a random signer
         (, uint256 signerSK) = makeAddrAndKey(name);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerSK, keccak256("Signed by someone else"));
-        bytes memory invalidSignature = abi.encodePacked(r, s, v);
+        bytes memory invalidSign = abi.encodePacked(r, s, v);
 
         // 2. get valid initcode and signature
         (bytes memory initCode,) = _calculateInitCodeAndSignature();
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(0, invalidSignature, initCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, createFixtures.transaction.callData, invalidSign),
+            Signature.State.FAILURE
+        );
+    }
+
+    function test_FailsIfThePassedCalldataHashIsNotCorrect(bytes calldata incorrectCallData) external {
+        // it fails if the passed signature is not correct
+
+        // 1. get valid initcode and signature
+        (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
+
+        // 2. check the signature validation is failure (because calldata incorrect)
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, incorrectCallData, signature), Signature.State.FAILURE
+        );
     }
 
     function test_FailsIfSignatureTypeMissing() external {
@@ -142,10 +177,13 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 2. remove the signature type from the signature
-        bytes memory invalidSignature = truncBytes(signature, 1, signature.length);
+        bytes memory invalidSig = truncBytes(signature, 1, signature.length);
 
         // 3. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(0, invalidSignature, initCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, createFixtures.transaction.callData, invalidSig),
+            Signature.State.FAILURE
+        );
     }
 
     function test_FailsIfTheCredIdDoesNotMatchTheCredIdStored(bytes32 incorrectCredIdHash) external {
@@ -163,7 +201,10 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 4. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, createFixtures.transaction.callData, signature),
+            Signature.State.FAILURE
+        );
     }
 
     function test_FailsIfThePubKeyXDoesNotMatchThePubKeyXStored(uint256 incorrectPubKeyX) external {
@@ -182,7 +223,10 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 4. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, createFixtures.transaction.callData, signature),
+            Signature.State.FAILURE
+        );
     }
 
     function test_FailsIfThePubKeyYDoesNotMatchThePubKeyYStored(uint256 incorrectPubKeyY) external {
@@ -201,7 +245,10 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 4. check the signature validation is failure
-        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.FAILURE);
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, createFixtures.transaction.callData, signature),
+            Signature.State.FAILURE
+        );
     }
 
     function test_SucceedIfTheSignatureRecoveryIsCorrect() external {
@@ -211,7 +258,10 @@ contract SmartAccount__ValidateCreationSignature is BaseTest {
         (bytes memory initCode, bytes memory signature) = _calculateInitCodeAndSignature();
 
         // 2. check the signature validation is successful
-        assertEq(account.exposed_validateCreationSignature(0, signature, initCode), Signature.State.SUCCESS);
+        assertEq(
+            account.exposed_validateCreationSignature(0, initCode, createFixtures.transaction.callData, signature),
+            Signature.State.SUCCESS
+        );
     }
 }
 
@@ -220,13 +270,14 @@ contract SmartAccountHarness is SmartAccount {
 
     function exposed_validateCreationSignature(
         uint256 nonce,
-        bytes calldata signature,
-        bytes calldata initCode
+        bytes calldata initCode,
+        bytes calldata callData,
+        bytes calldata signature
     )
         external
         returns (uint256)
     {
-        return _validateCreationSignature(nonce, signature, initCode);
+        return _validateCreationSignature(nonce, initCode, callData, signature);
     }
 }
 

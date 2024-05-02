@@ -21,7 +21,11 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // 2. generate the valid signature
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        assertTrue(factory.exposed_isSignatureLegit(accountAddress, createFixtures.response.authData, signature));
+        assertTrue(
+            factory.exposed_isSignatureLegit(
+                accountAddress, createFixtures.transaction.calldataHash, createFixtures.response.authData, signature
+            )
+        );
     }
 
     function test_ReturnFalseIfNotTheCorrectSigner() external {
@@ -37,7 +41,11 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // 4. make sure the signature is not valid
-        assertFalse(factory2.exposed_isSignatureLegit(accountAddress, createFixtures.response.authData, signature));
+        assertFalse(
+            factory2.exposed_isSignatureLegit(
+                accountAddress, createFixtures.transaction.calldataHash, createFixtures.response.authData, signature
+            )
+        );
     }
 
     function test_ReturnFalseIfNotTheCorrectAuthData(bytes calldata fakeAuthData) external view {
@@ -49,7 +57,11 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // 2. generate the valid signature
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        assertFalse(factory.exposed_isSignatureLegit(accountAddress, fakeAuthData, signature));
+        assertFalse(
+            factory.exposed_isSignatureLegit(
+                accountAddress, createFixtures.transaction.calldataHash, fakeAuthData, signature
+            )
+        );
     }
 
     function test_ReturnFalseIfNotTheCorrectAccountAddress(address incorrectAddr) external view {
@@ -62,7 +74,11 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // 2. generate the valid signature
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
-        assertFalse(factory.exposed_isSignatureLegit(incorrectAddr, createFixtures.response.authData, signature));
+        assertFalse(
+            factory.exposed_isSignatureLegit(
+                incorrectAddr, createFixtures.transaction.calldataHash, createFixtures.response.authData, signature
+            )
+        );
     }
 
     function test_ReturnFalseIfNotTheCorrectSignature(bytes32 hash) external view {
@@ -73,7 +89,10 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
 
         assertFalse(
             factory.exposed_isSignatureLegit(
-                accountAddress, createFixtures.response.authData, abi.encodePacked(hash, hash)
+                accountAddress,
+                createFixtures.transaction.calldataHash,
+                createFixtures.response.authData,
+                abi.encodePacked(hash, hash)
             )
         );
     }
@@ -89,8 +108,16 @@ contract AccountFactory__RecoverNameServiceSignature is BaseTest {
         // calculate the signature and the future address of the account
         address accountAddr = factory.getAddress(createFixtures.response.authData);
 
-        assertFalse(factory.exposed_isSignatureLegit(accountAddr, createFixtures.response.authData, signature64Bytes));
-        assertFalse(factory.exposed_isSignatureLegit(accountAddr, createFixtures.response.authData, signature67Bytes));
+        assertFalse(
+            factory.exposed_isSignatureLegit(
+                accountAddr, createFixtures.transaction.calldataHash, createFixtures.response.authData, signature64Bytes
+            )
+        );
+        assertFalse(
+            factory.exposed_isSignatureLegit(
+                accountAddr, createFixtures.transaction.calldataHash, createFixtures.response.authData, signature67Bytes
+            )
+        );
     }
 }
 
@@ -103,6 +130,7 @@ contract AccountFactoryHarness is AccountFactory {
 
     function exposed_isSignatureLegit(
         address accountAddress,
+        bytes32 callDataHash,
         bytes calldata authenticatorData,
         bytes calldata signature
     )
@@ -110,6 +138,6 @@ contract AccountFactoryHarness is AccountFactory {
         view
         returns (bool)
     {
-        return _isSignatureLegit(accountAddress, authenticatorData, signature);
+        return _isSignatureLegit(accountAddress, callDataHash, authenticatorData, signature);
     }
 }

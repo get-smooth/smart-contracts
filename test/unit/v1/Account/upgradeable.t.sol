@@ -30,7 +30,13 @@ contract SmartAccount__Upgradeable is BaseTest {
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountFutureAddress);
 
         // 6. deploy an account instance and set the first signer
-        account = SmartAccount(payable(factory.createAndInitAccount(createFixtures.response.authData, signature)));
+        account = SmartAccount(
+            payable(
+                factory.createAndInitAccount(
+                    createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+                )
+            )
+        );
     }
 
     function test_CanBeUpgradedWithoutData() external {

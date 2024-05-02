@@ -32,7 +32,7 @@ contract AccountFactory {
 
     event AccountCreated(address account, bytes authenticatorData);
 
-    error InvalidSignature(address accountAddress, bytes authenticatorData, bytes signature);
+    error InvalidSignature(address accountAddress, bytes32 callDataHash, bytes authenticatorData, bytes signature);
     error InvalidAccountImplementation();
     error InvalidSigner();
 
@@ -62,12 +62,14 @@ contract AccountFactory {
 
     /// @notice This function checks if the signature is signed by the operator
     /// @param  accountAddress The address of the account that would be deployed
+    /// @param  callDataHash The hash of the calldata of the transaction that would be sent to the account
     /// @param  authenticatorData The authenticatorData field of the WebAuthn response when creating a signer
     /// @param  signature Signature made off-chain by made the operator of the factory. It gates the use of the factory.
     /// @return True if the signature is legit, false otherwise
     /// @dev    Incorrect signatures are expected to lead to a revert by the library used
     function _isSignatureLegit(
         address accountAddress,
+        bytes32 callDataHash,
         bytes calldata authenticatorData,
         bytes calldata signature
     )
@@ -77,7 +79,9 @@ contract AccountFactory {
         returns (bool)
     {
         // 1. Recreate the message signed by the operator
-        bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, accountAddress, block.chainid);
+        // NOTE: msg.sender is assumed to be the expected entrypoint
+        bytes memory message =
+            abi.encode(Signature.Type.CREATION, authenticatorData, accountAddress, block.chainid, callDataHash);
 
         // 2. Try to recover the address and return if the signature is legit
         return Signature.recover(operator, message, signature[1:]);
@@ -168,7 +172,8 @@ contract AccountFactory {
     /// @return The address of the existing account (either deployed by this function or not)
     function createAndInitAccount(
         bytes calldata authenticatorData,
-        bytes calldata signature
+        bytes calldata signature,
+        bytes32 callDataHash
     )
         external
         virtual
@@ -185,8 +190,8 @@ contract AccountFactory {
         if (accountAddress.code.length > 0) return accountAddress;
 
         // 4. check if the signature is valid
-        if (_isSignatureLegit(accountAddress, authenticatorData, signature) == false) {
-            revert InvalidSignature(accountAddress, authenticatorData, signature);
+        if (_isSignatureLegit(accountAddress, callDataHash, authenticatorData, signature) == false) {
+            revert InvalidSignature(accountAddress, callDataHash, authenticatorData, signature);
         }
 
         // 5. deploy the proxy for the user. During the deployment, the initialize function in the implementation

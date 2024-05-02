@@ -4,6 +4,7 @@ SmartAccount__ValidateCreationSignature
 ├── it fails if the userop factory is not correct
 ├── it fails if the admin of the factory is not correct
 ├── it fails if the passed signature is not correct
+├── it fails if the passed calldata hash is not correct
 ├── it fails if signature type missing
 ├── it fails if the credId does not match the credId stored
 ├── it fails if the pubKeyX does not match the pubKeyX stored

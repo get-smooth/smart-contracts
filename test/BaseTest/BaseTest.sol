@@ -21,18 +21,41 @@ contract BaseTest is Test, BaseTestUtils, BaseTestCreateFixtures {
     ///      This utility function is used to craft a signature for the deployment of an account.
     ///      This is for testing purposes only.
     /// @param authenticatorData The authenticator data returned by the authenticator on the signer creation
-    /// @param account The address of the account that will be deployed
+    /// @param accountAddress The address of the account that will be deployed
     /// @return signature The signature to be used for the deployment
     function craftDeploymentSignature(
         bytes memory authenticatorData,
-        address account
+        address accountAddress
+    )
+        internal
+        view
+        returns (bytes memory signature)
+    {
+        return craftDeploymentSignature(authenticatorData, accountAddress, createFixtures.transaction.calldataHash);
+    }
+
+    /// @notice Utility function to craft a deployment signature
+    /// @dev In production, the deployment of an account using our factory is gated by an approval from us.
+    ///      The factory will check if smoo.th approved the deployment by verifying a signature
+    ///      we create using an approved signer (the operator and also the owner of the factory).
+    ///      This utility function is used to craft a signature for the deployment of an account.
+    ///      This is for testing purposes only.
+    /// @param authenticatorData The authenticator data returned by the authenticator on the signer creation
+    /// @param accountAddress The address of the account that will be deployed
+    /// @param calldataHash The hash of the calldata that will be executed after the deployment
+    /// @return signature The signature to be used for the deployment
+    function craftDeploymentSignature(
+        bytes memory authenticatorData,
+        address accountAddress,
+        bytes32 calldataHash
     )
         internal
         view
         returns (bytes memory signature)
     {
         // recreate the message to sign
-        bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, account, block.chainid);
+        bytes memory message =
+            abi.encode(Signature.Type.CREATION, authenticatorData, accountAddress, block.chainid, calldataHash);
 
         // hash the message with the EIP-191 prefix
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(message);

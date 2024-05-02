@@ -32,7 +32,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
 
         // 3. deploy the account contract using the same hash
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
-        factory.createAndInitAccount(createFixtures.response.authData, signature);
+        factory.createAndInitAccount(
+            createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+        );
 
         // 4. make sure the account contract has been deployed
         assertNotEq(keccak256(accountAddress.code), keccak256(""));
@@ -50,8 +52,12 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         // 3. make sure the second attempt of creation return the already deployed address
         // without reverting or something else
         assertEq(
-            factory.createAndInitAccount(createFixtures.response.authData, signature),
-            factory.createAndInitAccount(createFixtures.response.authData, signature)
+            factory.createAndInitAccount(
+                createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+            ),
+            factory.createAndInitAccount(
+                createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+            )
         );
     }
 
@@ -65,7 +71,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // 3. deploy a valid proxy account using the constants predefined
-        address proxy1 = factory.createAndInitAccount(createFixtures.response.authData, signature);
+        address proxy1 = factory.createAndInitAccount(
+            createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+        );
 
         assertNotEq(keccak256(proxy1.code), keccak256(""));
     }
@@ -80,13 +88,16 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
             abi.encodeWithSelector(
                 AccountFactory.InvalidSignature.selector,
                 accountAddress,
+                createFixtures.transaction.calldataHash,
                 createFixtures.response.authData,
                 invalidSignature
             )
         );
 
         // 3. we call the function with the invalid signature to trigger the error
-        factory.createAndInitAccount(createFixtures.response.authData, invalidSignature);
+        factory.createAndInitAccount(
+            createFixtures.response.authData, invalidSignature, createFixtures.transaction.calldataHash
+        );
     }
 
     function test_CallInitialize() external {
@@ -100,7 +111,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         vm.expectCall(factory.accountImplementation(), abi.encodeWithSelector(SmartAccount.initialize.selector), 1);
 
         // 4. we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(createFixtures.response.authData, signature);
+        factory.createAndInitAccount(
+            createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+        );
     }
 
     function test_SetTheFirstSigner() external {
@@ -111,8 +124,13 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // 3. we deploy the instance of the account
-        SmartAccount newAccount =
-            SmartAccount(payable(factory.createAndInitAccount(createFixtures.response.authData, signature)));
+        SmartAccount newAccount = SmartAccount(
+            payable(
+                factory.createAndInitAccount(
+                    createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+                )
+            )
+        );
 
         // 4. fetch the signer that is supposed to be stored
         (bytes32 credIdHash, uint256 pubkeyX, uint256 pubkeyY) =
@@ -136,7 +154,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         emit AccountCreated(accountAddress, createFixtures.response.authData);
 
         // 4. we call the function that is supposed to trigger the call
-        factory.createAndInitAccount(createFixtures.response.authData, signature);
+        factory.createAndInitAccount(
+            createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+        );
     }
 
     function test_SetTheFactoryAddressInTheProxyStorageOnInit() external {
@@ -149,7 +169,9 @@ contract AccountFactory__CreateAndInitAccount is BaseTest {
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountAddress);
 
         // 3. we call the function that is supposed to trigger the call
-        address accountDeployed = factory.createAndInitAccount(createFixtures.response.authData, signature);
+        address accountDeployed = factory.createAndInitAccount(
+            createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+        );
 
         // 4. we check the factory address has been set in the proxy storage
         assertEq(SmartAccount(payable(accountDeployed)).factory(), address(factory));

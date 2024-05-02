@@ -150,11 +150,13 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
     ///     deployment. The use of the account factory is gated by this signature.
     /// @param signature The signature field presents in the userOp.
     /// @param initCode The initCode field presents in the userOp. It has been used to create the account
+    /// @param callData The callData field presents in the userOp.
     /// @return 0 if the signature is valid, 1 otherwise
     function _validateCreationSignature(
         uint256 nonce,
-        bytes calldata signature,
-        bytes calldata initCode
+        bytes calldata initCode,
+        bytes calldata callData,
+        bytes calldata signature
     )
         internal
         virtual
@@ -169,7 +171,7 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
         if (accountFactory != storedFactoryAddress) return Signature.State.FAILURE;
 
         // 3. decode the rest of the initCode (skip the first 4 bytes -- function selector)
-        (bytes memory authenticatorData,) = abi.decode(initCode[24:], (bytes, bytes));
+        (bytes memory authenticatorData,,) = abi.decode(initCode[24:], (bytes, bytes, bytes32));
 
         // 4. extract the signer from the authenticatorData
         // TODO: once tested, rework this shit by using a more efficient way
@@ -177,14 +179,17 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
             SmartAccount(payable(address(this))).extractSignerFromAuthData(authenticatorData);
 
         // 5. recreate the message and try to recover the signer
-        bytes memory message = abi.encode(Signature.Type.CREATION, authenticatorData, address(this), block.chainid);
+        bytes memory message =
+            abi.encode(Signature.Type.CREATION, authenticatorData, address(this), block.chainid, keccak256(callData));
 
         // 6. fetch the expected signer from the factory contract
         address expectedSigner = AccountFactory(storedFactoryAddress).owner();
 
         // 7. Check the signature is valid and revert if it is not
         // NOTE: The signature prefix, added manually to identify the signature, is removed before the recovery process
-        if (Signature.recover(expectedSigner, message, signature[1:]) == false) return Signature.State.FAILURE;
+        if (Signature.recover(expectedSigner, message, signature[1:]) == false) {
+            return Signature.State.FAILURE;
+        }
 
         // 8. Ensure the signer is allowed. This is the signer added by the factory during the deployment process.
         // solhint-disable-next-line var-name-mixedcase
@@ -249,7 +254,7 @@ contract SmartAccount is Initializable, UUPSUpgradeable, BaseAccount, SmartAccou
 
         // 1.b check the signature is a "creation" signature (length is checked by the signature library)
         if (signatureType == Signature.Type.CREATION) {
-            return _validateCreationSignature(userOp.nonce, userOp.signature, userOp.initCode);
+            return _validateCreationSignature(userOp.nonce, userOp.initCode, userOp.callData, userOp.signature);
         }
 
         return Signature.State.FAILURE;

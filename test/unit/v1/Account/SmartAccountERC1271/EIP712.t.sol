@@ -71,7 +71,11 @@ contract SmartAccountERC1271__EIP712 is BaseTest {
 
         // 8. deploy the proxy that targets the implementation and set the first signer using the creationAuthData
         bytes memory signature = craftDeploymentSignature(data.creationAuthData, accountFutureAddress);
-        account = SmartAccount(payable(factory.createAndInitAccount(data.creationAuthData, signature)));
+        account = SmartAccount(
+            payable(
+                factory.createAndInitAccount(data.creationAuthData, signature, createFixtures.transaction.calldataHash)
+            )
+        );
     }
 
     function _getDomainSeparator() internal pure returns (bytes32) {

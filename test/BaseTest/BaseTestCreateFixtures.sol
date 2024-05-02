@@ -28,12 +28,18 @@ struct FixturesResponse {
     bytes authData;
 }
 
+struct FixturesTransaction {
+    bytes callData;
+    bytes32 calldataHash;
+}
+
 struct CreateFixtures {
     uint256 id;
     FixturesUser user;
     FixturesSignature signature;
     FixturesSigner signer;
     FixturesResponse response;
+    FixturesTransaction transaction;
 }
 
 /// @title BaseTestCreateFixtures
@@ -90,6 +96,7 @@ contract BaseTestCreateFixtures is Test {
         FixturesSignature memory signature;
         FixturesSigner memory signer;
         FixturesResponse memory response;
+        FixturesTransaction memory transaction;
 
         // load and store the user data
         {
@@ -137,6 +144,14 @@ contract BaseTestCreateFixtures is Test {
             });
         }
 
+        // craft the dummy alldata passed during the deployment
+        {
+            bytes memory callData =
+                abi.encodeWithSignature("transfer(address,address,uint256)", address(234), address(500), 1);
+            bytes32 calldataHash = keccak256(callData);
+            transaction = FixturesTransaction({ callData: callData, calldataHash: calldataHash });
+        }
+
         // create the fixture and store it in the storage
         // forgefmt: disable-next-item
         createFixtures = CreateFixtures({
@@ -144,7 +159,8 @@ contract BaseTestCreateFixtures is Test {
             user: user,
             signature: signature,
             signer: signer,
-            response: response
+            response: response,
+            transaction: transaction
         });
     }
 }

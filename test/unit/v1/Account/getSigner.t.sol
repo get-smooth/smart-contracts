@@ -27,7 +27,13 @@ contract SmartAccount__GetSigner is BaseTest {
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountFutureAddress);
 
         // 3. deploy the proxy that targets the implementation and set the first signer
-        return SmartAccount(payable(factory.createAndInitAccount(createFixtures.response.authData, signature)));
+        return SmartAccount(
+            payable(
+                factory.createAndInitAccount(
+                    createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+                )
+            )
+        );
     }
 
     function test_ReturnsTheStoredSignerWhenPassingCredId() external {

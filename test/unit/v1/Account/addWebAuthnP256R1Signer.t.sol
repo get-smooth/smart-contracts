@@ -31,7 +31,13 @@ contract SmartAccount__AddWebAuthnP256R1Signer is BaseTest {
 
         // 5. deploy the proxy that targets the implementation and set the first signer
         bytes memory signature = craftDeploymentSignature(createFixtures.response.authData, accountFutureAddress);
-        account = SmartAccount(payable(factory.createAndInitAccount(createFixtures.response.authData, signature)));
+        account = SmartAccount(
+            payable(
+                factory.createAndInitAccount(
+                    createFixtures.response.authData, signature, createFixtures.transaction.calldataHash
+                )
+            )
+        );
     }
 
     function test_RevertsIfTheSignerAlreadyExists() external {

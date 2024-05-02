@@ -8,13 +8,13 @@ import { BaseScript } from "../Base.s.sol";
 /// @notice Create and init an account using an already deployed factory
 /// @dev    The signature must be signed by the admin of the factory
 contract FactoryCreateAndInitAccount is BaseScript {
-    function run() public broadcast returns (address accountAddress) {
+    function run() public returns (address accountAddress) {
         address factoryAddress = vm.envAddress("FACTORY");
         bytes memory authData = vm.envBytes("AUTH_DATA");
         bytes memory signature = vm.envBytes("SIGNATURE");
-        bytes memory callData = vm.envBytes("CALL_DATA");
+        bytes32 callDataHash = vm.envBytes32("CALLDATA_HASH");
 
-        return run(factoryAddress, authData, signature, callData);
+        return run(factoryAddress, authData, signature, callDataHash);
     }
 
     /// @notice Deploy an account and init it
@@ -23,7 +23,7 @@ contract FactoryCreateAndInitAccount is BaseScript {
         address factoryAddress,
         bytes memory authData,
         bytes memory signature,
-        bytes memory callData
+        bytes32 callDataHash
     )
         internal
         broadcast
@@ -36,7 +36,7 @@ contract FactoryCreateAndInitAccount is BaseScript {
         require(accountAddress.code.length == 0, "Account already exists");
 
         // deploy and init the account
-        address deployedAddress = factory.createAndInitAccount(authData, signature, keccak256(callData));
+        address deployedAddress = factory.createAndInitAccount(authData, signature, callDataHash);
 
         // ensure the account has been deployed at the correct address
         require(deployedAddress == accountAddress, "Invalid account address");

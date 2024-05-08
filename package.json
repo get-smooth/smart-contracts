@@ -1,11 +1,11 @@
 {
-  "name": "@0x90d2b2b7fb7599eebb6e7a32980857d8/smart-accounts",
+  "name": "@smoo.th/smart-accounts",
   "description": "",
   "version": "0.0.1",
-  "author": "0x90d2b2b7fb7599eebb6e7a32980857d8 https://github.com/0x90d2b2b7fb7599eebb6e7a32980857d8",
-  "repository": "github:@0x90d2b2b7fb7599eebb6e7a32980857d8/smart-accounts",
-  "bugs": "https://github.com/0x90d2b2b7fb7599eebb6e7a32980857d8/smart-accounts/issues",
-  "homepage": "https://github.com/0x90d2b2b7fb7599eebb6e7a32980857d8/smart-accounts#readme",
+  "author": "get-smooth https://github.com/get-smooth",
+  "repository": "github:@get-smooth/smart-accounts",
+  "bugs": "https://github.com/@get-smooth/smart-accounts/issues",
+  "homepage": "https://github.com/@get-smooth/smart-accounts#readme",
   "engines": {
     "node": ">= 18"
   },

@@ -6,17 +6,17 @@
 [![Github Actions][gha-release-badge]][gha-release-url] [![Foundry][foundry-badge]][foundry]
 [![License: MIT][license-badge]][license]
 
-[github-editor-url]: https://github.dev/get-smooth/smart-accounts/tree/main
+[github-editor-url]: https://github.dev/get-smooth/smart-contracts/tree/main
 [github-editor-badge]: https://img.shields.io/badge/Github-Open%20the%20Editor-purple?logo=github
-[gha-quality-url]: https://github.com/get-smooth/smart-accounts/actions/workflows/quality-checks.yml
-[gha-quality-badge]: https://github.com/get-smooth/smart-accounts/actions/workflows/quality-checks.yml/badge.svg?branch=main
-[gha-test-url]: https://github.com/get-smooth/smart-accounts/actions/workflows/tests.yml
-[gha-test-badge]: https://github.com/get-smooth/smart-accounts/actions/workflows/tests.yml/badge.svg?branch=main
-[gha-static-analysis-url]: https://github.com/get-smooth/smart-accounts/actions/workflows/static-analysis.yml
+[gha-quality-url]: https://github.com/get-smooth/smart-contracts/actions/workflows/quality-checks.yml
+[gha-quality-badge]: https://github.com/get-smooth/smart-contracts/actions/workflows/quality-checks.yml/badge.svg?branch=main
+[gha-test-url]: https://github.com/get-smooth/smart-contracts/actions/workflows/tests.yml
+[gha-test-badge]: https://github.com/get-smooth/smart-contracts/actions/workflows/tests.yml/badge.svg?branch=main
+[gha-static-analysis-url]: https://github.com/get-smooth/smart-contracts/actions/workflows/static-analysis.yml
 [gha-static-analysis-badge]:
   https://github.com/get-smooth/template-foundry/actions/workflows/static-analysis.yml/badge.svg?branch=main
-[gha-release-url]: https://github.com/get-smooth/smart-accounts/actions/workflows/release-package.yml
-[gha-release-badge]: https://github.com/get-smooth/smart-accounts/actions/workflows/release-package.yml/badge.svg
+[gha-release-url]: https://github.com/get-smooth/smart-contracts/actions/workflows/release-package.yml
+[gha-release-badge]: https://github.com/get-smooth/smart-contracts/actions/workflows/release-package.yml/badge.svg
 [foundry]: https://book.getfoundry.sh/
 [foundry-badge]: https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg
 [license]: ./LICENSE.md

@@ -1,11 +1,11 @@
 {
-  "name": "@smoo.th/smart-accounts",
+  "name": "@smoo.th/smart-contracts",
   "description": "",
   "version": "0.0.1",
   "author": "get-smooth https://github.com/get-smooth",
-  "repository": "github:@get-smooth/smart-accounts",
-  "bugs": "https://github.com/@get-smooth/smart-accounts/issues",
-  "homepage": "https://github.com/@get-smooth/smart-accounts#readme",
+  "repository": "github:@get-smooth/smart-contracts",
+  "bugs": "https://github.com/@get-smooth/smart-contracts/issues",
+  "homepage": "https://github.com/@get-smooth/smart-contracts#readme",
   "engines": {
     "node": ">= 18"
   },

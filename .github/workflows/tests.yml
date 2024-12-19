@@ -42,23 +42,5 @@ jobs:
             echo $(($EPOCHSECONDS - $EPOCHSECONDS % 604800))
           )" >> $GITHUB_ENV
 
-      # TODO: Rework the job to correctly print the output of the test command
-      - name: Run tests with gas reporting
-        run: forge test --gas-report > gasreport.ansi
-
-      - name: Compare gas reports
-        uses: Rubilmax/foundry-gas-diff@v3.14
-        with:
-          summaryQuantile: 0.8 # only display the 20% most significant gas diffs in the summary
-          sortCriteria: avg,max # sort diff rows by criteria
-          sortOrders: desc,asc # and directions
-        id: gas_diff
-
-      # Comment on the PR with the gas diff
-      - name: Add gas diff to sticky comment
-        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          # delete the comment in case changes no longer impact gas costs
-          delete: ${{ !steps.gas_diff.outputs.markdown }}
-          message: ${{ steps.gas_diff.outputs.markdown }}
+      - name: Run tests
+        run: forge test
